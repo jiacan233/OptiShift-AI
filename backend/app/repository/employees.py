@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-import json
-import sqlite3
 from typing import Any
+
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from ..database import Database, utc_now
 from ..models import Employee
+from ..models.orm import EmployeeRecord, SystemMetadataRecord
 
 
 class EmployeeNotFoundError(LookupError):
@@ -16,10 +19,6 @@ class ImmutableEmployeeFieldError(ValueError):
     pass
 
 
-def _value(value: Any) -> Any:
-    return getattr(value, "value", value)
-
-
 class EmployeeRepository:
     MUTABLE_FIELDS = {"role", "available_days", "leave_days", "preferred_shift"}
 
@@ -27,72 +26,66 @@ class EmployeeRepository:
         self.database = database
 
     @staticmethod
-    def _from_row(row: sqlite3.Row) -> Employee:
+    def _from_record(record: EmployeeRecord) -> Employee:
         return Employee(
-            id=row["id"],
-            role=row["role"],
-            skills=json.loads(row["skills_json"]),
-            available_days=json.loads(row["available_days_json"]),
-            leave_days=json.loads(row["leave_days_json"]),
-            preferred_shift=row["preferred_shift"],
+            id=record.id,
+            role=record.role,
+            skills=record.skills,
+            available_days=record.available_days,
+            leave_days=record.leave_days,
+            preferred_shift=record.preferred_shift,
         )
+
+    @staticmethod
+    def _increment_revision(session: Session) -> None:
+        statement = select(SystemMetadataRecord).where(
+            SystemMetadataRecord.key == "employee_revision"
+        )
+        if session.bind is not None and session.bind.dialect.name != "sqlite":
+            statement = statement.with_for_update()
+        revision = session.scalar(statement)
+        if revision is None:
+            session.add(SystemMetadataRecord(key="employee_revision", value="1"))
+        else:
+            revision.value = str(int(revision.value) + 1)
 
     def list(self) -> list[Employee]:
         employees, _revision = self.list_with_revision()
         return employees
 
     def list_with_revision(self) -> tuple[list[Employee], int]:
-        """Return employee rows and the revision from one SQLite snapshot."""
-        with self.database.transaction() as connection:
-            revision_row = connection.execute(
-                "SELECT value FROM system_metadata WHERE key = 'employee_revision'"
-            ).fetchone()
-            rows = connection.execute("SELECT * FROM employees ORDER BY id").fetchall()
-        revision = int(revision_row["value"]) if revision_row is not None else 0
-        return [self._from_row(row) for row in rows], revision
-
-    @staticmethod
-    def _increment_revision(connection: sqlite3.Connection) -> None:
-        connection.execute(
-            """
-            INSERT INTO system_metadata (key, value) VALUES ('employee_revision', '1')
-            ON CONFLICT(key) DO UPDATE
-            SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT)
-            """
-        )
+        with self.database.transaction() as session:
+            revision = session.get(SystemMetadataRecord, "employee_revision")
+            records = session.scalars(
+                select(EmployeeRecord).order_by(EmployeeRecord.id)
+            ).all()
+            value = int(revision.value) if revision is not None else 0
+            return [self._from_record(record) for record in records], value
 
     def get(self, employee_id: str) -> Employee | None:
-        with self.database.connect() as connection:
-            row = connection.execute(
-                "SELECT * FROM employees WHERE id = ?", (employee_id,)
-            ).fetchone()
-        return self._from_row(row) if row else None
+        with self.database.transaction() as session:
+            record = session.get(EmployeeRecord, employee_id)
+            return self._from_record(record) if record else None
 
     def create(self, employee: Employee) -> Employee:
         payload = employee.model_dump(mode="json")
         timestamp = utc_now()
         try:
-            with self.database.transaction(immediate=True) as connection:
-                connection.execute(
-                    """
-                    INSERT INTO employees (
-                        id, role, skills_json, available_days_json, leave_days_json,
-                        preferred_shift, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        payload["id"],
-                        payload["role"],
-                        json.dumps(payload["skills"]),
-                        json.dumps(payload["available_days"]),
-                        json.dumps(payload["leave_days"]),
-                        payload.get("preferred_shift"),
-                        timestamp,
-                        timestamp,
-                    ),
+            with self.database.transaction(immediate=True) as session:
+                session.add(
+                    EmployeeRecord(
+                        id=payload["id"],
+                        role=payload["role"],
+                        skills=payload["skills"],
+                        available_days=payload["available_days"],
+                        leave_days=payload["leave_days"],
+                        preferred_shift=payload.get("preferred_shift"),
+                        created_at=timestamp,
+                        updated_at=timestamp,
+                    )
                 )
-                self._increment_revision(connection)
-        except sqlite3.IntegrityError as exc:
+                self._increment_revision(session)
+        except IntegrityError as exc:
             raise ValueError(f"Employee {employee.id} already exists") from exc
         return employee
 
@@ -104,38 +97,29 @@ class EmployeeRepository:
         unknown = set(changes) - self.MUTABLE_FIELDS
         if unknown:
             raise ValueError(f"Unsupported employee fields: {', '.join(sorted(unknown))}")
-        with self.database.transaction(immediate=True) as connection:
-            current_row = connection.execute(
-                "SELECT * FROM employees WHERE id = ?", (employee_id,)
-            ).fetchone()
-            if current_row is None:
+
+        with self.database.transaction(immediate=True) as session:
+            statement = select(EmployeeRecord).where(EmployeeRecord.id == employee_id)
+            if self.database.dialect_name != "sqlite":
+                statement = statement.with_for_update()
+            record = session.scalar(statement)
+            if record is None:
                 raise EmployeeNotFoundError(employee_id)
-            current = self._from_row(current_row)
-            candidate = current.model_copy(update=changes)
-            candidate = Employee.model_validate(candidate.model_dump())
+            current = self._from_record(record)
+            candidate = Employee.model_validate(current.model_copy(update=changes).model_dump())
             payload = candidate.model_dump(mode="json")
-            connection.execute(
-                """
-                UPDATE employees
-                SET role = ?, available_days_json = ?, leave_days_json = ?,
-                    preferred_shift = ?, updated_at = ?
-                WHERE id = ?
-                """,
-                (
-                    payload["role"],
-                    json.dumps(payload["available_days"]),
-                    json.dumps(payload["leave_days"]),
-                    payload.get("preferred_shift"),
-                    utc_now(),
-                    employee_id,
-                ),
-            )
-            self._increment_revision(connection)
-        return candidate
+            record.role = payload["role"]
+            record.available_days = payload["available_days"]
+            record.leave_days = payload["leave_days"]
+            record.preferred_shift = payload.get("preferred_shift")
+            record.updated_at = utc_now()
+            self._increment_revision(session)
+            return candidate
 
     def delete(self, employee_id: str) -> None:
-        with self.database.transaction(immediate=True) as connection:
-            result = connection.execute("DELETE FROM employees WHERE id = ?", (employee_id,))
-            if result.rowcount == 0:
+        with self.database.transaction(immediate=True) as session:
+            record = session.get(EmployeeRecord, employee_id)
+            if record is None:
                 raise EmployeeNotFoundError(employee_id)
-            self._increment_revision(connection)
+            session.delete(record)
+            self._increment_revision(session)

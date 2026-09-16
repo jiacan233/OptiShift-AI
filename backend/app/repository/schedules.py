@@ -1,12 +1,18 @@
 from __future__ import annotations
 
-import json
-import sqlite3
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Any
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from ..database import Database, utc_now
 from ..models import Assignment, HistoryStatus, Schedule
+from ..models.orm import (
+    AssignmentRecord,
+    ScheduleRecord,
+    SystemMetadataRecord,
+)
 
 
 class ScheduleNotFoundError(LookupError):
@@ -35,77 +41,113 @@ class ScheduleRepository:
         self.database = database
 
     @staticmethod
-    def _load_assignments(connection: sqlite3.Connection, schedule_id: str) -> list[Assignment]:
-        rows = connection.execute(
-            """
-            SELECT employee_id, day, shift FROM assignments
-            WHERE schedule_id = ? ORDER BY day, shift, employee_id
-            """,
-            (schedule_id,),
-        ).fetchall()
-        return [Assignment(**dict(row)) for row in rows]
+    def _as_date(value: date | str) -> date:
+        return value if isinstance(value, date) else date.fromisoformat(value)
+
+    @staticmethod
+    def _load_assignments(session: Session, schedule_id: str) -> list[Assignment]:
+        records = session.scalars(
+            select(AssignmentRecord)
+            .where(AssignmentRecord.schedule_id == schedule_id)
+            .order_by(
+                AssignmentRecord.day,
+                AssignmentRecord.shift,
+                AssignmentRecord.employee_id,
+            )
+        ).all()
+        return [
+            Assignment(
+                employee_id=record.employee_id,
+                day=record.day,
+                shift=record.shift,
+            )
+            for record in records
+        ]
 
     @classmethod
-    def _schedule_from_row(
-        cls, connection: sqlite3.Connection, row: sqlite3.Row
-    ) -> Schedule:
+    def _schedule_from_record(cls, session: Session, record: ScheduleRecord) -> Schedule:
         return Schedule(
-            schedule_id=row["schedule_id"],
-            version=row["version"],
-            parent_schedule_id=row["parent_schedule_id"],
-            status=row["status"],
-            week_start=date.fromisoformat(row["week_start"]),
-            assignments=cls._load_assignments(connection, row["schedule_id"]),
-            created_at=datetime.fromisoformat(row["created_at"]),
+            schedule_id=record.schedule_id,
+            version=record.version,
+            parent_schedule_id=record.parent_schedule_id,
+            status=record.status,
+            week_start=record.week_start,
+            assignments=cls._load_assignments(session, record.schedule_id),
+            created_at=record.created_at,
         )
 
     @staticmethod
-    def _row_metadata(row: sqlite3.Row) -> dict[str, Any]:
+    def _record_metadata(record: ScheduleRecord) -> dict[str, Any]:
         return {
-            "schedule_id": row["schedule_id"],
-            "lineage_id": row["lineage_id"],
-            "version": row["version"],
-            "parent_schedule_id": row["parent_schedule_id"],
-            "base_schedule_id": row["base_schedule_id"],
-            "base_version": row["base_version"],
-            "status": row["status"],
-            "week_start": row["week_start"],
-            "validation": json.loads(row["validation_json"]),
-            "metadata": json.loads(row["metadata_json"]),
-            "created_at": row["created_at"],
-            "confirmed_at": row["confirmed_at"],
-            "cancelled_at": row["cancelled_at"],
+            "schedule_id": record.schedule_id,
+            "lineage_id": record.lineage_id,
+            "version": record.version,
+            "parent_schedule_id": record.parent_schedule_id,
+            "base_schedule_id": record.base_schedule_id,
+            "base_version": record.base_version,
+            "status": record.status,
+            "week_start": record.week_start.isoformat(),
+            "validation": dict(record.validation_json),
+            "metadata": dict(record.metadata_json),
+            "created_at": record.created_at.isoformat(),
+            "confirmed_at": (
+                record.confirmed_at.isoformat() if record.confirmed_at else None
+            ),
+            "cancelled_at": (
+                record.cancelled_at.isoformat() if record.cancelled_at else None
+            ),
         }
 
     @staticmethod
-    def _current_confirmed_row(
-        connection: sqlite3.Connection, week_start: date | str
-    ) -> sqlite3.Row | None:
-        week_value = week_start.isoformat() if isinstance(week_start, date) else week_start
-        return connection.execute(
-            """
-            SELECT * FROM schedules
-            WHERE week_start = ? AND status = 'confirmed'
-            ORDER BY confirmed_at DESC, created_at DESC, schedule_id DESC
-            LIMIT 1
-            """,
-            (week_value,),
-        ).fetchone()
+    def _lock(statement, session: Session):
+        if session.bind is not None and session.bind.dialect.name != "sqlite":
+            return statement.with_for_update()
+        return statement
 
-    @staticmethod
-    def _employee_revision(connection: sqlite3.Connection) -> int:
-        row = connection.execute(
-            "SELECT value FROM system_metadata WHERE key = 'employee_revision'"
-        ).fetchone()
-        return int(row["value"]) if row is not None else 0
+    @classmethod
+    def _current_confirmed_record(
+        cls,
+        session: Session,
+        week_start: date | str,
+        *,
+        lock: bool = False,
+    ) -> ScheduleRecord | None:
+        statement = (
+            select(ScheduleRecord)
+            .where(
+                ScheduleRecord.week_start == cls._as_date(week_start),
+                ScheduleRecord.status == "confirmed",
+            )
+            .order_by(
+                ScheduleRecord.confirmed_at.desc(),
+                ScheduleRecord.created_at.desc(),
+                ScheduleRecord.schedule_id.desc(),
+            )
+            .limit(1)
+        )
+        if lock:
+            statement = cls._lock(statement, session)
+        return session.scalar(statement)
 
-    @staticmethod
+    @classmethod
+    def _employee_revision(cls, session: Session, *, lock: bool = False) -> int:
+        statement = select(SystemMetadataRecord).where(
+            SystemMetadataRecord.key == "employee_revision"
+        )
+        if lock:
+            statement = cls._lock(statement, session)
+        record = session.scalar(statement)
+        return int(record.value) if record is not None else 0
+
+    @classmethod
     def _assert_expected_employee_revision(
-        connection: sqlite3.Connection, expected_revision: int | None
+        cls,
+        session: Session,
+        expected_revision: int | None,
     ) -> None:
         if expected_revision is None:
             return
-        if ScheduleRepository._employee_revision(connection) != expected_revision:
+        if cls._employee_revision(session, lock=True) != expected_revision:
             raise InvalidScheduleStateError(
                 "Employee master data changed while the schedule was being prepared"
             )
@@ -113,22 +155,24 @@ class ScheduleRepository:
     @classmethod
     def _assert_current_week_base(
         cls,
-        connection: sqlite3.Connection,
+        session: Session,
         *,
         week_start: date | str,
         base_schedule_id: str | None,
         base_version: int | None,
-    ) -> sqlite3.Row | None:
-        current = cls._current_confirmed_row(connection, week_start)
-        current_version = current["version"] if current is not None else None
+    ) -> ScheduleRecord | None:
+        current = cls._current_confirmed_record(
+            session, week_start, lock=True
+        )
+        current_version = current.version if current is not None else None
         if base_schedule_id is None:
             if current is not None:
                 raise VersionConflictError(current_version, None)
             return None
         if (
             current is None
-            or current["schedule_id"] != base_schedule_id
-            or current["version"] != base_version
+            or current.schedule_id != base_schedule_id
+            or current.version != base_version
         ):
             raise VersionConflictError(current_version, base_version)
         return current
@@ -136,31 +180,27 @@ class ScheduleRepository:
     @classmethod
     def _assert_history_dependency(
         cls,
-        connection: sqlite3.Connection,
+        session: Session,
         *,
         week_start: date | str,
         metadata: dict[str, Any],
     ) -> None:
-        week = (
-            week_start
-            if isinstance(week_start, date)
-            else date.fromisoformat(week_start)
-        )
+        week = cls._as_date(week_start)
         expected_id = metadata.get("history_schedule_id")
         expected_version = metadata.get("history_schedule_version")
-        current = cls._current_confirmed_row(connection, week - timedelta(days=7))
+        current = cls._current_confirmed_record(
+            session, week - timedelta(days=7), lock=True
+        )
         if expected_id is not None:
-            current_id = current["schedule_id"] if current is not None else None
-            current_version = current["version"] if current is not None else None
+            current_id = current.schedule_id if current is not None else None
+            current_version = current.version if current is not None else None
             if current_id != expected_id or current_version != expected_version:
                 raise VersionConflictError(current_version, expected_version)
             return
 
         if metadata.get("history_status") == HistoryStatus.KNOWN_EMPTY.value:
-            anchor = connection.execute(
-                "SELECT value FROM system_metadata WHERE key = 'initial_known_empty_week'"
-            ).fetchone()
-            if current is not None or anchor is None or anchor["value"] != week.isoformat():
+            anchor = session.get(SystemMetadataRecord, "initial_known_empty_week")
+            if current is not None or anchor is None or anchor.value != week.isoformat():
                 raise InvalidScheduleStateError(
                     "The known-empty history boundary changed; regenerate the draft"
                 )
@@ -180,19 +220,20 @@ class ScheduleRepository:
         metadata_payload = dict(metadata or {})
         if employee_revision is not None:
             metadata_payload["employee_revision"] = employee_revision
-        with self.database.transaction(immediate=True) as connection:
+
+        with self.database.transaction(immediate=True) as session:
             current = self._assert_current_week_base(
-                connection,
-                week_start=payload["week_start"],
+                session,
+                week_start=schedule.week_start,
                 base_schedule_id=base_schedule_id,
                 base_version=base_version,
             )
             if current is not None and (
-                current["lineage_id"] != lineage_id
+                current.lineage_id != lineage_id
                 or schedule.parent_schedule_id != base_schedule_id
-                or schedule.version != base_version + 1
+                or schedule.version != (base_version or 0) + 1
             ):
-                raise VersionConflictError(current["version"], base_version)
+                raise VersionConflictError(current.version, base_version)
             if current is None and (
                 base_schedule_id is not None
                 or base_version is not None
@@ -200,216 +241,203 @@ class ScheduleRepository:
                 or schedule.version != 1
             ):
                 raise VersionConflictError(None, base_version)
-            self._assert_expected_employee_revision(connection, employee_revision)
+            self._assert_expected_employee_revision(session, employee_revision)
             self._assert_history_dependency(
-                connection,
-                week_start=payload["week_start"],
+                session,
+                week_start=schedule.week_start,
                 metadata=metadata_payload,
             )
-            connection.execute(
-                """
-                INSERT INTO schedules (
-                    schedule_id, lineage_id, version, parent_schedule_id,
-                    base_schedule_id, base_version, status, week_start,
-                    validation_json, metadata_json, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?)
-                """,
-                (
-                    schedule.schedule_id,
-                    lineage_id,
-                    schedule.version,
-                    schedule.parent_schedule_id,
-                    base_schedule_id,
-                    base_version,
-                    payload["week_start"],
-                    json.dumps(validation),
-                    json.dumps(metadata_payload),
-                    payload["created_at"],
-                ),
-            )
-            connection.executemany(
-                """
-                INSERT INTO assignments (schedule_id, employee_id, day, shift)
-                VALUES (?, ?, ?, ?)
-                """,
+
+            schedule_record = ScheduleRecord(
+                    schedule_id=schedule.schedule_id,
+                    lineage_id=lineage_id,
+                    version=schedule.version,
+                    parent_schedule_id=schedule.parent_schedule_id,
+                    base_schedule_id=base_schedule_id,
+                    base_version=base_version,
+                    status="draft",
+                    week_start=schedule.week_start,
+                    validation_json=validation,
+                    metadata_json=metadata_payload,
+                    created_at=schedule.created_at,
+                )
+            session.add(schedule_record)
+            # AssignmentRecord does not expose an ORM relationship to ScheduleRecord.
+            # Flush the parent explicitly so foreign-key checks are deterministic on
+            # both SQLite and MySQL.
+            session.flush()
+            session.add_all(
                 [
-                    (
-                        schedule.schedule_id,
-                        assignment["employee_id"],
-                        assignment["day"],
-                        assignment["shift"],
+                    AssignmentRecord(
+                        schedule_id=schedule.schedule_id,
+                        employee_id=assignment["employee_id"],
+                        day=assignment["day"],
+                        shift=assignment["shift"],
                     )
                     for assignment in payload["assignments"]
-                ],
+                ]
             )
         return schedule
 
     def get(self, schedule_id: str, *, include_cancelled: bool = False) -> Schedule | None:
-        with self.database.connect() as connection:
-            row = connection.execute(
-                "SELECT * FROM schedules WHERE schedule_id = ?", (schedule_id,)
-            ).fetchone()
-            if row is None or (row["status"] == "cancelled" and not include_cancelled):
+        with self.database.transaction() as session:
+            record = session.get(ScheduleRecord, schedule_id)
+            if record is None or record.status == "cancelled":
                 return None
-            if row["status"] == "cancelled":
-                return None
-            return self._schedule_from_row(connection, row)
+            return self._schedule_from_record(session, record)
 
     def get_record(self, schedule_id: str) -> dict[str, Any] | None:
-        with self.database.connect() as connection:
-            row = connection.execute(
-                "SELECT * FROM schedules WHERE schedule_id = ?", (schedule_id,)
-            ).fetchone()
-            if row is None:
+        with self.database.transaction() as session:
+            record = session.get(ScheduleRecord, schedule_id)
+            if record is None:
                 return None
-            record = self._row_metadata(row)
-            if row["status"] != "cancelled":
-                record["schedule"] = self._schedule_from_row(connection, row)
-            return record
+            result = self._record_metadata(record)
+            if record.status != "cancelled":
+                result["schedule"] = self._schedule_from_record(session, record)
+            return result
 
-    def assert_current_base(self, base_schedule_id: str, base_version: int) -> dict[str, Any]:
-        with self.database.connect() as connection:
-            base = connection.execute(
-                "SELECT * FROM schedules WHERE schedule_id = ? AND status = 'confirmed'",
-                (base_schedule_id,),
-            ).fetchone()
+    def assert_current_base(
+        self, base_schedule_id: str, base_version: int
+    ) -> dict[str, Any]:
+        with self.database.transaction() as session:
+            base = session.scalar(
+                select(ScheduleRecord).where(
+                    ScheduleRecord.schedule_id == base_schedule_id,
+                    ScheduleRecord.status == "confirmed",
+                )
+            )
             if base is None:
                 raise ScheduleNotFoundError(base_schedule_id)
-            current = self._current_confirmed_row(connection, base["week_start"])
-            current_version = current["version"] if current else None
+            current = self._current_confirmed_record(session, base.week_start)
+            current_version = current.version if current else None
             if (
-                base["version"] != base_version
+                base.version != base_version
                 or current is None
-                or current["schedule_id"] != base_schedule_id
+                or current.schedule_id != base_schedule_id
                 or current_version != base_version
             ):
                 raise VersionConflictError(current_version, base_version)
-            record = self._row_metadata(base)
-            record["schedule"] = self._schedule_from_row(connection, base)
+            record = self._record_metadata(base)
+            record["schedule"] = self._schedule_from_record(session, base)
             return record
 
     def confirm(self, schedule_id: str, version: int) -> Schedule:
-        with self.database.transaction(immediate=True) as connection:
-            draft = connection.execute(
-                "SELECT * FROM schedules WHERE schedule_id = ?", (schedule_id,)
-            ).fetchone()
-            if draft is None or draft["status"] != "draft":
+        with self.database.transaction(immediate=True) as session:
+            statement = self._lock(
+                select(ScheduleRecord).where(
+                    ScheduleRecord.schedule_id == schedule_id
+                ),
+                session,
+            )
+            draft = session.scalar(statement)
+            if draft is None or draft.status != "draft":
                 raise DraftNotFoundError(schedule_id)
-            if draft["version"] != version:
-                raise VersionConflictError(draft["version"], version)
-            validation = json.loads(draft["validation_json"])
+            if draft.version != version:
+                raise VersionConflictError(draft.version, version)
+            validation = draft.validation_json
             if not bool(validation.get("passed", validation.get("valid", False))):
                 raise InvalidScheduleStateError("Only a valid draft can be confirmed")
 
             self._assert_current_week_base(
-                connection,
-                week_start=draft["week_start"],
-                base_schedule_id=draft["base_schedule_id"],
-                base_version=draft["base_version"],
+                session,
+                week_start=draft.week_start,
+                base_schedule_id=draft.base_schedule_id,
+                base_version=draft.base_version,
             )
-            metadata = json.loads(draft["metadata_json"])
             self._assert_history_dependency(
-                connection,
-                week_start=draft["week_start"],
-                metadata=metadata,
+                session,
+                week_start=draft.week_start,
+                metadata=draft.metadata_json,
             )
             self._assert_expected_employee_revision(
-                connection, metadata.get("employee_revision")
+                session, draft.metadata_json.get("employee_revision")
             )
 
-            following_week = date.fromisoformat(draft["week_start"]) + timedelta(days=7)
-            dependent = self._current_confirmed_row(connection, following_week)
+            dependent = self._current_confirmed_record(
+                session, draft.week_start + timedelta(days=7), lock=True
+            )
             if dependent is not None:
                 raise InvalidScheduleStateError(
                     "A following-week schedule is already confirmed; replan it before changing this week"
                 )
 
-            connection.execute(
-                """
-                UPDATE schedules SET status = 'confirmed', confirmed_at = ?
-                WHERE schedule_id = ?
-                """,
-                (utc_now(), schedule_id),
-            )
-            confirmed = connection.execute(
-                "SELECT * FROM schedules WHERE schedule_id = ?", (schedule_id,)
-            ).fetchone()
-            return self._schedule_from_row(connection, confirmed)
+            draft.status = "confirmed"
+            draft.confirmed_at = utc_now()
+            session.flush()
+            return self._schedule_from_record(session, draft)
 
     def cancel(self, schedule_id: str, version: int) -> dict[str, Any]:
-        with self.database.transaction(immediate=True) as connection:
-            draft = connection.execute(
-                "SELECT * FROM schedules WHERE schedule_id = ?", (schedule_id,)
-            ).fetchone()
-            if draft is None or draft["status"] != "draft":
-                raise DraftNotFoundError(schedule_id)
-            if draft["version"] != version:
-                raise VersionConflictError(draft["version"], version)
-            connection.execute(
-                """
-                UPDATE schedules SET status = 'cancelled', cancelled_at = ?
-                WHERE schedule_id = ?
-                """,
-                (utc_now(), schedule_id),
+        with self.database.transaction(immediate=True) as session:
+            statement = self._lock(
+                select(ScheduleRecord).where(
+                    ScheduleRecord.schedule_id == schedule_id
+                ),
+                session,
             )
+            draft = session.scalar(statement)
+            if draft is None or draft.status != "draft":
+                raise DraftNotFoundError(schedule_id)
+            if draft.version != version:
+                raise VersionConflictError(draft.version, version)
+            draft.status = "cancelled"
+            draft.cancelled_at = utc_now()
             return {
                 "schedule_id": schedule_id,
                 "version": version,
                 "status": "cancelled",
-                "base_schedule_id": draft["base_schedule_id"],
+                "base_schedule_id": draft.base_schedule_id,
             }
 
     def versions(self, schedule_id: str) -> list[dict[str, Any]]:
-        with self.database.connect() as connection:
-            source = connection.execute(
-                "SELECT lineage_id FROM schedules WHERE schedule_id = ?", (schedule_id,)
-            ).fetchone()
+        with self.database.transaction() as session:
+            source = session.get(ScheduleRecord, schedule_id)
             if source is None:
                 raise ScheduleNotFoundError(schedule_id)
-            rows = connection.execute(
-                """
-                SELECT * FROM schedules WHERE lineage_id = ?
-                ORDER BY version DESC, created_at DESC
-                """,
-                (source["lineage_id"],),
-            ).fetchall()
-            return [self._row_metadata(row) for row in rows]
+            records = session.scalars(
+                select(ScheduleRecord)
+                .where(ScheduleRecord.lineage_id == source.lineage_id)
+                .order_by(
+                    ScheduleRecord.version.desc(), ScheduleRecord.created_at.desc()
+                )
+            ).all()
+            return [self._record_metadata(record) for record in records]
 
     def latest(
         self, *, status: str = "confirmed", week_start: date | None = None
     ) -> Schedule | None:
-        clauses = ["status = ?"]
-        params: list[Any] = [status]
+        statement = select(ScheduleRecord).where(ScheduleRecord.status == status)
         if week_start is not None:
-            clauses.append("week_start = ?")
-            params.append(week_start.isoformat())
-        with self.database.connect() as connection:
-            if status == "confirmed":
-                ordering = (
-                    "week_start DESC, confirmed_at DESC, created_at DESC, schedule_id DESC"
-                )
-            else:
-                ordering = "week_start DESC, version DESC, created_at DESC"
-            row = connection.execute(
-                f"""
-                SELECT * FROM schedules WHERE {' AND '.join(clauses)}
-                ORDER BY {ordering} LIMIT 1
-                """,
-                params,
-            ).fetchone()
-            return self._schedule_from_row(connection, row) if row else None
+            statement = statement.where(ScheduleRecord.week_start == week_start)
+        if status == "confirmed":
+            statement = statement.order_by(
+                ScheduleRecord.week_start.desc(),
+                ScheduleRecord.confirmed_at.desc(),
+                ScheduleRecord.created_at.desc(),
+                ScheduleRecord.schedule_id.desc(),
+            )
+        else:
+            statement = statement.order_by(
+                ScheduleRecord.week_start.desc(),
+                ScheduleRecord.version.desc(),
+                ScheduleRecord.created_at.desc(),
+            )
+        with self.database.transaction() as session:
+            record = session.scalar(statement.limit(1))
+            return self._schedule_from_record(session, record) if record else None
 
     def confirmed_for_week(self, week_start: date) -> Schedule | None:
         return self.latest(status="confirmed", week_start=week_start)
 
-    def current_confirmed_record_for_week(self, week_start: date) -> dict[str, Any] | None:
-        with self.database.connect() as connection:
-            row = self._current_confirmed_row(connection, week_start)
-            if row is None:
+    def current_confirmed_record_for_week(
+        self, week_start: date
+    ) -> dict[str, Any] | None:
+        with self.database.transaction() as session:
+            record = self._current_confirmed_record(session, week_start)
+            if record is None:
                 return None
-            record = self._row_metadata(row)
-            record["schedule"] = self._schedule_from_row(connection, row)
-            return record
+            result = self._record_metadata(record)
+            result["schedule"] = self._schedule_from_record(session, record)
+            return result
 
     def previous_week_context(
         self,
@@ -418,55 +446,43 @@ class ScheduleRepository:
         allow_bootstrap: bool = False,
         allow_ephemeral_known_empty: bool = False,
     ) -> tuple[Schedule | None, HistoryStatus]:
-        """Read preceding history and persist the sole explicitly empty anchor."""
-        previous_week = week_start.fromordinal(week_start.toordinal() - 7)
-        with self.database.transaction(immediate=True) as connection:
-            previous = self._current_confirmed_row(connection, previous_week)
+        previous_week = week_start - timedelta(days=7)
+        with self.database.transaction(immediate=True) as session:
+            previous = self._current_confirmed_record(
+                session, previous_week, lock=True
+            )
             if previous is not None:
-                return self._schedule_from_row(connection, previous), HistoryStatus.AVAILABLE
+                return (
+                    self._schedule_from_record(session, previous),
+                    HistoryStatus.AVAILABLE,
+                )
 
-            anchor = connection.execute(
-                "SELECT value FROM system_metadata WHERE key = 'initial_known_empty_week'"
-            ).fetchone()
+            anchor = session.get(SystemMetadataRecord, "initial_known_empty_week")
             if anchor is None and allow_bootstrap:
-                schedule_exists = connection.execute(
-                    "SELECT 1 FROM schedules LIMIT 1"
-                ).fetchone()
+                schedule_exists = session.scalar(select(ScheduleRecord.schedule_id).limit(1))
                 if schedule_exists is None:
-                    connection.execute(
-                        """
-                        INSERT INTO system_metadata (key, value)
-                        VALUES ('initial_known_empty_week', ?)
-                        """,
-                        (week_start.isoformat(),),
+                    anchor = SystemMetadataRecord(
+                        key="initial_known_empty_week", value=week_start.isoformat()
                     )
-                    anchor_week = week_start.isoformat()
-                else:
-                    anchor_week = None
-            elif anchor is not None:
-                anchor_week = anchor["value"]
-            else:
-                anchor_week = None
+                    session.add(anchor)
 
-            if (
-                anchor is None
-                and not allow_bootstrap
-                and allow_ephemeral_known_empty
-            ):
-                schedule_exists = connection.execute(
-                    "SELECT 1 FROM schedules LIMIT 1"
-                ).fetchone()
+            if anchor is None and not allow_bootstrap and allow_ephemeral_known_empty:
+                schedule_exists = session.scalar(select(ScheduleRecord.schedule_id).limit(1))
                 if schedule_exists is None:
                     return None, HistoryStatus.KNOWN_EMPTY
 
-            if anchor_week == week_start.isoformat():
+            if anchor is not None and anchor.value == week_start.isoformat():
                 return None, HistoryStatus.KNOWN_EMPTY
             return None, HistoryStatus.UNAVAILABLE
 
     def has_confirmed_before(self, week_start: date) -> bool:
-        with self.database.connect() as connection:
-            row = connection.execute(
-                "SELECT 1 FROM schedules WHERE status = 'confirmed' AND week_start < ? LIMIT 1",
-                (week_start.isoformat(),),
-            ).fetchone()
-        return row is not None
+        with self.database.transaction() as session:
+            schedule_id = session.scalar(
+                select(ScheduleRecord.schedule_id)
+                .where(
+                    ScheduleRecord.status == "confirmed",
+                    ScheduleRecord.week_start < week_start,
+                )
+                .limit(1)
+            )
+            return schedule_id is not None

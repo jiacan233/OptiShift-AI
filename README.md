@@ -2,6 +2,12 @@
 
 OptiShift AI 是一个面向门店周排班的可解释 Web 应用。它把自然语言或结构化变更转换为经过校验的排班请求，由 OR-Tools CP-SAT 生成排班，再由独立规则校验器验收。所有结果先保存为草稿，只有通过校验且版本仍有效时才能确认。
 
+**Repository:** [github.com/jiacan233/OptiShift-AI](https://github.com/jiacan233/OptiShift-AI)
+
+## Live Demo
+
+CloudBase 公网地址将在首次生产部署和线上验收通过后写入此处。
+
 ## Architecture
 
 ```mermaid
@@ -12,7 +18,9 @@ flowchart LR
   Solver --> Validator[Independent Validator]
   Solver --> Diagnosis[Infeasible Diagnosis]
   Validator --> State[Draft / Confirm / Versions]
-  State --> DB[(SQLite)]
+  State --> DB[(SQLAlchemy Repository)]
+  DB --> Local[(SQLite · Local)]
+  DB --> Prod[(CloudBase MySQL · Production)]
 ```
 
 LLM 仅用于意图解析、实体候选提取和可选的解释润色。员工技能、约束判断和最终排班均来自确定性代码与员工主数据。没有 API Key 时，结构化操作、预设、求解、校验、Diff 和诊断仍可使用。
@@ -22,7 +30,7 @@ LLM 仅用于意图解析、实体候选提取和可选的解释润色。员工�
 - Frontend: React, Vite, TypeScript, Tailwind CSS
 - Backend: FastAPI, Pydantic
 - Optimization: Google OR-Tools CP-SAT
-- Persistence: SQLite
+- Persistence: SQLAlchemy 2.x, Alembic, SQLite (local), CloudBase MySQL (production)
 - Packaging: single-service Docker image
 
 ## Local Setup
@@ -57,13 +65,15 @@ npm run dev
 docker compose up --build
 ```
 
-浏览器打开 `http://localhost:8000`。SQLite 数据保存在命名卷 `optishift-data` 中。
+浏览器打开 `http://localhost:8080`。本地 Docker Compose 使用 SQLite，并把数据保存在命名卷 `optishift-data` 中。
 
 ## Environment Variables
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `DATABASE_URL` | SQLite connection URL | `sqlite:///./data/optishift.db` |
+| `APP_ENV` | `development` or `production`; production requires MySQL | `development` |
+| `DATABASE_URL` | SQLAlchemy URL for SQLite or MySQL | `sqlite:///./data/optishift.db` |
+| `PORT` | HTTP listening port used by CloudBase Run | `8080` |
 | `LLM_ENABLED` | Enable optional LLM parsing/polish | `false` |
 | `LLM_API_KEY` | Optional provider key | empty |
 | `LLM_MODEL` | Optional provider model | `gpt-4.1-mini` |
@@ -79,6 +89,19 @@ docker compose up --build
 - **Schedule:** schedule ID, version, parent/base relationship, week start, assignments, status and timestamp.
 - **Schedule Request:** generate/replan/validate intent, explicit base ID/version, requested changes and minimize-changes flag.
 - **Scheduling Context:** base schedule, employee snapshot, rules, requested changes and previous-week history state (`known_empty`, `available`, or `unavailable`).
+
+## Database and Migrations
+
+本地开发使用 SQLite，生产环境通过同一个 `DATABASE_URL` 使用 CloudBase MySQL。Repository 只维护一套 SQLAlchemy ORM 业务逻辑；`APP_ENV=production` 时若未配置 MySQL，应用会明确启动失败，不会回退到容器内 SQLite。
+
+从空数据库创建完整 Schema：
+
+```powershell
+alembic upgrade head
+python -m backend.app.scripts.seed_demo
+```
+
+Seed 是幂等的：只补充缺失的 Demo 员工，不覆盖已有员工资料，也不会创建重复记录。
 
 ## Hard Constraints
 
@@ -187,9 +210,22 @@ Playwright 用例覆盖正常生成并确认 v1、E02 周五请假后最小扰�
 
 ## Deployment
 
-Dockerfile 使用 Node 构建 React 静态资源，并把产物复制到 Python 运行镜像，由 FastAPI 同时提供 API 和前端。生产环境只需一个 Web Service 与一个持久化 SQLite 路径。
+Dockerfile 使用 Node 构建 React 静态资源，并把产物复制到 Python 运行镜像，由 FastAPI 同时提供 API 和前端。容器启动时依次执行 Alembic Migration、幂等 Demo Seed，然后在 `0.0.0.0:$PORT` 启动 FastAPI。
 
-仓库内的 `render.yaml` 可创建 Docker Web Service 与 1 GB 持久化磁盘。部署前在平台中按需设置 `LLM_ENABLED`、`LLM_API_KEY` 和 `LLM_MODEL`；不配置 LLM 也能完整运行核心排班流程。
+CloudBase Run 使用根目录 Dockerfile、服务端口 `8080` 和 `GET /health` 健康检查。生产环境至少配置：
+
+```env
+APP_ENV=production
+DATABASE_URL=mysql+pymysql://USER:PASSWORD@INTERNAL_HOST:3306/DATABASE?charset=utf8mb4
+PORT=8080
+LLM_ENABLED=false
+```
+
+CloudBase 服务应连接 MySQL 内网地址并开启与数据库一致的 VPC。Git 部署绑定该仓库的 `main` 分支并开启自动部署；每次 push 会构建同一个单服务镜像并更新相同公网 URL。
+
+## CI
+
+`.github/workflows/ci.yml` 在每次 push 和 pull request 时运行后端测试、前端 lint/build，并在两者通过后验证生产 Docker 镜像能够构建。
 
 ## Interview Demo Flow
 

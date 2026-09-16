@@ -11,6 +11,6 @@ employee_repository = EmployeeRepository(database)
 schedule_repository = ScheduleRepository(database)
 scheduling_service = SchedulingService(employee_repository, schedule_repository)
 
-# Clarifications are short-lived UI interactions. Core schedules and versions remain in SQLite.
+# Clarifications are short-lived UI interactions. Core schedules and versions remain in the
+# configured persistent database.
 pending_clarifications: dict[str, dict[str, Any]] = {}
-
