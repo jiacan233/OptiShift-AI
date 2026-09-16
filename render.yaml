@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: optishift-ai
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:////var/data/optishift.db
+      - key: LLM_ENABLED
+        value: "false"
+      - key: SOLVER_RANDOM_SEED
+        value: "42"
+      - key: SOLVER_MAX_TIME_SECONDS
+        value: "10"
+    disk:
+      name: optishift-data
+      mountPath: /var/data
+      sizeGB: 1

@@ -1,0 +1,15 @@
+services:
+  optishift:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: sqlite:////app/data/optishift.db
+      LLM_ENABLED: "false"
+    volumes:
+      - optishift-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  optishift-data:
+
