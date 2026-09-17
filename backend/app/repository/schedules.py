@@ -119,6 +119,7 @@ class ScheduleRepository:
                 ScheduleRecord.status == "confirmed",
             )
             .order_by(
+                ScheduleRecord.version.desc(),
                 ScheduleRecord.confirmed_at.desc(),
                 ScheduleRecord.created_at.desc(),
                 ScheduleRecord.schedule_id.desc(),
@@ -411,6 +412,7 @@ class ScheduleRepository:
         if status == "confirmed":
             statement = statement.order_by(
                 ScheduleRecord.week_start.desc(),
+                ScheduleRecord.version.desc(),
                 ScheduleRecord.confirmed_at.desc(),
                 ScheduleRecord.created_at.desc(),
                 ScheduleRecord.schedule_id.desc(),
