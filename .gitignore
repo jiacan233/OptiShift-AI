@@ -26,8 +26,8 @@ frontend/playwright-report/
 *.sqlite3
 *.db-shm
 *.db-wal
-data/
-backend/data/
+/data/
+/backend/data/
 
 # Editors and OS
 .idea/

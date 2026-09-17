@@ -18,8 +18,9 @@ frontend/playwright-report
 frontend/*.tsbuildinfo
 frontend/vite.config.js
 frontend/vite.config.d.ts
-data
-backend/data
+/data
+/backend/data
+!backend/app/data/rules.json
 *.db
 *.sqlite
 *.sqlite3

@@ -1,0 +1,34 @@
+{
+  "config": {
+    "manager_per_shift": 1,
+    "beverage_per_shift": 2,
+    "cashier_per_shift": 1,
+    "weekday_min_staff": 4,
+    "weekend_min_staff": 6,
+    "max_shifts_per_week": 5,
+    "max_consecutive_days": 5,
+    "max_time_seconds": 10,
+    "random_seed": 42,
+    "num_search_workers": 1,
+    "objective": {
+      "preference_reward": 5,
+      "workload_gap_penalty": 2,
+      "schedule_change_penalty": 8
+    }
+  },
+  "definitions": [
+    {"id": "H01", "category": "hard", "name": "One shift per day", "description": "Each employee can work at most one shift per day."},
+    {"id": "R01", "category": "hard", "name": "Manager coverage", "description": "Every shift requires at least 1 employee with manager skill."},
+    {"id": "R02", "category": "hard", "name": "Beverage coverage", "description": "Every shift requires at least 2 beverage-skilled employees."},
+    {"id": "R03", "category": "hard", "name": "Cashier coverage", "description": "Every shift requires at least 1 cashier-skilled employee."},
+    {"id": "R04", "category": "hard", "name": "Minimum staffing", "description": "Weekday shifts require 4 staff; weekend shifts require 6 staff."},
+    {"id": "R05", "category": "hard", "name": "Weekly work limit", "description": "An employee can work at most 5 shifts each week."},
+    {"id": "R06", "category": "hard", "name": "Consecutive-day limit", "description": "An employee can work at most 5 consecutive days, including the prior-week boundary."},
+    {"id": "R07", "category": "hard", "name": "Evening-to-morning rest", "description": "An evening shift cannot be followed by a morning shift, including across weeks."},
+    {"id": "R08", "category": "hard", "name": "Availability and leave", "description": "Assignments must respect availability, leave, and requested temporary changes."},
+    {"id": "R09", "category": "hard", "name": "Verified skills", "description": "Coverage skills come only from employee master data."},
+    {"id": "S01", "category": "soft", "name": "Shift preference", "description": "Reward a preferred-shift assignment by +5."},
+    {"id": "S02", "category": "soft", "name": "Workload balance", "description": "Penalize the maximum workload gap by -2 per shift."},
+    {"id": "S03", "category": "soft", "name": "Minimal replan changes", "description": "During replanning, penalize each changed assignment by -8."}
+  ]
+}
