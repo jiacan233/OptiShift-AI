@@ -5,6 +5,7 @@ import { useAppStore } from '@/store/AppStore'
 import { ScheduleWorkbench } from '@/pages/ScheduleWorkbench'
 import { EmployeesPage } from '@/pages/EmployeesPage'
 import { RulesPage } from '@/pages/RulesPage'
+import { errorCodeLabel, localizeMessage } from '@/lib/presentation'
 
 export default function App() {
   const store = useAppStore()
@@ -24,8 +25,8 @@ export default function App() {
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold">操作未完成</p>
-            <p className="mt-0.5 text-sm text-red-700">{store.error.message}</p>
-            <p className="mt-1 font-mono text-[10px] uppercase tracking-wide text-red-500">{store.error.code}</p>
+            <p className="mt-0.5 text-sm text-red-700">{localizeMessage(store.error.message, '请求未完成，请稍后重试。')}</p>
+            <p className="mt-1 text-[10px] font-semibold tracking-wide text-red-500">错误类型：{errorCodeLabel(store.error.code)}</p>
           </div>
           <button onClick={store.dismissError} className="rounded-lg p-1 text-red-500 hover:bg-red-100" aria-label="关闭错误">
             <X className="h-4 w-4" />

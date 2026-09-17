@@ -39,10 +39,10 @@ test.describe.serial('AI 智能排班完整流程', () => {
     expect(result.schedule?.assignments.length).toBeGreaterThan(0)
     expect(result.validation).toMatchObject({ passed: true, passed_count: 10, total: 10 })
 
-    await expect(page.getByText('Draft v1 等待确认', { exact: true })).toBeVisible()
-    await expect(page.getByRole('heading', { name: /· v1 draft/i })).toBeVisible()
-    await expect(page.getByText('10 / 10 PASS', { exact: true })).toBeVisible()
-    await expect(page.getByRole('button', { name: /^查看 (Mon|Tue|Wed|Thu|Fri|Sat|Sun) (morning|evening) 班次详情$/ })).toHaveCount(14)
+    await expect(page.getByText('草稿版本 1 等待确认', { exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /· v1 待确认草稿/ })).toBeVisible()
+    await expect(page.getByText('10 / 10 项 全部通过', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^查看周[一二三四五六日](早班|晚班)详情$/ })).toHaveCount(14)
 
     const confirmResponsePromise = page.waitForResponse((response) => (
       response.url().endsWith('/api/schedule/confirm')
@@ -53,13 +53,13 @@ test.describe.serial('AI 智能排班完整流程', () => {
     expect(confirmResponse.ok()).toBeTruthy()
 
     await expect(page.getByRole('status')).toContainText('排班 v1 已确认并生效。')
-    await expect(page.getByRole('heading', { name: /· v1 confirmed/i })).toBeVisible()
-    await expect(versionsPanel(page).getByText('v1 · confirmed', { exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /· v1 已确认生效/ })).toBeVisible()
+    await expect(versionsPanel(page).getByText('版本 1 · 已确认生效', { exact: true })).toBeVisible()
   })
 
   test('E02 周五请假会展示差异，确认后产生 v2 正式版本', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: /· v1 confirmed/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /· v1 已确认生效/ })).toBeVisible()
 
     const replanResponsePromise = page.waitForResponse((response) => (
       response.url().endsWith('/api/schedule/replan')
@@ -77,14 +77,14 @@ test.describe.serial('AI 智能排班完整流程', () => {
     expect(result.diff?.changed_shifts).toBeGreaterThan(0)
     expect(result.diff?.removed.some((assignment) => assignment.employee_id === 'E02')).toBeTruthy()
 
-    await expect(page.getByText('Draft v2 等待确认', { exact: true })).toBeVisible()
-    await expect(page.getByRole('heading', { name: /· v2 draft/i })).toBeVisible()
-    await expect(page.getByText('10 / 10 PASS', { exact: true })).toBeVisible()
-    const diffPanel = page.locator('section').filter({ hasText: 'Ghost Diff' })
+    await expect(page.getByText('草稿版本 2 等待确认', { exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /· v2 待确认草稿/ })).toBeVisible()
+    await expect(page.getByText('10 / 10 项 全部通过', { exact: true })).toBeVisible()
+    const diffPanel = page.locator('section').filter({ hasText: '变更明细' })
     await expect(diffPanel).toBeVisible()
     await expect(diffPanel.getByText('E02', { exact: true }).first()).toBeVisible()
-    await expect(versionsPanel(page).getByText('v2 · draft', { exact: true })).toBeVisible()
-    await expect(versionsPanel(page).getByText('v1 · confirmed', { exact: true })).toBeVisible()
+    await expect(versionsPanel(page).getByText('版本 2 · 待确认草稿', { exact: true })).toBeVisible()
+    await expect(versionsPanel(page).getByText('版本 1 · 已确认生效', { exact: true })).toBeVisible()
 
     const confirmResponsePromise = page.waitForResponse((response) => (
       response.url().endsWith('/api/schedule/confirm')
@@ -97,15 +97,15 @@ test.describe.serial('AI 智能排班完整流程', () => {
     expect(confirmed).toMatchObject({ status: 'confirmed', version: 2, schedule_status: 'confirmed' })
 
     await expect(page.getByRole('status')).toContainText('排班 v2 已确认并生效。')
-    await expect(page.getByRole('heading', { name: /· v2 confirmed/i })).toBeVisible()
-    await expect(page.getByText('Draft v2 等待确认', { exact: true })).toHaveCount(0)
-    await expect(versionsPanel(page).getByText('v2 · confirmed', { exact: true })).toBeVisible()
-    await expect(versionsPanel(page).getByText('v1 · confirmed', { exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /· v2 已确认生效/ })).toBeVisible()
+    await expect(page.getByText('草稿版本 2 等待确认', { exact: true })).toHaveCount(0)
+    await expect(versionsPanel(page).getByText('版本 2 · 已确认生效', { exact: true })).toBeVisible()
+    await expect(versionsPanel(page).getByText('版本 1 · 已确认生效', { exact: true })).toBeVisible()
   })
 
   test('不可行请求会展示冲突且不会生成非法草稿', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: /· v2 confirmed/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /· v2 已确认生效/ })).toBeVisible()
 
     const infeasibleResponsePromise = page.waitForResponse((response) => (
       response.url().endsWith('/api/schedule/generate')
@@ -121,11 +121,11 @@ test.describe.serial('AI 智能排班完整流程', () => {
     expect(result.conflicts?.length).toBeGreaterThan(0)
     expect('schedule' in result).toBe(false)
 
-    await expect(page.getByText('未生成非法排班', { exact: true })).toBeVisible()
-    await expect(page.getByText(/shortage \d+/).first()).toBeVisible()
-    await expect(page.getByRole('heading', { name: /· v2 confirmed/i })).toBeVisible()
-    await expect(page.getByText(/Draft v\d+ 等待确认/)).toHaveCount(0)
+    await expect(page.getByText('系统未生成违规排班', { exact: true })).toBeVisible()
+    await expect(page.getByText(/缺少 \d+ 人/).first()).toBeVisible()
+    await expect(page.getByRole('heading', { name: /· v2 已确认生效/ })).toBeVisible()
+    await expect(page.getByText(/草稿版本 \d+ 等待确认/)).toHaveCount(0)
     await expect(page.getByRole('button', { name: '确认变更' })).toHaveCount(0)
-    await expect(versionsPanel(page).getByText('v2 · confirmed', { exact: true })).toBeVisible()
+    await expect(versionsPanel(page).getByText('版本 2 · 已确认生效', { exact: true })).toBeVisible()
   })
 })

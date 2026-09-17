@@ -12,6 +12,7 @@ import { RuleChecklist } from '@/components/schedule/RuleChecklist'
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid'
 import { ShiftDrawer } from '@/components/schedule/ShiftDrawer'
 import { VersionHistory } from '@/components/schedule/VersionHistory'
+import { STATUS_LABELS } from '@/lib/presentation'
 import { useAppStore } from '@/store/AppStore'
 import type { RunAction, ScheduleView } from '@/types'
 
@@ -68,10 +69,10 @@ export function ScheduleWorkbench() {
   return (
     <div className="space-y-6">
       <section className="panel p-5 lg:p-6">
-        <div className="mb-5"><p className="eyebrow">AI Scheduling Command</p><h2 className="mt-1 text-xl font-extrabold tracking-tight text-ink">你想做什么？</h2></div>
+        <div className="mb-5"><p className="eyebrow">智能排班指令</p><h2 className="mt-1 text-xl font-extrabold tracking-tight text-ink">你想做什么？</h2></div>
         <ActionSelector value={action} onChange={chooseAction} />
         <div className="mt-4"><PromptBox value={prompt} onChange={setPrompt} onRun={run} running={store.isRunning} /></div>
-        <div className="mt-4 border-t border-slate-100 pt-4"><p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Demo Presets · 真实求解路径</p><PresetChips onSelect={runPreset} disabled={store.isRunning} /></div>
+        <div className="mt-4 border-t border-slate-100 pt-4"><p className="mb-2 text-[10px] font-bold tracking-[0.16em] text-slate-400">演示预设 · 真实求解流程</p><PresetChips onSelect={runPreset} disabled={store.isRunning} /></div>
       </section>
 
       {store.infeasibleResult && <ConflictView result={store.infeasibleResult} />}
@@ -80,14 +81,14 @@ export function ScheduleWorkbench() {
         <>
           {store.draftSchedule && (
             <section className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1"><p className="text-sm font-extrabold text-amber-900">Draft v{store.draftSchedule.version} 等待确认</p><p className="text-xs text-amber-700">正式排班保持不变。Validator 通过后才可确认。</p></div>
+              <div className="min-w-0 flex-1"><p className="text-sm font-extrabold text-amber-900">草稿版本 {store.draftSchedule.version} 等待确认</p><p className="text-xs text-amber-700">正式排班保持不变。全部硬约束通过后才可确认。</p></div>
               <div className="flex gap-2"><button onClick={() => void store.cancelDraft()} disabled={store.isRunning} className="btn-secondary"><X className="h-4 w-4" />取消</button><button onClick={() => void store.confirmDraft()} disabled={store.isRunning || !store.result?.validation.passed} className="btn-primary"><Check className="h-4 w-4" />确认变更</button></div>
             </section>
           )}
 
           <section className="panel overflow-hidden">
             <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1"><p className="eyebrow">Weekly Schedule</p><h2 className="mt-1 text-lg font-extrabold text-ink">{active.week_start} · v{active.version} <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] uppercase ${active.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{active.status}</span></h2></div>
+              <div className="min-w-0 flex-1"><p className="eyebrow">本周排班结果</p><h2 className="mt-1 text-lg font-extrabold text-ink">{active.week_start} · v{active.version} <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] ${active.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{STATUS_LABELS[active.status]}</span></h2></div>
               <div className="flex rounded-xl bg-slate-100 p-1"><ViewButton active={view === 'shift'} onClick={() => setView('shift')} icon={LayoutGrid} label="班次视角" /><ViewButton active={view === 'employee'} onClick={() => setView('employee')} icon={Users} label="员工视角" /></div>
             </div>
             <div className="p-4 lg:p-5">{view === 'shift' ? <ScheduleGrid schedule={active} employees={store.employees} onSelectShift={(day, shift) => store.selectShift({ day, shift })} /> : <EmployeeView schedule={active} employees={store.employees} />}</div>
@@ -104,7 +105,7 @@ export function ScheduleWorkbench() {
         </>
       ) : !store.infeasibleResult && (
         <section className="panel grid min-h-[340px] place-items-center border-dashed p-8 text-center">
-          <div><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-teal-50 text-teal-700"><CalendarDays className="h-7 w-7" /></span><h2 className="mt-4 text-lg font-extrabold text-ink">还没有排班</h2><p className="mt-2 max-w-md text-sm leading-6 text-slate-500">运行“正常生成”预设，后端会构建上下文、调用 CP-SAT、独立校验并保存 draft。</p></div>
+          <div><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-teal-50 text-teal-700"><CalendarDays className="h-7 w-7" /></span><h2 className="mt-4 text-lg font-extrabold text-ink">还没有排班</h2><p className="mt-2 max-w-md text-sm leading-6 text-slate-500">运行“正常生成”预设，后端会构建排班上下文、调用约束求解器、独立校验并保存待确认草稿。</p></div>
         </section>
       )}
 
@@ -121,10 +122,10 @@ function ViewButton({ active, onClick, icon: Icon, label }: { active: boolean; o
 function Metrics({ result, schedule }: { result: ReturnType<typeof useAppStore>['result']; schedule: NonNullable<ReturnType<typeof useAppStore>['activeSchedule']> }) {
   const metrics = result?.metrics
   const items = [
-    { icon: BarChart3, label: 'Preference Rate', value: metrics ? `${Math.round(metrics.preference_rate * 100)}%` : '—' },
-    { icon: ListChecks, label: 'Workload Gap', value: metrics ? String(metrics.workload_gap) : '—' },
-    { icon: GitCompareArrows, label: 'Changes', value: metrics ? String(metrics.changed_assignments) : '—' },
-    { icon: CalendarDays, label: 'Version / Status', value: `v${schedule.version} · ${schedule.status}` },
+    { icon: BarChart3, label: '偏好满足率', value: metrics ? `${Math.round(metrics.preference_rate * 100)}%` : '—' },
+    { icon: ListChecks, label: '工作量差距', value: metrics ? `${metrics.workload_gap} 班` : '—' },
+    { icon: GitCompareArrows, label: '调整记录数', value: metrics ? `${metrics.changed_assignments} 条` : '—' },
+    { icon: CalendarDays, label: '版本与状态', value: `v${schedule.version} · ${STATUS_LABELS[schedule.status]}` },
   ]
   return <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{items.map(({ icon: Icon, label, value }) => <div key={label} className="panel flex items-center gap-3 p-4"><span className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-600"><Icon className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</p><p className="mt-1 text-lg font-black text-ink">{value}</p></div></div>)}</section>
 }

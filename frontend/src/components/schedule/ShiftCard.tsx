@@ -1,4 +1,5 @@
 import { ArrowUpRight, CheckCircle2, Coffee, Shield, UsersRound } from 'lucide-react'
+import { DAY_LABELS, SHIFT_LABELS, SHIFT_TIMES } from '@/lib/presentation'
 import type { Assignment, Day, Employee, ShiftType } from '@/types'
 
 const requirements = { manager: 1, beverage: 2, cashier: 1 }
@@ -31,11 +32,11 @@ export function ShiftCard({
       type="button"
       onClick={onClick}
       className="group flex h-full min-h-[232px] w-full flex-col rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md"
-      aria-label={`查看 ${day} ${shift} 班次详情`}
+      aria-label={`查看${DAY_LABELS[day]}${SHIFT_LABELS[shift]}详情`}
     >
       <div className="mb-3 flex items-center justify-between">
         <span className={`rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${shift === 'morning' ? 'bg-amber-50 text-amber-700' : 'bg-indigo-50 text-indigo-700'}`}>
-          {shift === 'morning' ? '09:00–17:00' : '13:00–21:00'}
+          {SHIFT_TIMES[shift]}
         </span>
         <ArrowUpRight className="h-4 w-4 text-slate-300 transition group-hover:text-teal-600" />
       </div>
@@ -60,10 +61,10 @@ export function ShiftCard({
       </div>
 
       <div className="mt-auto grid grid-cols-2 gap-x-3 gap-y-1 border-t border-slate-100 pt-2.5 text-[10px]">
-        <Coverage label="Manager" current={manager} required={requirements.manager} />
-        <Coverage label="Beverage" current={beverage} required={requirements.beverage} />
-        <Coverage label="Cashier" current={cashier} required={requirements.cashier} />
-        <Coverage label="Staff" current={people.length} required={minimum} />
+        <Coverage label="店长" current={manager} required={requirements.manager} />
+        <Coverage label="饮品" current={beverage} required={requirements.beverage} />
+        <Coverage label="收银" current={cashier} required={requirements.cashier} />
+        <Coverage label="总人数" current={people.length} required={minimum} />
       </div>
     </button>
   )

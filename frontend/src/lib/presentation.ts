@@ -1,0 +1,155 @@
+import type { Day, ScheduleStatus, ShiftDelta, ShiftType } from '@/types'
+
+export const DAY_LABELS: Record<Day, string> = {
+  Mon: '周一',
+  Tue: '周二',
+  Wed: '周三',
+  Thu: '周四',
+  Fri: '周五',
+  Sat: '周六',
+  Sun: '周日',
+}
+
+export const SHIFT_LABELS: Record<ShiftType, string> = {
+  morning: '早班',
+  evening: '晚班',
+}
+
+export const SHIFT_TIMES: Record<ShiftType, string> = {
+  morning: '09:00–17:00',
+  evening: '13:00–21:00',
+}
+
+export const STATUS_LABELS: Record<ScheduleStatus, string> = {
+  draft: '待确认草稿',
+  confirmed: '已确认生效',
+  cancelled: '已取消',
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  manager: '店长',
+  full_time: '全职员工',
+  part_time: '兼职员工',
+}
+
+const SKILL_LABELS: Record<string, string> = {
+  manager: '店长值班',
+  beverage: '饮品制作',
+  cashier: '收银',
+  inventory: '库存管理',
+}
+
+export interface RulePresentation {
+  name: string
+  description: string
+}
+
+export const RULE_PRESENTATION: Record<string, RulePresentation> = {
+  H01: { name: '每日最多一个班次', description: '每名员工每天最多安排一个班次，重复排班也会被拦截。' },
+  R01: { name: '店长覆盖', description: '每个班次至少需要 1 名具备店长值班技能的员工。' },
+  R02: { name: '饮品制作覆盖', description: '每个班次至少需要 2 名具备饮品制作技能的员工。' },
+  R03: { name: '收银覆盖', description: '每个班次至少需要 1 名具备收银技能的员工。' },
+  R04: { name: '最低在岗人数', description: '工作日每班至少 4 人，周末每班至少 6 人。' },
+  R05: { name: '每周班次数上限', description: '每名员工每周最多安排 5 个班次。' },
+  R06: { name: '连续工作天数上限', description: '连同上周边界计算，每名员工最多连续工作 5 天。' },
+  R07: { name: '晚班后休息保障', description: '晚班后不能紧接次日早班，跨周衔接同样适用。' },
+  R08: { name: '可用时间与请假', description: '排班必须遵守员工可工作日期、请假和本次临时调整。' },
+  R09: { name: '技能来源校验', description: '岗位覆盖只采用员工主数据中已经登记的技能。' },
+  S01: { name: '班次偏好匹配', description: '安排到员工偏好的班次时获得 5 分奖励。' },
+  S02: { name: '工作量均衡', description: '员工最大班次差每增加 1 班扣 2 分。' },
+  S03: { name: '减少重排影响', description: '临时重排时，每改变一条排班记录扣 8 分。' },
+}
+
+const MESSAGE_LABELS: Record<string, string> = {
+  Passed: '规则已通过',
+  Violation: '规则未通过',
+  'No valid schedule exists for the supplied context.': '当前人员和规则条件下无法生成有效排班。',
+  'The solver did not return a usable schedule.': '求解器未能返回可用排班。',
+  'Assignment references an employee outside master data.': '排班引用了员工主数据中不存在的人员。',
+  'Employee has more than one assignment on the same day.': '同一名员工在同一天被安排了多个班次。',
+  'Duplicate assignment record is not allowed.': '同一排班记录不能重复。',
+  'Manager coverage is below the required minimum.': '店长覆盖人数低于最低要求。',
+  'Beverage coverage is below the required minimum.': '饮品制作人员低于最低要求。',
+  'Cashier coverage is below the required minimum.': '收银人员低于最低要求。',
+  'Total staffing is below the required minimum.': '当班总人数低于最低要求。',
+  'Employee exceeds the weekly shift limit.': '员工的每周班次数超过上限。',
+  'Employee works too many consecutive days.': '员工连续工作天数超过上限。',
+  'Monday morning follows a previous Sunday evening shift.': '周一早班与上周日晚班连续，休息时间不足。',
+  'Morning shift follows an evening shift on the prior day.': '早班紧接前一天晚班，休息时间不足。',
+  'Employee is on leave or unavailable on this day.': '员工当天请假或不可工作。',
+  'Employee already works the other shift on this day.': '员工当天已经安排了另一个班次。',
+  'Employee already reached the weekly shift limit.': '员工已经达到每周班次数上限。',
+  'Adding this shift would exceed the consecutive-day limit.': '加入该班次会超过连续工作天数上限。',
+  'The request explicitly removes this assignment.': '本次调整明确要求移除该排班。',
+  'Adding this employee requires other assignment changes that violate a retained hard rule.': '加入该员工会引发其他调整，并违反需要保留的硬约束。',
+  'The previous confirmed Sunday evening blocks Monday morning.': '上一份正式排班中的周日晚班会阻止该员工继续上周一早班。',
+  'Employee works the preceding evening shift.': '员工前一天已安排晚班。',
+  'Employee works the following morning shift.': '员工后一天已安排早班。',
+}
+
+export function roleLabel(role: string) {
+  return ROLE_LABELS[role] ?? '员工'
+}
+
+export function skillLabel(skill: string) {
+  return SKILL_LABELS[skill] ?? '已登记技能'
+}
+
+export function rulePresentation(ruleId: string, fallback?: Partial<RulePresentation>): RulePresentation {
+  return RULE_PRESENTATION[ruleId] ?? {
+    name: fallback?.name && containsChinese(fallback.name) ? fallback.name : '排班规则',
+    description: fallback?.description && containsChinese(fallback.description) ? fallback.description : '该规则由后端规则中心统一提供。',
+  }
+}
+
+export function localizeMessage(message: string | undefined, fallback: string) {
+  if (!message) return fallback
+  if (containsChinese(message)) return message
+  if (MESSAGE_LABELS[message]) return MESSAGE_LABELS[message]
+
+  const availability = message.match(/^Only (\d+) available (.+) qualified staff for a requirement of (\d+)\.$/)
+  if (availability) {
+    const [, actual, skill, required] = availability
+    return `符合条件的${skillLabel(skill)}员工只有 ${actual} 人，需要 ${required} 人。`
+  }
+  const staffing = message.match(/^Only (\d+) employees are available for a requirement of (\d+)\.$/)
+  if (staffing) return `当前只有 ${staffing[1]} 名员工可上班，需要 ${staffing[2]} 名。`
+
+  return fallback
+}
+
+export function ruleCheckMessage(ruleId: string, passed: boolean, message?: string) {
+  const rule = rulePresentation(ruleId)
+  if (message === 'Passed') return `${rule.name}：已通过`
+  if (message?.includes('; ')) {
+    return message.split('; ').map((item) => localizeMessage(item, `${rule.name}未通过`)).join('；')
+  }
+  return localizeMessage(message, passed ? `${rule.name}：已通过` : `${rule.name}：未通过`)
+}
+
+export function shiftReference(item: ShiftDelta | string) {
+  if (typeof item !== 'string') return `${DAY_LABELS[item.day]}${SHIFT_LABELS[item.shift]}`
+  if (/^E\d+$/i.test(item)) return `员工 ${item}`
+  const match = item.match(/\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(morning|evening)\b/)
+  if (!match) return containsChinese(item) ? item : '相关班次'
+  return `${DAY_LABELS[match[1] as Day]}${SHIFT_LABELS[match[2] as ShiftType]}`
+}
+
+export function errorCodeLabel(code: string) {
+  const labels: Record<string, string> = {
+    network_error: '网络连接异常',
+    entity_not_found: '未找到员工',
+    version_conflict: '排班版本冲突',
+    validation_error: '请求校验未通过',
+    solver_unavailable: '排班求解服务不可用',
+    solver_unknown: '求解状态异常',
+    base_schedule_required: '缺少正式排班',
+    internal_error: '服务内部异常',
+    unknown: '未知异常',
+  }
+  return labels[code] ?? '操作异常'
+}
+
+function containsChinese(value: string) {
+  return /[\u3400-\u9fff]/.test(value)
+}

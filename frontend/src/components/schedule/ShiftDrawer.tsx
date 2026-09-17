@@ -1,7 +1,6 @@
 import { CheckCircle2, Clock3, Coffee, Shield, X } from 'lucide-react'
+import { DAY_LABELS, roleLabel, SHIFT_LABELS, SHIFT_TIMES, skillLabel } from '@/lib/presentation'
 import type { Day, Employee, Schedule, ShiftType } from '@/types'
-
-const dayName: Record<Day, string> = { Mon: '周一', Tue: '周二', Wed: '周三', Thu: '周四', Fri: '周五', Sat: '周六', Sun: '周日' }
 
 export function ShiftDrawer({
   selection,
@@ -38,11 +37,11 @@ export function ShiftDrawer({
           <div>
             <p className="eyebrow">班次详情</p>
             <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-ink">
-              {dayName[selection.day]} · {selection.shift === 'morning' ? '早班' : '晚班'}
+              {DAY_LABELS[selection.day]} · {SHIFT_LABELS[selection.shift]}
             </h2>
             <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
               <Clock3 className="h-4 w-4" />
-              {selection.shift === 'morning' ? '09:00 - 17:00' : '13:00 - 21:00'}
+              {SHIFT_TIMES[selection.shift]}
             </div>
           </div>
           <button onClick={onClose} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50" aria-label="关闭"><X className="h-5 w-5" /></button>
@@ -58,9 +57,9 @@ export function ShiftDrawer({
               <div key={employee.id} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
                 <span className="grid h-9 w-9 place-items-center rounded-lg bg-slate-100 text-xs font-extrabold text-slate-700">{employee.id}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold capitalize text-slate-800">{employee.role}</p>
+                  <p className="text-sm font-bold text-slate-800">{roleLabel(employee.role)}</p>
                   <div className="mt-1 flex flex-wrap gap-1">
-                    {employee.skills.map((skill) => <span key={skill} className="rounded bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold capitalize text-slate-500">{skill}</span>)}
+                    {employee.skills.map((skill) => <span key={skill} className="rounded bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">{skillLabel(skill)}</span>)}
                   </div>
                 </div>
                 <div className="flex gap-1 text-slate-400">
@@ -77,12 +76,12 @@ export function ShiftDrawer({
         <section className="mt-8">
           <h3 className="mb-3 text-sm font-extrabold text-ink">覆盖检查</h3>
           <div className="overflow-hidden rounded-xl border border-slate-200">
-            <DrawerRule id="R01" label="Manager" current={counts.manager} required={1} />
-            <DrawerRule id="R02" label="Beverage" current={counts.beverage} required={2} />
-            <DrawerRule id="R03" label="Cashier" current={counts.cashier} required={1} />
-            <DrawerRule id="R04" label="Staffing" current={counts.staffing} required={minimum} last />
+            <DrawerRule id="R01" label="店长覆盖" current={counts.manager} required={1} />
+            <DrawerRule id="R02" label="饮品制作覆盖" current={counts.beverage} required={2} />
+            <DrawerRule id="R03" label="收银覆盖" current={counts.cashier} required={1} />
+            <DrawerRule id="R04" label="最低在岗人数" current={counts.staffing} required={minimum} last />
           </div>
-          <p className="mt-3 text-[11px] leading-5 text-slate-400">覆盖数量依据当前排班与员工主数据计算，完整有效性以后端 Validator 结果为准。</p>
+          <p className="mt-3 text-[11px] leading-5 text-slate-400">覆盖数量依据当前排班与员工主数据计算，完整有效性以后端规则校验结果为准。</p>
         </section>
       </aside>
     </>
@@ -98,7 +97,7 @@ function DrawerRule({ id, label, current, required, last }: { id: string; label:
         <p className="text-sm font-bold text-slate-700">{id} {label}</p>
         <p className="text-[11px] text-slate-400">{current} / ≥{required}</p>
       </div>
-      <span className={`text-xs font-extrabold ${passed ? 'text-emerald-600' : 'text-red-600'}`}>{passed ? 'PASS' : 'FAIL'}</span>
+      <span className={`text-xs font-extrabold ${passed ? 'text-emerald-600' : 'text-red-600'}`}>{passed ? '已满足' : '有缺口'}</span>
     </div>
   )
 }

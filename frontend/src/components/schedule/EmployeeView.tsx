@@ -1,4 +1,5 @@
 import { CalendarDays, Gauge, Heart, UserRound } from 'lucide-react'
+import { roleLabel, SHIFT_LABELS } from '@/lib/presentation'
 import { DAYS, type Day, type Employee, type Schedule } from '@/types'
 
 const dayName: Record<Day, string> = { Mon: '周一', Tue: '周二', Wed: '周三', Thu: '周四', Fri: '周五', Sat: '周六', Sun: '周日' }
@@ -17,7 +18,7 @@ export function EmployeeView({ schedule, employees }: { schedule: Schedule; empl
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-teal-50 text-teal-700"><UserRound className="h-5 w-5" /></span>
               <div className="min-w-0 flex-1">
                 <p className="text-base font-extrabold text-ink">{employee.id}</p>
-                <p className="text-[11px] capitalize text-slate-400">{employee.role} · 偏好 {employee.preferred_shift ?? '不限'}</p>
+                <p className="text-[11px] text-slate-400">{roleLabel(employee.role)} · 偏好 {employee.preferred_shift ? SHIFT_LABELS[employee.preferred_shift] : '不限'}</p>
               </div>
               <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">{assignments.length}/5 班</span>
             </div>

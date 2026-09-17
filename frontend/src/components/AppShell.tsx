@@ -50,7 +50,7 @@ export function AppShell({
           </div>
           <div>
             <p className="text-lg font-extrabold tracking-tight">OptiShift</p>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Workforce Intelligence</p>
+            <p className="text-[11px] font-semibold tracking-[0.14em] text-slate-400">智能排班助手</p>
           </div>
           <button className="ml-auto rounded-lg p-2 text-slate-300 hover:bg-white/10 lg:hidden" onClick={() => setMobileOpen(false)} aria-label="关闭导航">
             <X className="h-5 w-5" />
@@ -104,7 +104,7 @@ export function AppShell({
           </div>
           <div className="ml-auto hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 sm:flex">
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            Backend source of truth
+            后端统一数据源
           </div>
         </header>
         <div className="mx-auto max-w-[1720px] p-4 sm:p-6 lg:p-8">{children}</div>
