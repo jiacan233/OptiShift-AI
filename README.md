@@ -6,7 +6,7 @@ OptiShift AI 是一个面向门店周排班的可解释 Web 应用。它把自�
 
 ## Live Demo
 
-CloudBase 公网地址将在首次生产部署和线上验收通过后写入此处。
+[https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com](https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com)
 
 ## Architecture
 

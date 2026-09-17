@@ -49,3 +49,29 @@ jobs:
           push: false
           tags: ai-workforce-scheduler:ci
 
+  deploy-cloudbase:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: docker-build
+    env:
+      TCB_API_KEY: ${{ secrets.TCB_API_KEY }}
+      TCB_ENV_ID: ${{ secrets.TCB_ENV_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --global @cloudbase/cli@3.8.2
+      - name: Deploy main to CloudBase Run
+        run: |
+          tcb --yes --env-id "$TCB_ENV_ID" login --cloudbase-api-key "$TCB_API_KEY" --json
+          tcb --yes --env-id "$TCB_ENV_ID" cloudrun deploy \
+            --service-name optishift-ai \
+            --source . \
+            --port 8080 \
+            --min-num 0 \
+            --max-num 1 \
+            --open-access-types PUBLIC,VPC \
+            --force \
+            --wait \
+            --json
