@@ -9,7 +9,11 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ..models import ChangeType, Day, Employee, ScheduleChange, Shift
 from .intent_parser import DAY_TOKENS, IntentParser, _normalize_identifier_text
-from .llm_client import AIUnavailableError, AgentLLMClient
+from .llm_client import (
+    AIUnavailableError,
+    AgentLLMClient,
+    strict_json_schema,
+)
 
 
 class UnknownAgentEmployeeError(ValueError):
@@ -77,6 +81,11 @@ class AgentRoute(BaseModel):
     clarification: AgentClarification = Field(default_factory=AgentClarification)
 
 
+def agent_route_json_schema() -> dict[str, Any]:
+    """Derive the provider contract from the same models used to parse its reply."""
+    return strict_json_schema(AgentRoute.model_json_schema())
+
+
 class TrustedAgentAction(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -119,93 +128,7 @@ class AgentRouter:
         if not self.llm.enabled:
             return self._deterministic_route(content, employees)
 
-        nullable_string = {"anyOf": [{"type": "string"}, {"type": "null"}]}
-        nullable_integer = {"anyOf": [{"type": "integer"}, {"type": "null"}]}
-        schema = {
-            "type": "object",
-            "additionalProperties": False,
-            "properties": {
-                "intent": {"type": "string", "enum": [item.value for item in AgentIntent]},
-                "mutation_requested": {"type": "boolean"},
-                "target_week": nullable_string,
-                "target_iso_year": nullable_integer,
-                "target_iso_week": nullable_integer,
-                "employees": {"type": "array", "items": {"type": "string"}},
-                "changes": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "additionalProperties": False,
-                        "properties": {
-                            "employee_id": {"type": "string"},
-                            "type": {
-                                "type": "string",
-                                "enum": [item.value for item in ChangeType],
-                            },
-                            "day": {"type": "string", "enum": [item.value for item in Day]},
-                            "shift": {
-                                "anyOf": [
-                                    {"type": "string", "enum": ["morning", "evening"]},
-                                    {"type": "null"},
-                                ]
-                            },
-                        },
-                        "required": ["employee_id", "type", "day", "shift"],
-                    },
-                },
-                "operations": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "additionalProperties": False,
-                        "properties": {
-                            "operation": {"type": "string", "enum": ["add", "set", "remove", "clear"]},
-                            "employee_id": {"type": "string"},
-                            "type": {"type": "string", "enum": [item.value for item in ChangeType]},
-                            "day": {"anyOf": [{"type": "string", "enum": [item.value for item in Day]}, {"type": "null"}]},
-                            "shift": {"anyOf": [{"type": "string", "enum": ["morning", "evening"]}, {"type": "null"}]},
-                        },
-                        "required": ["operation", "employee_id", "type", "day", "shift"],
-                    },
-                },
-                "operation": {"type": "string", "enum": ["add", "set", "remove", "clear"]},
-                "minimize_changes": {"type": "boolean"},
-                "reference": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "properties": {
-                        "type": {
-                            "type": "string",
-                            "enum": ["none", "previous_message", "suggestion"],
-                        },
-                        "suggestion_id": nullable_string,
-                    },
-                    "required": ["type", "suggestion_id"],
-                },
-                "clarification": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "properties": {
-                        "required": {"type": "boolean"},
-                        "question": nullable_string,
-                    },
-                    "required": ["required", "question"],
-                },
-            },
-            "required": [
-                "intent",
-                "mutation_requested",
-                "target_week",
-                "target_iso_year",
-                "target_iso_week",
-                "employees",
-                "changes",
-                "operation",
-                "minimize_changes",
-                "reference",
-                "clarification",
-            ],
-        }
+        schema = agent_route_json_schema()
         payload = self.llm.complete_json(
             system=(
                 "Route a scheduling assistant message into the supplied JSON schema. "
@@ -215,7 +138,10 @@ class AgentRouter:
                 "only supplied employee IDs. Resolve references such as 'second one' to a "
                 "suggestion reference when supported by recent messages. Set operation to "
                 "add, set, remove, or clear from the structured plan; preserve one change "
-                "per employee/day and do not invent a cross-product."
+                "per employee/day and do not invent a cross-product. Populate operations with "
+                "ordered per-employee add/set/remove/clear operations; a clear operation may "
+                "have day null. Use null for unspecified nullable fields. For changes of type "
+                "preference, assign, or unassign, shift must be specified."
             ),
             user={
                 "message": content,
@@ -232,6 +158,7 @@ class AgentRouter:
             raise AIUnavailableError(
                 "AI Provider 返回了无法识别的响应。",
                 error_type="invalid_provider_response",
+                stage="structured_output",
             ) from exc
 
         known = {employee.id for employee in employees}

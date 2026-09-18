@@ -111,12 +111,22 @@ export interface LlmHealthResult {
   enabled: boolean
   key_present: boolean
   model: string
+  status: 'ok' | 'degraded' | 'error'
+  checks: {
+    basic_chat?: LlmHealthCheck
+    structured_output?: LlmHealthCheck
+  }
+}
+
+export interface LlmHealthCheck {
   status: 'ok' | 'error'
+  latency_ms?: number
   reply?: string
   error_type?: string
   message?: string
-  latency_ms: number
+  provider_message?: string
   provider_status?: number
+  stage?: string
 }
 
 async function checkLlmHealth(): Promise<LlmHealthResult> {
@@ -125,7 +135,7 @@ async function checkLlmHealth(): Promise<LlmHealthResult> {
   })
   const payload = await response.json().catch(() => null)
 
-  if (payload && typeof payload === 'object' && (payload.status === 'ok' || payload.status === 'error')) {
+  if (payload && typeof payload === 'object' && (payload.status === 'ok' || payload.status === 'degraded' || payload.status === 'error')) {
     return payload as LlmHealthResult
   }
 

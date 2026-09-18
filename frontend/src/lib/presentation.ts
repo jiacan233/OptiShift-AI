@@ -185,9 +185,13 @@ export function problemDetail(code: string, details?: unknown) {
   const providerStatus = typeof source.provider_status === 'number'
     ? source.provider_status
     : null
-  if (providerStatus !== null && errorType) return `HTTP ${providerStatus} · ${errorType}`
+  const providerMessage = typeof source.provider_message === 'string' && source.provider_message.trim()
+    ? source.provider_message.trim()
+    : null
+  const summary = providerMessage ? ` · ${providerMessage}` : ''
+  if (providerStatus !== null && errorType) return `HTTP ${providerStatus} · ${errorType}${summary}`
   if (providerStatus !== null) return `HTTP ${providerStatus}`
-  return errorType
+  return errorType ? `${errorType}${summary}` : providerMessage
 }
 
 function containsChinese(value: string) {

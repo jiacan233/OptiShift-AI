@@ -243,27 +243,9 @@ def health(response: Response) -> dict:
 
 @app.get("/health/llm", tags=["system"])
 def llm_health(response: Response) -> dict:
-    result: dict[str, object] = {
-        "enabled": agent_llm_client.enabled,
-        "key_present": bool(agent_llm_client.api_key),
-        "model": agent_llm_client.model,
-    }
-    try:
-        reply, latency_ms = agent_llm_client.health_check()
-    except AIUnavailableError as exc:
+    result = agent_llm_client.health_check()
+    if result.get("status") != "ok":
         response.status_code = 503
-        result.update(
-            {
-                "status": "error",
-                "error_type": exc.error_type,
-                "message": exc.safe_message,
-                "latency_ms": exc.latency_ms or 0,
-            }
-        )
-        if exc.provider_status is not None:
-            result["provider_status"] = exc.provider_status
-        return result
-    result.update({"status": "ok", "reply": reply, "latency_ms": latency_ms})
     return result
 
 

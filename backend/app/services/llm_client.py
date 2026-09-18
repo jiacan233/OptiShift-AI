@@ -6,6 +6,7 @@ import math
 import os
 import re
 import time
+from copy import deepcopy
 from typing import Any, NoReturn
 from urllib.parse import urlsplit, urlunsplit
 
@@ -13,6 +14,28 @@ import httpx
 
 
 logger = logging.getLogger("optishift.llm")
+
+
+def _redact_message(value: str | None, limit: int, secrets: tuple[str, ...] = ()) -> str | None:
+    if not value:
+        return None
+    safe = value
+    for secret in secrets:
+        if secret:
+            safe = safe.replace(secret, "[REDACTED]")
+    # Remove entire URLs: credentials can occur in userinfo, paths, queries or fragments.
+    safe = re.sub(r"(?i)\b[a-z][a-z0-9+.-]*://[^\s<>\"']+", "[REDACTED_URL]", safe)
+    safe = re.sub(r"(?i)\bBearer\s+[^\s,;\"']+", "Bearer [REDACTED]", safe)
+    # Handle plain header syntax, JSON-quoted values and query-string fragments.
+    safe = re.sub(
+        r"(?i)(\b(?:authorization|api[_ -]?key|access[_-]?token|refresh[_-]?token|"
+        r"token|secret|password|credential|signature|sig)[\"']?\s*[:=]\s*)"
+        r"(?:\"[^\"]*\"|'[^']*'|[^\r\n,;&}]+)",
+        r"\1[REDACTED]",
+        safe,
+    )
+    safe = re.sub(r"\bsk-[A-Za-z0-9._-]{6,}\b", "[REDACTED_API_KEY]", safe)
+    return re.sub(r"\s+", " ", safe).strip()[:limit] or None
 
 
 class AIUnavailableError(RuntimeError):
@@ -26,12 +49,16 @@ class AIUnavailableError(RuntimeError):
         provider_status: int | None = None,
         provider_message: str | None = None,
         latency_ms: int | None = None,
+        stage: str | None = None,
     ) -> None:
         self.safe_message = message
         self.error_type = error_type
         self.provider_status = provider_status
-        self.provider_message = provider_message
+        self.provider_message = _redact_message(
+            provider_message, 300, (os.getenv("LLM_API_KEY", "").strip(),)
+        )
         self.latency_ms = latency_ms
+        self.stage = stage
         super().__init__(message)
 
     @property
@@ -39,7 +66,88 @@ class AIUnavailableError(RuntimeError):
         return {
             "error_type": self.error_type,
             "provider_status": self.provider_status,
+            "provider_message": self.provider_message,
+            "latency_ms": self.latency_ms,
+            "stage": self.stage,
         }
+
+
+def validate_strict_json_schema(schema: dict[str, Any]) -> None:
+    """Validate the subset required by strict JSON Schema providers.
+
+    Strict structured output providers require every property of every object
+    to appear in ``required``.  Validate recursively so a future nested field
+    cannot silently make requests invalid at runtime.
+    """
+
+    if not isinstance(schema, dict):
+        raise ValueError("strict JSON schema must be an object")
+    if schema.get("type") == "object" or "properties" in schema:
+        properties = schema.get("properties", {})
+        required = schema.get("required", [])
+        if not isinstance(properties, dict) or not isinstance(required, list):
+            raise ValueError("strict object schema must define properties and required")
+        if schema.get("additionalProperties") is not False:
+            raise ValueError("strict object schema must forbid additional properties")
+        if any(not isinstance(name, str) for name in required):
+            raise ValueError("strict object required must contain property names")
+        property_names = set(properties)
+        required_names = set(required)
+        if property_names != required_names or len(required) != len(required_names):
+            missing = sorted(property_names - required_names)
+            unknown = sorted(required_names - property_names)
+            raise ValueError(
+                f"strict object schema required mismatch missing={missing} unknown={unknown}"
+            )
+        for property_schema in properties.values():
+            validate_strict_json_schema(property_schema)
+    elif schema.get("type") == "array":
+        items = schema.get("items")
+        if isinstance(items, dict):
+            validate_strict_json_schema(items)
+    for keyword in ("anyOf", "oneOf", "allOf", "prefixItems"):
+        for variant in schema.get(keyword, []):
+            validate_strict_json_schema(variant)
+    for definition in schema.get("$defs", {}).values():
+        validate_strict_json_schema(definition)
+
+
+def strict_json_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """Make a Pydantic schema strict without changing field types or nullability."""
+    result = deepcopy(schema)
+    definitions = result.pop("$defs", {})
+
+    def resolve_refs(node: Any) -> Any:
+        if isinstance(node, dict):
+            reference = node.get("$ref")
+            if isinstance(reference, str) and reference.startswith("#/$defs/"):
+                definition = definitions.get(reference.removeprefix("#/$defs/"))
+                if isinstance(definition, dict):
+                    return resolve_refs(deepcopy(definition))
+            return {key: resolve_refs(value) for key, value in node.items() if key != "$ref"}
+        if isinstance(node, list):
+            return [resolve_refs(item) for item in node]
+        return node
+
+    result = resolve_refs(result)
+
+    def convert(node: dict[str, Any]) -> None:
+        node.pop("default", None)
+        if node.get("type") == "object":
+            node["additionalProperties"] = False
+            node["required"] = list(node.get("properties", {}))
+        for keyword in ("properties", "$defs"):
+            for child in node.get(keyword, {}).values():
+                convert(child)
+        if isinstance(node.get("items"), dict):
+            convert(node["items"])
+        for keyword in ("anyOf", "oneOf", "allOf", "prefixItems"):
+            for child in node.get(keyword, []):
+                convert(child)
+
+    convert(result)
+    validate_strict_json_schema(result)
+    return result
 
 
 class AgentLLMClient:
@@ -99,6 +207,7 @@ class AgentLLMClient:
         self.base_url = os.getenv(
             "LLM_BASE_URL", "https://api.openai.com/v1"
         ).rstrip("/")
+        self._last_latency_ms = 0
         self._configuration_error: str | None = None
         try:
             self.timeout = float(os.getenv("LLM_TIMEOUT_SECONDS", "5"))
@@ -109,25 +218,7 @@ class AgentLLMClient:
             self._configuration_error = "LLM_TIMEOUT_SECONDS 配置无效。"
 
     def _redact_and_truncate(self, value: str | None, limit: int) -> str | None:
-        if not value:
-            return None
-        safe = re.sub(r"\s+", " ", value).strip()
-        if self.api_key:
-            safe = safe.replace(self.api_key, "[REDACTED]")
-        safe = re.sub(
-            r"(?i)\bBearer\s+[^\s,;]+",
-            "Bearer [REDACTED]",
-            safe,
-        )
-        safe = re.sub(
-            r"(?i)(api[_ -]?key\s*[:=]\s*)[^\s,;]+",
-            r"\1[REDACTED]",
-            safe,
-        )
-        safe = re.sub(r"\bsk-[A-Za-z0-9._-]{6,}\b", "[REDACTED_API_KEY]", safe)
-        if not safe:
-            return None
-        return safe[:limit]
+        return _redact_message(value, limit, (self.api_key,))
 
     def _safe_base_url(self) -> str:
         try:
@@ -192,6 +283,7 @@ class AgentLLMClient:
         provider_status: int | None = None,
         provider_message: str | None = None,
         cause: Exception | None = None,
+        stage: str | None = None,
     ) -> NoReturn:
         latency_ms = max(0, round((time.perf_counter() - started) * 1000))
         safe_provider_message = self._redact_and_truncate(provider_message, 300)
@@ -211,30 +303,39 @@ class AgentLLMClient:
             provider_status=provider_status,
             provider_message=safe_provider_message,
             latency_ms=latency_ms,
+            stage=stage,
         )
         if cause is not None:
             raise error from cause
         raise error
 
-    def _post(self, payload: dict[str, Any]) -> tuple[dict[str, Any], int, int]:
+    def _post(
+        self,
+        payload: dict[str, Any],
+        *,
+        stage: str | None = None,
+    ) -> tuple[dict[str, Any], int, int]:
         started = time.perf_counter()
         if not self.enabled:
             self._fail(
                 "AI 功能当前未启用。",
                 error_type="llm_disabled",
                 started=started,
+                stage=stage,
             )
         if not self.api_key:
             self._fail(
                 "AI 服务未配置 API Key。",
                 error_type="configuration_error",
                 started=started,
+                stage=stage,
             )
         if self._configuration_error:
             self._fail(
                 self._configuration_error,
                 error_type="configuration_error",
                 started=started,
+                stage=stage,
             )
 
         try:
@@ -249,6 +350,7 @@ class AgentLLMClient:
                 "AI Provider 请求超时。",
                 error_type="timeout",
                 started=started,
+                stage=stage,
                 cause=exc,
             )
         except (httpx.RequestError, httpx.InvalidURL) as exc:
@@ -256,10 +358,12 @@ class AgentLLMClient:
                 "无法连接 AI Provider，请检查网络、域名或 TLS 配置。",
                 error_type="connection_error",
                 started=started,
+                stage=stage,
                 cause=exc,
             )
 
         latency_ms = max(0, round((time.perf_counter() - started) * 1000))
+        self._last_latency_ms = latency_ms
         if not 200 <= response.status_code < 300:
             provider_message = self._provider_error_message(response)
             error_type, message = self._classify_provider_error(
@@ -272,6 +376,7 @@ class AgentLLMClient:
                 provider_status=response.status_code,
                 provider_message=provider_message,
                 started=started,
+                stage=stage,
             )
 
         try:
@@ -283,6 +388,7 @@ class AgentLLMClient:
                 provider_status=response.status_code,
                 started=started,
                 cause=exc,
+                stage=stage,
             )
         if not isinstance(result, dict):
             self._fail(
@@ -290,6 +396,7 @@ class AgentLLMClient:
                 error_type="invalid_provider_response",
                 provider_status=response.status_code,
                 started=started,
+                stage=stage,
             )
         return result, latency_ms, response.status_code
 
@@ -298,6 +405,8 @@ class AgentLLMClient:
         response: dict[str, Any],
         latency_ms: int,
         provider_status: int,
+        *,
+        stage: str | None = None,
     ) -> str:
         started = time.perf_counter() - (latency_ms / 1000)
         try:
@@ -309,6 +418,7 @@ class AgentLLMClient:
                 provider_status=provider_status,
                 started=started,
                 cause=exc,
+                stage=stage,
             )
         if not isinstance(content, str) or not content.strip():
             self._fail(
@@ -316,20 +426,80 @@ class AgentLLMClient:
                 error_type="invalid_provider_response",
                 provider_status=provider_status,
                 started=started,
+                stage=stage,
             )
         return content.strip()
 
-    def health_check(self) -> tuple[str, int]:
-        response, latency_ms, provider_status = self._post(
+    def health_check(self) -> dict[str, Any]:
+        checks: dict[str, dict[str, Any]] = {}
+        try:
+            response, latency_ms, provider_status = self._post(
             {
                 "model": self.model,
                 "messages": [
                     {"role": "user", "content": "你好，请只回复 OK"},
                 ],
                 "temperature": 0,
+            },
+            stage="basic_chat",
+            )
+            reply = self._content(response, latency_ms, provider_status, stage="basic_chat")
+            checks["basic_chat"] = {"status": "ok", "latency_ms": latency_ms, "reply": reply}
+        except AIUnavailableError as exc:
+            checks["basic_chat"] = {
+                "status": "error",
+                **exc.public_details,
+                "message": exc.safe_message,
             }
-        )
-        return self._content(response, latency_ms, provider_status), latency_ms
+            return {
+                "status": "error",
+                "model": self.model,
+                "enabled": self.enabled,
+                "key_present": bool(self.api_key),
+                "checks": checks,
+            }
+
+        try:
+            structured = self.complete_json(
+                system="Return exactly the JSON object required by the schema.",
+                user={"probe": "structured_output"},
+                schema_name="health_check",
+                schema={
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {"ok": {"type": "boolean"}},
+                    "required": ["ok"],
+                },
+                stage="structured_output",
+            )
+            if structured.get("ok") is not True:
+                raise AIUnavailableError(
+                    "AI Provider 返回了无法识别的结构化探针结果。",
+                    error_type="invalid_provider_response",
+                    latency_ms=self._last_latency_ms,
+                    stage="structured_output",
+                )
+            checks["structured_output"] = {"status": "ok", "latency_ms": self._last_latency_ms}
+        except AIUnavailableError as exc:
+            checks["structured_output"] = {
+                "status": "error",
+                **exc.public_details,
+                "message": exc.safe_message,
+            }
+            return {
+                "status": "degraded",
+                "model": self.model,
+                "enabled": self.enabled,
+                "key_present": bool(self.api_key),
+                "checks": checks,
+            }
+        return {
+            "status": "ok",
+            "model": self.model,
+            "enabled": self.enabled,
+            "key_present": bool(self.api_key),
+            "checks": checks,
+        }
 
     def complete_json(
         self,
@@ -338,7 +508,9 @@ class AgentLLMClient:
         user: dict[str, Any],
         schema_name: str,
         schema: dict[str, Any],
+        stage: str = "structured_output",
     ) -> dict[str, Any]:
+        validate_strict_json_schema(schema)
         response, latency_ms, provider_status = self._post(
             {
                 "model": self.model,
@@ -358,11 +530,12 @@ class AgentLLMClient:
                         "schema": schema,
                     },
                 },
-            }
+            },
+            stage=stage,
         )
         started = time.perf_counter() - (latency_ms / 1000)
         try:
-            parsed = json.loads(self._content(response, latency_ms, provider_status))
+            parsed = json.loads(self._content(response, latency_ms, provider_status, stage=stage))
         except json.JSONDecodeError as exc:
             self._fail(
                 "AI Provider 返回了无法识别的响应。",
@@ -370,6 +543,7 @@ class AgentLLMClient:
                 provider_status=provider_status,
                 started=started,
                 cause=exc,
+                stage=stage,
             )
         if not isinstance(parsed, dict):
             self._fail(
@@ -377,6 +551,7 @@ class AgentLLMClient:
                 error_type="invalid_provider_response",
                 provider_status=provider_status,
                 started=started,
+                stage=stage,
             )
         return parsed
 
