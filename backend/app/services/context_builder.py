@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from typing import Any
 
 from ..models import (
     Employee,
@@ -37,6 +38,8 @@ class ContextBuilder:
         employees: list[Employee] | None = None,
         allow_history_bootstrap: bool = True,
         allow_ephemeral_known_empty: bool = False,
+        user_forced_assignments: list[Any] | None = None,
+        override_scopes: list[dict[str, Any]] | None = None,
     ) -> SchedulingContext:
         previous, history_status = self.schedule_repository.previous_week_context(
             week_start,
@@ -69,4 +72,6 @@ class ContextBuilder:
             requested_changes=changes or [],
             history_status=history_status,
             minimize_changes=minimize_changes,
+            user_forced_assignments=user_forced_assignments or [],
+            override_scopes=override_scopes or [],
         )

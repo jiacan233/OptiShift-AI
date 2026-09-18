@@ -6,8 +6,9 @@ from typing import Any, Literal
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from ..models import Assignment, Day, Schedule, ScheduleChange, Shift, Skill
+from ..models import Assignment, Day, ForceRequest, Schedule, ScheduleChange, Shift, Skill
 from ..repository import EmployeeNotFoundError, ScheduleNotFoundError, VersionConflictError
+from ..validator.authorization import compliance_fields
 from .dependencies import (
     employee_repository,
     pending_clarifications,
@@ -27,6 +28,25 @@ class GenerateBody(ApiModel):
     prompt: str = ""
     week_start: date
     changes: list[ScheduleChange] = Field(default_factory=list)
+
+
+class ForceGenerateBody(ApiModel):
+    week_start: date
+    base_schedule_id: str | None
+    base_version: int | None = Field(ge=1)
+    force_request: ForceRequest
+    changes: list[ScheduleChange] = Field(default_factory=list)
+    minimize_changes: bool = False
+    source_conversation_id: str = Field(default="api", min_length=1, max_length=128)
+    source_message_id: str | None = Field(default=None, max_length=128)
+    client_message_id: str = Field(min_length=1, max_length=128)
+    scenario_revision: int = Field(default=0, ge=0)
+
+    @model_validator(mode="after")
+    def require_base_pair(self):
+        if (self.base_schedule_id is None) != (self.base_version is None):
+            raise ValueError("base_schedule_id and base_version must both be provided or null")
+        return self
 
 
 class ReplanBody(ApiModel):
@@ -87,6 +107,21 @@ def generate_schedule(body: GenerateBody) -> dict[str, Any]:
     return _remember_clarification(result, "generate", body)
 
 
+@router.post("/api/schedule/force")
+def force_generate_schedule(body: ForceGenerateBody) -> dict[str, Any]:
+    return scheduling_service.force_generate(
+        week_start=body.week_start,
+        force_request=body.force_request,
+        changes=body.changes,
+        minimize_changes=body.minimize_changes,
+        source_conversation_id=body.source_conversation_id,
+        source_message_id=body.source_message_id,
+        client_message_id=body.client_message_id,
+        scenario_revision=body.scenario_revision,
+        expected_base=(body.base_schedule_id, body.base_version),
+    )
+
+
 @router.post("/api/schedule/replan")
 def replan_schedule(body: ReplanBody) -> dict[str, Any]:
     result = scheduling_service.replan(
@@ -103,7 +138,7 @@ def replan_schedule(body: ReplanBody) -> dict[str, Any]:
 def validate_schedule(body: ValidateBody) -> dict[str, Any]:
     if body.schedule is not None:
         validation = scheduling_service.validate(body.schedule)
-        return {"status": "validated", "schedule": body.schedule.model_dump(mode="json"), "validation": validation}
+        return {"status": "validated", "solver_status": None, "schedule": body.schedule.model_dump(mode="json"), "validation": validation, **compliance_fields(validation, body.schedule.status.value)}
     record = schedule_repository.get_record(body.schedule_id or "")
     if record is None or "schedule" not in record:
         raise ScheduleNotFoundError(body.schedule_id)
@@ -116,6 +151,7 @@ def validate_schedule(body: ValidateBody) -> dict[str, Any]:
         "schedule_id": body.schedule_id,
         "version": record["version"],
         "schedule_status": record["status"],
+        "solver_status": metadata.get("solver_status", "feasible"),
         "schedule": record["schedule"].model_dump(mode="json"),
         "validation": validation,
         "diff": metadata.get("diff"),
@@ -125,6 +161,7 @@ def validate_schedule(body: ValidateBody) -> dict[str, Any]:
             {"preference_rate": 0.0, "workload_gap": 0, "changed_assignments": 0},
         ),
         "explanation": metadata.get("explanation"),
+        **compliance_fields(validation, record["status"]),
     }
 
 
@@ -299,6 +336,7 @@ def _result_payload(record: dict[str, Any] | None) -> dict[str, Any] | None:
         "schedule_id": record["schedule_id"],
         "version": record["version"],
         "schedule_status": record["status"],
+        "solver_status": metadata.get("solver_status", "feasible"),
         "schedule": schedule.model_dump(mode="json"),
         "validation": record.get("validation", {}),
         "diff": metadata.get("diff"),
@@ -308,6 +346,7 @@ def _result_payload(record: dict[str, Any] | None) -> dict[str, Any] | None:
             {"preference_rate": 0.0, "workload_gap": 0, "changed_assignments": 0},
         ),
         "explanation": metadata.get("explanation"),
+        **compliance_fields(record.get("validation", {}), record["status"]),
     }
 
 
@@ -332,6 +371,9 @@ def schedule_week_context(week_start: date) -> dict[str, Any]:
                 "parent_schedule_id": item["parent_schedule_id"],
                 "base_schedule_id": item["base_schedule_id"],
                 "base_version": item["base_version"],
+                "compliance_status": item.get("compliance_status", "compliant" if item.get("validation", {}).get("passed") else "invalid"),
+                "authorized_violation_count": len(item.get("validation", {}).get("authorized_violations", [])),
+                "violations": item.get("validation", {}).get("violations", []),
             }
             for item in versions
         ],
@@ -383,6 +425,9 @@ def schedule_versions(schedule_id: str) -> dict[str, Any]:
                 "parent_schedule_id": item["parent_schedule_id"],
                 "base_schedule_id": item["base_schedule_id"],
                 "base_version": item["base_version"],
+                "compliance_status": item.get("compliance_status", "compliant" if item.get("validation", {}).get("passed") else "invalid"),
+                "authorized_violation_count": len(item.get("validation", {}).get("authorized_violations", [])),
+                "violations": item.get("validation", {}).get("violations", []),
             }
             for item in versions
         ]

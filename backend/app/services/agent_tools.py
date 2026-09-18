@@ -4,7 +4,7 @@ from collections import Counter
 from datetime import date
 from typing import Any, Callable
 
-from ..models import ChangeType, PatchOperation, Schedule, ScheduleChange, ScenarioPatch
+from ..models import ChangeType, ForceRequest, PatchOperation, Schedule, ScheduleChange, ScenarioPatch
 from ..repository import EmployeeRepository, ScheduleRepository, ScenarioRepository
 from .rules import public_rules
 from .scheduling_service import SchedulingService
@@ -357,6 +357,43 @@ class AgentTools:
             agent_turn_guard=_turn_guard,
         )
 
+    def force_generate_schedule(
+        self,
+        *,
+        target_week: date,
+        force_request: ForceRequest,
+        changes: list[ScheduleChange],
+        source_conversation_id: str,
+        source_client_message_id: str,
+        source_user_message_id: str,
+        expected_base: tuple[str | None, int | None] | None = None,
+        _before_commit: Callable[[], None] | None = None,
+        _turn_guard: tuple[str, str, str] | None = None,
+    ) -> dict[str, Any]:
+        scenario = self.scenarios.get(source_conversation_id, target_week)
+        scenario_changes = [
+            ScheduleChange(employee_id=patch.employee_id, type=patch.change_type, day=day)
+            for patch in (scenario.patches if scenario else [])
+            for day in patch.days
+        ]
+        return self.scheduling.force_generate(
+            week_start=target_week,
+            force_request=force_request,
+            changes=scenario_changes,
+            source_conversation_id=source_conversation_id,
+            source_message_id=source_user_message_id,
+            client_message_id=source_client_message_id,
+            scenario_revision=scenario.revision if scenario is not None else 0,
+            expected_base=expected_base,
+            metadata_extra={
+                "agent_conversation_id": source_conversation_id,
+                "agent_client_message_id": source_client_message_id,
+                "agent_user_message_id": source_user_message_id,
+            },
+            before_commit=_before_commit,
+            agent_turn_guard=_turn_guard,
+        )
+
     def replan_schedule(
         self,
         *,
@@ -396,6 +433,7 @@ class AgentTools:
             "validate_schedule": self.validate_schedule,
             "analyze_schedule": self.analyze_schedule,
             "generate_schedule": self.generate_schedule,
+            "force_generate_schedule": self.force_generate_schedule,
             "replan_schedule": self.replan_schedule,
             "get_scenario": self.get_scenario,
             "preview_scenario": self.preview_scenario,

@@ -12,6 +12,7 @@ from ..models import Assignment, HistoryStatus, Schedule
 from ..models.orm import (
     AssignmentRecord,
     ConversationRecord,
+    ConversationScenarioRecord,
     ScheduleRecord,
     SystemMetadataRecord,
 )
@@ -126,6 +127,7 @@ class ScheduleRepository:
             "base_schedule_id": record.base_schedule_id,
             "base_version": record.base_version,
             "status": record.status,
+            "compliance_status": record.compliance_status,
             "week_start": record.week_start.isoformat(),
             "validation": dict(record.validation_json),
             "metadata": dict(record.metadata_json),
@@ -283,6 +285,8 @@ class ScheduleRepository:
         employee_revision: int | None = None,
         agent_turn_guard: tuple[str, str, str] | None = None,
     ) -> Schedule:
+        if (metadata or {}).get("force_requested") and not validation.get("confirmable", validation.get("passed", validation.get("valid", False))):
+            raise InvalidScheduleStateError("Invalid schedules cannot be saved as drafts")
         payload = schedule.model_dump(mode="json")
         metadata_payload = dict(metadata or {})
         if employee_revision is not None:
@@ -291,6 +295,14 @@ class ScheduleRepository:
         self._ensure_week_lock(schedule.week_start)
         with self.database.transaction(immediate=True) as session:
             self._lock_week(session, schedule.week_start)
+            force_key = metadata_payload.get("force_client_message_id")
+            if force_key:
+                for previous in session.scalars(select(ScheduleRecord).where(ScheduleRecord.week_start == schedule.week_start)).all():
+                    previous_metadata = previous.metadata_json or {}
+                    if (previous_metadata.get("force_client_message_id") == force_key
+                            and previous_metadata.get("force_source_conversation_id") == metadata_payload.get("force_source_conversation_id")):
+                        return self._schedule_from_record(session, previous)
+            self._assert_override_scenario(session, schedule.week_start, metadata_payload)
             if agent_turn_guard is not None:
                 conversation_id, message_id, owner_token = agent_turn_guard
                 conversation = session.scalar(
@@ -348,6 +360,7 @@ class ScheduleRepository:
                 base_schedule_id=base_schedule_id,
                 base_version=base_version,
                 status="draft",
+                compliance_status=str(validation.get("compliance_status", "compliant" if validation.get("passed", validation.get("valid", False)) else "invalid")),
                 week_start=schedule.week_start,
                 validation_json=validation,
                 metadata_json=metadata_payload,
@@ -434,8 +447,8 @@ class ScheduleRepository:
             if draft.version != version:
                 raise VersionConflictError(draft.version, version)
             validation = draft.validation_json
-            if not bool(validation.get("passed", validation.get("valid", False))):
-                raise InvalidScheduleStateError("Only a valid draft can be confirmed")
+            if not bool(validation.get("confirmable", validation.get("passed", validation.get("valid", False)))):
+                raise InvalidScheduleStateError("Only a confirmable draft can be confirmed")
 
             self._assert_current_week_base(
                 session,
@@ -451,6 +464,7 @@ class ScheduleRepository:
             self._assert_expected_employee_revision(
                 session, draft.metadata_json.get("employee_revision")
             )
+            self._assert_override_scenario(session, draft.week_start, draft.metadata_json)
 
             dependent = self._current_confirmed_record(
                 session, draft.week_start + timedelta(days=7), lock=True
@@ -464,6 +478,18 @@ class ScheduleRepository:
             draft.confirmed_at = utc_now()
             session.flush()
             return self._schedule_from_record(session, draft)
+
+    @classmethod
+    def _assert_override_scenario(cls, session: Session, week_start: date, metadata: dict[str, Any]) -> None:
+        if not metadata.get("force_requested"):
+            return
+        conversation_id = metadata.get("force_source_conversation_id")
+        state = session.scalar(cls._lock(select(ConversationScenarioRecord).where(
+            ConversationScenarioRecord.conversation_id == conversation_id,
+            ConversationScenarioRecord.week_start == week_start,
+        ), session))
+        if (state.revision if state else 0) != metadata.get("scenario_revision", 0):
+            raise InvalidScheduleStateError("Override scenario changed; generate a new request")
 
     def cancel(self, schedule_id: str, version: int) -> dict[str, Any]:
         with self.database.transaction() as session:
@@ -582,6 +608,31 @@ class ScheduleRepository:
                     metadata.get("agent_conversation_id") == conversation_id
                     and metadata.get("agent_client_message_id") == client_message_id
                     and metadata.get("agent_user_message_id") == user_message_id
+                ):
+                    result = self._record_metadata(record)
+                    result["schedule"] = self._schedule_from_record(session, record)
+                    return result
+            return None
+
+    def find_force_schedule_for_request(
+        self,
+        week_start: date,
+        *,
+        conversation_id: str,
+        client_message_id: str,
+    ) -> dict[str, Any] | None:
+        """Recover an already persisted Force result for an idempotent retry."""
+        with self.database.transaction() as session:
+            records = session.scalars(
+                select(ScheduleRecord)
+                .where(ScheduleRecord.week_start == week_start)
+                .order_by(ScheduleRecord.created_at.desc(), ScheduleRecord.schedule_id.desc())
+            ).all()
+            for record in records:
+                metadata = dict(record.metadata_json or {})
+                if (
+                    metadata.get("force_source_conversation_id") == conversation_id
+                    and metadata.get("force_client_message_id") == client_message_id
                 ):
                     result = self._record_metadata(record)
                     result["schedule"] = self._schedule_from_record(session, record)

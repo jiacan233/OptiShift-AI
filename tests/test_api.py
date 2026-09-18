@@ -34,6 +34,34 @@ def _generate(client):
     return payload
 
 
+def test_force_api_contract_and_persisted_ledger(client):
+    assert client.patch("/api/employees/E01", json={"leave_days": ["Mon"]}).status_code == 200
+    body = {
+        "week_start": "2026-09-21", "base_schedule_id": None, "base_version": None,
+        "client_message_id": "force-api-once",
+        "force_request": {
+            "authorization_reason": "明确授权 E01 周一早班请假例外",
+            "requested_overrides": [{"rule_id": "R08", "employee_id": "E01", "day": "Mon", "shift": "morning"}],
+            "forced_assignments": [{"employee_id": "E01", "day": "Mon", "shift": "morning"}],
+        },
+    }
+    response = client.post("/api/schedule/force", json=body)
+    assert response.status_code == 200, response.text
+    draft = response.json()
+    assert draft["compliance_status"] == "authorized_violations"
+    assert draft["confirmable"] is True
+    assert draft["validation"]["passed"] is False
+    assert not draft["unauthorized_violations"]
+    assert not draft["protected_violations"]
+    assert not draft["integrity_violations"]
+    assert client.post("/api/schedule/force", json=body).json()["schedule_id"] == draft["schedule_id"]
+    confirmed = _confirm(client, draft)
+    assert confirmed["compliance_status"] == "authorized_violations"
+    versions = client.get(f"/api/schedules/{draft['schedule_id']}/versions").json()["versions"]
+    assert versions[0]["violations"] == draft["violations"]
+    assert versions[0]["authorized_violation_count"] == 1
+
+
 def _confirm(client, payload):
     response = client.post(
         "/api/schedule/confirm",
@@ -239,4 +267,3 @@ def test_infeasible_api_never_returns_or_persists_schedule(client):
     assert payload["generated_valid_schedule"] is False
     assert "schedule" not in payload
     assert client.get("/api/schedules/latest?status=draft").json() is None
-

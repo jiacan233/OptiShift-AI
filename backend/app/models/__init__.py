@@ -34,6 +34,7 @@ from .domain import (
     SolverStatus,
     ValidationResult,
 )
+from .overrides import ComplianceStatus, ForceRequest, OverrideAuthorization, OverrideScope
 
 __all__ = [
     "SHIFTS",
@@ -68,4 +69,8 @@ __all__ = [
     "SolverResult",
     "SolverStatus",
     "ValidationResult",
+    "ComplianceStatus",
+    "ForceRequest",
+    "OverrideAuthorization",
+    "OverrideScope",
 ]

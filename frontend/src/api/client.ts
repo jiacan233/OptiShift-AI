@@ -1,5 +1,7 @@
 import type {
   ApiProblem,
+  Assignment,
+  OverrideScope,
   AgentTurnResult,
   ConversationDetail,
   ConversationRecord,
@@ -93,6 +95,19 @@ export interface ReplanRequest {
   prompt?: string
 }
 
+export interface ForceGenerateRequest {
+  week_start: string
+  base_schedule_id: string | null
+  base_version: number | null
+  client_message_id: string
+  source_conversation_id?: string
+  force_request: {
+    requested_overrides: OverrideScope[]
+    forced_assignments: Assignment[]
+    authorization_reason: string
+  }
+}
+
 export interface EmployeePatch {
   available_days?: Day[]
   leave_days?: Day[]
@@ -173,6 +188,9 @@ export const api = {
   },
 
   schedules: {
+    forceGenerate(input: ForceGenerateRequest) {
+      return request<ScheduleOperationResult>('/api/schedule/force', { method: 'POST', body: input })
+    },
     generate(input: GenerateRequest) {
       return request<ScheduleOperationResult>('/api/schedule/generate', { method: 'POST', body: input })
     },

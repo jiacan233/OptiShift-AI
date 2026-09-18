@@ -14,7 +14,9 @@ from ..services.scheduling_service import SchedulingService
 employee_repository = EmployeeRepository(database)
 schedule_repository = ScheduleRepository(database)
 scenario_repository = ScenarioRepository(database)
-scheduling_service = SchedulingService(employee_repository, schedule_repository)
+scheduling_service = SchedulingService(
+    employee_repository, schedule_repository, scenarios=scenario_repository
+)
 conversation_repository = ConversationRepository(database)
 agent_llm_client = AgentLLMClient()
 agent_router = AgentRouter(agent_llm_client)

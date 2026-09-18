@@ -1,6 +1,7 @@
 import { CheckCircle2, Clock3, FileEdit } from 'lucide-react'
 import { STATUS_LABELS } from '@/lib/presentation'
 import type { ScheduleVersion } from '@/types'
+import { ViolationDetails } from './ViolationDetails'
 
 export function VersionHistory({ versions }: { versions: ScheduleVersion[] }) {
   return (
@@ -12,7 +13,12 @@ export function VersionHistory({ versions }: { versions: ScheduleVersion[] }) {
             {item.status === 'confirmed' ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <FileEdit className="h-4 w-4 text-amber-600" />}
             <div className="min-w-0 flex-1">
               <p className="text-xs font-extrabold text-slate-700">版本 {item.version} · {STATUS_LABELS[item.status]}</p>
+              {item.compliance_status && <p className={`mt-1 text-[11px] font-bold ${item.compliance_status === 'compliant' ? 'text-emerald-700' : item.compliance_status === 'authorized_violations' ? 'text-amber-700' : 'text-red-700'}`}>{item.compliance_status === 'compliant' ? '合规' : item.compliance_status === 'authorized_violations' ? `存在 ${item.authorized_violation_count ?? 0} 项已接受规则例外` : '存在规则冲突'}</p>}
               <p className="truncate text-[10px] text-slate-400">{new Date(item.created_at).toLocaleString('zh-CN')} · 上一版本 {item.parent_schedule_id ?? '—'}</p>
+              {!!item.violations?.length && <details className="mt-2">
+                <summary className="cursor-pointer text-xs font-bold text-amber-700">查看此版本的规则例外</summary>
+                <div className="mt-2"><ViolationDetails violations={item.violations} /></div>
+              </details>}
             </div>
           </div>
         ))}

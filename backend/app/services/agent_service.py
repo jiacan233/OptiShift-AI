@@ -4,7 +4,8 @@ from datetime import date, timedelta
 from typing import Any
 
 from ..core import HistoryUnavailableError
-from ..models import ChangeType, Day, Schedule, ScheduleChange
+from ..models import ChangeType, Day, ForceRequest, Schedule, ScheduleChange
+from ..validator.authorization import compliance_fields
 from ..repository import (
     ConversationBusyError,
     ConversationNotFoundError,
@@ -155,6 +156,7 @@ class AgentService:
             "impact": metadata.get("impact") or {},
             "metrics": metadata.get("metrics") or {},
             "explanation": metadata.get("explanation") or {},
+            **compliance_fields(record.get("validation") or {}, schedule_status),
         }
 
     @staticmethod
@@ -360,7 +362,7 @@ class AgentService:
             (
                 item
                 for item in reversed(trace)
-                if item.get("tool_name") in {"generate_schedule", "replan_schedule"}
+                if item.get("tool_name") in {"generate_schedule", "replan_schedule", "force_generate_schedule"}
             ),
             None,
         )
@@ -432,7 +434,7 @@ class AgentService:
         }
         intent = (
             AgentIntent.GENERATE
-            if write_call["tool_name"] == "generate_schedule"
+            if write_call["tool_name"] in {"generate_schedule", "force_generate_schedule"}
             else AgentIntent.REPLAN
         )
         schedule_created = schedule_result.get("status") in {"feasible", "confirmed"}
@@ -688,6 +690,8 @@ class AgentService:
                 if isinstance(value, list)
                 and value
                 and isinstance(value[0], ScheduleChange)
+                else value.model_dump(mode="json")
+                if isinstance(value, ForceRequest)
                 else value.isoformat()
                 if isinstance(value, date)
                 else value
@@ -912,6 +916,8 @@ class AgentService:
                 return f"{target.iso_year}年第{target.iso_week}周还没有可校验的排班。"
             if validation.get("passed"):
                 return f"{target.iso_year}年第{target.iso_week}周已通过全部硬规则校验。"
+            if validation.get("compliance_status") == "authorized_violations":
+                return f"当前排班存在 {len(validation.get('authorized_violations', []))} 项已授权规则例外，并非全部合规；可在工作台查看每条例外并确认草稿。"
             failed = [
                 item.get("rule_id")
                 for item in validation.get("checks", [])
@@ -924,6 +930,13 @@ class AgentService:
                 f"{suggestion.get('based_on_version')} 的真实指标提出。"
                 f"{suggestion.get('description', '')} 只有重新求解并校验后，才能确认具体改动可行。"
             )
+        display_validation = ((tool_output or {}).get("display") or {}).get("validation") or {}
+        if display_validation.get("compliance_status") == "authorized_violations":
+            facts = [
+                f"{item['rule_id']} {item.get('day')} {item.get('shift')} {item.get('employee_id') or ''}：要求 {item.get('expected')}，实际 {item.get('actual')}，已授权"
+                for item in display_validation.get("authorized_violations", [])
+            ]
+            return "当前排班保留以下真实规则例外：" + "；".join(facts) + "。其余规则仍由独立校验器检查。"
         if route.intent is AgentIntent.EXPLAIN and not self.llm.enabled:
             employee_id = route.employees[0] if route.employees else None
             display = (tool_output or {}).get("display") or {}
@@ -1451,7 +1464,9 @@ class AgentService:
                         "revalidated": rebased,
                     }
                 tool_name = (
-                    "generate_schedule"
+                    "force_generate_schedule"
+                    if route.force_generate
+                    else "generate_schedule"
                     if route.intent is AgentIntent.GENERATE
                     else "replan_schedule"
                 )
@@ -1487,6 +1502,14 @@ class AgentService:
                     }
                     if tool_name == "replan_schedule":
                         inputs["minimize_changes"] = route.minimize_changes or True
+                    elif tool_name == "force_generate_schedule":
+                        confirmed_base = current.get("confirmed") or {}
+                        inputs["expected_base"] = (confirmed_base.get("schedule_id"), confirmed_base.get("version"))
+                        inputs["force_request"] = ForceRequest(
+                            requested_overrides=route.requested_overrides,
+                            forced_assignments=route.forced_assignments,
+                            authorization_reason=route.authorization_reason or content,
+                        )
                     schedule_result = self._run_tool(
                         conversation_id=conversation_id,
                         browser_workspace_id=browser_workspace_id,
@@ -1518,7 +1541,7 @@ class AgentService:
                         # A failed first generation still establishes the
                         # conversation's scenario. Follow-up messages can then
                         # SET/ADD/REMOVE constraints even when no draft exists.
-                        if route.changes:
+                        if route.changes and not route.force_generate:
                             schedule_result = self._run_tool(
                                 conversation_id=conversation_id,
                                 browser_workspace_id=browser_workspace_id,
@@ -1596,14 +1619,20 @@ class AgentService:
                 else:
                     response_content = f"场景试排仍不可行（场景版本 {revision}）。我已返回最接近可行的试排结果和覆盖缺口，正式排班未改变。"
             elif schedule_result and schedule_result.get("status") == "feasible":
+                exceptions = len(schedule_result.get("authorized_violations", []))
                 response_content = (
                     f"已生成{target.iso_year}年第{target.iso_week}周排班草稿 "
-                    f"v{schedule_result['version']}。请在工作台检查后手动确认。"
+                    f"v{schedule_result['version']}。"
+                    + (f"其中有 {exceptions} 项已授权规则例外，请在工作台检查后手动确认。" if exceptions else "请在工作台检查后手动确认。")
                 )
             elif schedule_result and schedule_result.get("status") == "infeasible":
                 response_content = self._compose_infeasible_response(
                     schedule_result, target_week=target.week_start
                 )
+            elif schedule_result and schedule_result.get("status") == "clarification_required":
+                response_content = schedule_result["clarification"]["prompt"]
+            elif schedule_result and schedule_result.get("status") == "solver_unknown":
+                response_content = schedule_result.get("message", "求解尚未完成，请重试。")
             else:
                 response_content = self._compose_read_response(
                     route=route,

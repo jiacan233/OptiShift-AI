@@ -91,6 +91,7 @@ class ScheduleRecord(Base):
     )
     base_version: Mapped[int | None] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(16), nullable=False)
+    compliance_status: Mapped[str] = mapped_column(String(32), nullable=False, default="invalid", server_default="invalid")
     week_start: Mapped[date] = mapped_column(Date, nullable=False)
     validation_json: Mapped[dict] = mapped_column(JSON, nullable=False)
     metadata_json: Mapped[dict] = mapped_column(JSON, nullable=False)

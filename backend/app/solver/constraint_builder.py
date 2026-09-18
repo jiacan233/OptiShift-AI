@@ -22,6 +22,8 @@ class BuiltSchedulingModel:
     workday_vars: dict[tuple[str, Day], cp_model.IntVar]
     workload_vars: dict[str, cp_model.IntVar]
     staffing_slacks: dict[CoverageKey, cp_model.IntVar]
+    authorized_violation_terms: list[cp_model.IntVar]
+    authorized_magnitude_terms: list[cp_model.IntVar]
     facts: SchedulingFacts
     preference_terms: list[cp_model.IntVar]
     change_terms: list[cp_model.IntVar]
@@ -61,20 +63,40 @@ class ConstraintBuilder:
                 model.Add(workday == sum(day_vars))
                 workday_vars[(employee_id, day)] = workday
 
-        # R08 and explicit, validated request changes.
+        # R08 and explicit, validated request changes. Only exact authorized
+        # instances can relax R08; policies themselves remain untouched.
+        override_scopes = [] if diagnostic else context.override_scopes
+
+        def has_r08_override(employee_id: str, day: Day, shift: Shift) -> bool:
+            return any(
+                item.get("rule_id") == "R08"
+                and item.get("employee_id") == employee_id
+                and item.get("day") in {day, day.value}
+                and item.get("shift") in {shift, shift.value}
+                for item in override_scopes
+            )
+
         for employee_id in employee_ids:
             policy = facts.policies[employee_id]
             for day in WEEK_DAYS:
                 if not policy.can_work(day):
                     for shift in SHIFTS:
-                        model.Add(assignment_vars[(employee_id, day, shift)] == 0)
+                        if not has_r08_override(employee_id, day, shift):
+                            model.Add(assignment_vars[(employee_id, day, shift)] == 0)
             for day, shift in policy.forced_assignments:
                 model.Add(assignment_vars[(employee_id, day, shift)] == 1)
             for day, shift in policy.forced_unassignments:
                 model.Add(assignment_vars[(employee_id, day, shift)] == 0)
+        for assignment in context.user_forced_assignments:
+            model.Add(assignment_vars[(assignment.employee_id, assignment.day, assignment.shift)] == 1)
 
-        # R01-R04.  Only the diagnostic model receives shortage slack.
+        # R01-R04. Diagnosis and exact authorized slots may receive shortage slack.
         staffing_slacks: dict[CoverageKey, cp_model.IntVar] = {}
+        # These terms describe actual use of an authorized exception.  They
+        # are kept separate from the normal objective so Force solving can be
+        # lexicographic instead of relying on a large arbitrary weight.
+        authorized_violation_terms: list[cp_model.IntVar] = []
+        authorized_magnitude_terms: list[cp_model.IntVar] = []
         coverage_specs = (
             ("R01", Skill.MANAGER, rules.manager_per_shift),
             ("R02", Skill.BEVERAGE, rules.beverage_per_shift),
@@ -88,6 +110,16 @@ class ConstraintBuilder:
                         for employee in context.employees
                         if skill in employee.skills
                     ]
+                    allowed_shortage = next(
+                        (
+                            int(item.get("allowed_shortage", 0))
+                            for item in override_scopes
+                            if item.get("rule_id") == rule_id
+                            and item.get("day") in {day, day.value}
+                            and item.get("shift") in {shift, shift.value}
+                        ),
+                        0,
+                    )
                     self._add_coverage(
                         model,
                         staffing_slacks,
@@ -95,6 +127,9 @@ class ConstraintBuilder:
                         qualified,
                         required,
                         diagnostic,
+                        allowed_shortage=allowed_shortage,
+                        authorized_violation_terms=authorized_violation_terms,
+                        authorized_magnitude_terms=authorized_magnitude_terms,
                     )
                 all_staff = [assignment_vars[(employee_id, day, shift)] for employee_id in employee_ids]
                 self._add_coverage(
@@ -104,7 +139,29 @@ class ConstraintBuilder:
                     all_staff,
                     rules.minimum_staff(day),
                     diagnostic,
+                    allowed_shortage=next(
+                        (
+                            int(item.get("allowed_shortage", 0))
+                            for item in override_scopes
+                            if item.get("rule_id") == "R04"
+                            and item.get("day") in {day, day.value}
+                            and item.get("shift") in {shift, shift.value}
+                        ),
+                        0,
+                    ),
+                    authorized_violation_terms=authorized_violation_terms,
+                    authorized_magnitude_terms=authorized_magnitude_terms,
                 )
+
+        # R08 is normally hard above.  An authorized slot is permitted, but
+        # each actual assignment remains an exception and is minimized first.
+        for employee_id in employee_ids:
+            for day in WEEK_DAYS:
+                for shift in SHIFTS:
+                    if has_r08_override(employee_id, day, shift) and not facts.policies[employee_id].can_work(day):
+                        variable = assignment_vars[(employee_id, day, shift)]
+                        authorized_violation_terms.append(variable)
+                        authorized_magnitude_terms.append(variable)
 
         # R05: weekly cap remains hard in both primary and diagnostic models.
         workload_vars: dict[str, cp_model.IntVar] = {}
@@ -185,6 +242,10 @@ class ConstraintBuilder:
             # objective so the preview is not needlessly sparse.
             total_shortage = sum(staffing_slacks.values())
             model.Minimize(total_shortage)
+        elif authorized_violation_terms:
+            # PrimarySolver fixes this count and then minimizes magnitude
+            # before applying the normal preference/stability objective.
+            model.Minimize(sum(authorized_violation_terms))
         else:
             weights = rules.objective
             objective = weights.preference_reward * sum(preference_terms)
@@ -200,6 +261,8 @@ class ConstraintBuilder:
             workday_vars=workday_vars,
             workload_vars=workload_vars,
             staffing_slacks=staffing_slacks,
+            authorized_violation_terms=authorized_violation_terms,
+            authorized_magnitude_terms=authorized_magnitude_terms,
             facts=facts,
             preference_terms=preference_terms,
             change_terms=change_terms,
@@ -214,10 +277,22 @@ class ConstraintBuilder:
         variables: list[cp_model.IntVar],
         required: int,
         diagnostic: bool,
+        allowed_shortage: int = 0,
+        authorized_violation_terms: list[cp_model.IntVar] | None = None,
+        authorized_magnitude_terms: list[cp_model.IntVar] | None = None,
     ) -> None:
-        if diagnostic:
-            shortage = model.NewIntVar(0, required, f"shortage_{key[0]}_{key[1].value}_{key[2].value}")
+        if diagnostic or allowed_shortage > 0:
+            upper_bound = min(required, allowed_shortage if not diagnostic else required)
+            shortage = model.NewIntVar(0, upper_bound, f"shortage_{key[0]}_{key[1].value}_{key[2].value}")
             model.Add(sum(variables) + shortage >= required)
             slacks[key] = shortage
+            if not diagnostic and allowed_shortage > 0:
+                used = model.NewBoolVar(f"authorized_shortage_{key[0]}_{key[1].value}_{key[2].value}")
+                model.Add(shortage == 0).OnlyEnforceIf(used.Not())
+                model.Add(shortage >= 1).OnlyEnforceIf(used)
+                if authorized_violation_terms is not None:
+                    authorized_violation_terms.append(used)
+                if authorized_magnitude_terms is not None:
+                    authorized_magnitude_terms.append(shortage)
         else:
             model.Add(sum(variables) >= required)

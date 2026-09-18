@@ -54,6 +54,49 @@ class PrimarySolver:
                 message="The solver did not return a usable schedule.",
             )
 
+        if context.override_scopes and built.authorized_violation_terms:
+            if status is not SolverStatus.OPTIMAL:
+                return SolverResult(status=SolverStatus.UNKNOWN, message="Exception count optimum was not proven; retry with a larger solver time limit.")
+            # Force solving has three explicit phases: exception count,
+            # exception magnitude, then ordinary business objectives.
+            exception_count = sum(
+                solver.Value(variable) for variable in built.authorized_violation_terms
+            )
+            built.model.Add(sum(built.authorized_violation_terms) == exception_count)
+            built.model.ClearObjective()
+            if built.authorized_magnitude_terms:
+                built.model.Minimize(sum(built.authorized_magnitude_terms))
+            magnitude_solver = self._configured_solver(context)
+            magnitude_status = _solver_status(magnitude_solver.Solve(built.model))
+            if magnitude_status is not SolverStatus.OPTIMAL:
+                return SolverResult(
+                    status=SolverStatus.UNKNOWN,
+                    metrics={"solve_duration_seconds": magnitude_solver.WallTime()},
+                    message="The Force solver could not preserve its authorized exception minimum.",
+                )
+            minimum_magnitude = sum(
+                magnitude_solver.Value(variable) for variable in built.authorized_magnitude_terms
+            )
+            solver = magnitude_solver
+            # The exception objectives are optimal; the business objective
+            # still needs phase three before overall optimality can be claimed.
+            status = SolverStatus.FEASIBLE
+            if built.authorized_magnitude_terms:
+                built.model.Add(sum(built.authorized_magnitude_terms) == minimum_magnitude)
+            built.model.ClearObjective()
+            weights = context.rules.objective
+            objective = weights.preference_reward * sum(built.preference_terms)
+            if built.workload_gap is not None:
+                objective -= weights.workload_gap_penalty * built.workload_gap
+            if built.change_terms:
+                objective -= weights.schedule_change_penalty * sum(built.change_terms)
+            built.model.Maximize(objective)
+            phase_three = self._configured_solver(context)
+            phase_three_status = _solver_status(phase_three.Solve(built.model))
+            if phase_three_status in {SolverStatus.OPTIMAL, SolverStatus.FEASIBLE}:
+                solver = phase_three
+                status = phase_three_status
+
         assignments = self._extract_assignments(built, solver)
         resolved_schedule_id = schedule_id or f"sch_{uuid4().hex[:12]}"
         schedule = Schedule(

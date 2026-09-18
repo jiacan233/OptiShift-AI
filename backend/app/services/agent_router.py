@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from ..models import ChangeType, Day, Employee, ScheduleChange, Shift
+from ..models import Assignment, ChangeType, Day, Employee, OverrideScope, ScheduleChange, Shift
 from .intent_parser import DAY_TOKENS, IntentParser, _normalize_identifier_text
 from .llm_client import (
     AIUnavailableError,
@@ -77,6 +77,13 @@ class AgentRoute(BaseModel):
     # rescanning the user's prose after routing has completed.
     operation: Literal["add", "set", "remove", "clear"] = "add"
     minimize_changes: bool = False
+    # The model may identify an explicit authorization request, but the
+    # deterministic service validates the exact scope before any write.
+    override_requested: bool = False
+    force_generate: bool = False
+    requested_overrides: list[OverrideScope] = Field(default_factory=list)
+    forced_assignments: list[Assignment] = Field(default_factory=list)
+    authorization_reason: str | None = Field(default=None, max_length=2000)
     reference: AgentReference = Field(default_factory=AgentReference)
     clarification: AgentClarification = Field(default_factory=AgentClarification)
 
@@ -93,6 +100,11 @@ class TrustedAgentAction(BaseModel):
     target_week: date | None = None
     changes: list[ScheduleChange] = Field(default_factory=list)
     minimize_changes: bool = True
+    override_requested: bool = False
+    force_generate: bool = False
+    requested_overrides: list[OverrideScope] = Field(default_factory=list)
+    forced_assignments: list[Assignment] = Field(default_factory=list)
+    authorization_reason: str | None = Field(default=None, max_length=2000)
 
 
 class AgentRouter:
@@ -117,14 +129,19 @@ class AgentRouter:
             if unknown:
                 raise UnknownAgentEmployeeError(unknown)
             intent = AgentIntent(trusted_action.intent)
-            return AgentRoute(
+            return self._validate_force_route(AgentRoute(
                 intent=intent,
                 mutation_requested=intent in {AgentIntent.GENERATE, AgentIntent.REPLAN},
                 target_week=trusted_action.target_week,
                 changes=trusted_action.changes,
                 employees=sorted({item.employee_id for item in trusted_action.changes}),
                 minimize_changes=trusted_action.minimize_changes,
-            )
+                override_requested=trusted_action.override_requested,
+                force_generate=trusted_action.force_generate,
+                requested_overrides=trusted_action.requested_overrides,
+                forced_assignments=trusted_action.forced_assignments,
+                authorization_reason=trusted_action.authorization_reason or content,
+            ))
         if not self.llm.enabled:
             return self._deterministic_route(content, employees)
 
@@ -141,7 +158,11 @@ class AgentRouter:
                 "per employee/day and do not invent a cross-product. Populate operations with "
                 "ordered per-employee add/set/remove/clear operations; a clear operation may "
                 "have day null. Use null for unspecified nullable fields. For changes of type "
-                "preference, assign, or unassign, shift must be specified."
+                "preference, assign, or unassign, shift must be specified. Treat only direct "
+                "statements such as 'force generate' or 'I authorize this exception' as an "
+                "override request. An override needs exact rule/day/shift scope: R08 also needs "
+                "an employee, while R01-R04 need allowed_shortage. Do not infer an override "
+                "from 'try', 'continue', or other ambiguous wording."
             ),
             user={
                 "message": content,
@@ -164,6 +185,8 @@ class AgentRouter:
         known = {employee.id for employee in employees}
         referenced = set(route.employees) | {item.employee_id for item in route.changes}
         referenced |= {item.employee_id for item in route.operations}
+        referenced |= {item.employee_id for item in route.forced_assignments}
+        referenced |= {item.employee_id for item in route.requested_overrides if item.employee_id}
         unknown = sorted(referenced - known)
         if unknown:
             raise UnknownAgentEmployeeError(unknown)
@@ -178,7 +201,44 @@ class AgentRouter:
                 )
                 for change in route.changes
             ]
-        return route
+        if (route.force_generate or route.requested_overrides or route.forced_assignments) and not self._explicit_authorization(content):
+            return AgentRoute(intent=AgentIntent.CLARIFICATION, clarification=AgentClarification(
+                required=True, question="若要突破规则，请明确说明授权例外及其员工、日期、班次或允许缺口。"
+            ))
+        route.authorization_reason = content if route.force_generate else None
+        return self._validate_force_route(route)
+
+    @staticmethod
+    def _explicit_authorization(content: str) -> bool:
+        return any(term in content.lower() for term in (
+            "强制", "我授权", "允许", "即使", "还是让", "就是让", "仍然安排", "仍要安排",
+            "没有店长也先", "规则先不", "限制先不", "force", "authorize", "override",
+        )) and not any(term in content.lower() for term in (
+            "不要强制", "别强制", "不能强制", "不授权", "不允许", "不强制",
+            "do not override", "don't override", "do not force", "don't force",
+        ))
+
+    @staticmethod
+    def _validate_force_route(route: AgentRoute) -> AgentRoute:
+        if not (route.force_generate or route.override_requested or route.requested_overrides or route.forced_assignments):
+            return route
+        if not route.force_generate or not route.authorization_reason:
+            return route.model_copy(update={
+                "intent": AgentIntent.CLARIFICATION,
+                "mutation_requested": False,
+                "force_generate": False,
+                "clarification": AgentClarification(
+                    required=True,
+                    question="请明确要授权的规则、具体日期和班次；请假或不可用例外还需要员工编号。",
+                ),
+            })
+        return route.model_copy(update={
+            "intent": AgentIntent.GENERATE,
+            "mutation_requested": True,
+            "override_requested": bool(route.requested_overrides),
+            "changes": [],
+            "operations": [],
+        })
 
     @staticmethod
     def _confirmation_only(content: str) -> bool:
@@ -257,6 +317,9 @@ class AgentRouter:
             "清除",
             "恢复全部",
             "clear",
+            "强制生成",
+            "强制排",
+            "即使违反规则",
         )
         mutation_requested = any(term in normalized for term in mutation_terms)
         reference_apply = reference.type != "none" and any(
@@ -338,6 +401,39 @@ class AgentRouter:
             )
 
         clarification = AgentClarification()
+        explicit_force = any(term in normalized for term in (
+            "强制生成", "强制排", "强制安排", "force generate", "authorized override", "即使违反规则", "我授权", "没有店长也先排", "没有店长也先生成",
+        )) or (leave and any(term in normalized for term in ("还是让", "就是让", "仍然安排", "仍要安排")))
+        explicit_force = explicit_force and cls._explicit_authorization(text)
+        shifts = [value for value, tokens in (
+            (Shift.MORNING, ("早班", "morning")),
+            (Shift.EVENING, ("晚班", "evening")),
+        ) if any(token in normalized for token in tokens)]
+        shift = shifts[0] if len(shifts) == 1 else None
+        if explicit_force and (leave or employee_ids) and (
+            len(employee_ids) != 1 or len(days) != 1 or shift is None
+        ):
+            return AgentRoute(intent=AgentIntent.CLARIFICATION, clarification=AgentClarification(
+                required=True, question="请逐条指定要强制安排的员工、日期和一个班次；不能授权整周或全部员工。"
+            ))
+        requested_overrides: list[OverrideScope] = []
+        forced_assignments: list[Assignment] = []
+        if explicit_force and len(employee_ids) == 1 and len(days) == 1 and shift is not None:
+            if leave:
+                requested_overrides.append(OverrideScope(
+                    rule_id="R08", employee_id=employee_ids[0], day=day, shift=shift
+                ))
+            if any(term in normalized for term in ("上班", "安排", "让", "排到")):
+                forced_assignments.append(Assignment(
+                    employee_id=employee_ids[0], day=day, shift=shift
+                ))
+        coverage_rule = re.search(r"\br0([1-4])\b", normalized)
+        shortage = re.search(r"(?:缺口|shortage)\s*(?:<=|≤|不超过|最多|上限)?\s*(\d+)", normalized)
+        if explicit_force and coverage_rule and shortage and len(days) == 1 and shift is not None:
+            limit = int(shortage.group(1))
+            if 1 <= limit <= 100:
+                requested_overrides.append(OverrideScope(rule_id=f"R0{coverage_rule.group(1)}", day=day, shift=shift, allowed_shortage=limit))
+        force_generate = explicit_force
         clear_requested = operation == "clear"
         if (leave or clear_requested) and not employee_ids:
             clarification = AgentClarification(
@@ -352,6 +448,13 @@ class AgentRouter:
             )
             intent = AgentIntent.CLARIFICATION
             mutation_requested = False
+
+        if force_generate:
+            intent = AgentIntent.GENERATE
+            mutation_requested = True
+            clarification = AgentClarification()
+            changes = []
+            operations = []
 
         return AgentRoute(
             intent=intent,
@@ -368,6 +471,11 @@ class AgentRouter:
             ),
             reference=reference,
             clarification=clarification,
+            override_requested=bool(requested_overrides),
+            force_generate=force_generate,
+            requested_overrides=requested_overrides,
+            forced_assignments=forced_assignments,
+            authorization_reason=text if force_generate else None,
         )
 
     @staticmethod

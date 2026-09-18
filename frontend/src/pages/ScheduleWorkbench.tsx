@@ -21,6 +21,7 @@ export function ScheduleWorkbench() {
   const agent = useAgentStore()
   const [view, setView] = useState<ScheduleView>('shift')
   const active = store.activeSchedule
+  const exceptionCount = store.result?.validation.authorized_violations?.length ?? 0
 
   const quickAction = (content: string, trustedAction?: TrustedAgentAction) => {
     void agent.openWithPrompt(content, trustedAction && { ...trustedAction, target_week: store.activeWeekStart })
@@ -37,6 +38,7 @@ export function ScheduleWorkbench() {
           <p className="eyebrow">排班周次</p>
           <h2 className="mt-1 text-xl font-extrabold tracking-tight text-ink">{weekLabel(store.activeWeekStart)}</h2>
           <p className="mt-1 text-sm font-semibold text-slate-500">{weekRangeLabel(store.activeWeekStart)}{active ? ` · v${active.version} · ${STATUS_LABELS[active.status]}` : ' · 未生成'}</p>
+          {exceptionCount > 0 && <p className="mt-2 text-sm font-bold text-amber-700">存在 {exceptionCount} 项已授权规则例外</p>}
         </div>
         <WeekSelector activeWeekStart={store.activeWeekStart} weeks={store.weekOptions} disabled={store.isLoadingWeek || store.isRunning} onSelect={(weekStart) => void store.setActiveWeek(weekStart)} />
       </section>
@@ -58,8 +60,8 @@ export function ScheduleWorkbench() {
         <>
           {store.draftSchedule && (
             <section className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1"><p className="text-sm font-extrabold text-amber-900">草稿版本 {store.draftSchedule.version} 等待确认</p><p className="text-xs text-amber-700">正式排班保持不变。全部硬约束通过后才可确认。</p></div>
-              <div className="flex gap-2"><button onClick={() => void store.cancelDraft()} disabled={store.isRunning} className="btn-secondary"><X className="h-4 w-4" />取消</button><button onClick={() => void store.confirmDraft()} disabled={store.isRunning || !store.result?.validation.passed} className="btn-primary"><Check className="h-4 w-4" />确认变更</button></div>
+              <div className="min-w-0 flex-1"><p className="text-sm font-extrabold text-amber-900">草稿版本 {store.draftSchedule.version} 等待确认</p><p className="text-xs text-amber-700">{exceptionCount ? `存在 ${exceptionCount} 项已授权规则例外。确认后，该版本将携带这些例外正式生效。` : (store.result?.validation.confirmable ?? store.result?.validation.passed) ? '确认后该排班版本正式生效。' : '存在未授权规则冲突，不能确认。'}</p></div>
+              <div className="flex gap-2"><button onClick={() => void store.cancelDraft()} disabled={store.isRunning} className="btn-secondary"><X className="h-4 w-4" />取消</button><button onClick={() => void store.confirmDraft()} disabled={store.isRunning || !(store.result?.validation.confirmable ?? store.result?.validation.passed)} className="btn-primary"><Check className="h-4 w-4" />{exceptionCount ? '确认含例外的排班' : '确认变更'}</button></div>
             </section>
           )}
 
@@ -68,7 +70,7 @@ export function ScheduleWorkbench() {
               <div className="min-w-0 flex-1"><p className="eyebrow">排班结果</p><h2 className="mt-1 text-lg font-extrabold text-ink">{weekLabel(active.week_start)} · v{active.version} <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] ${active.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{STATUS_LABELS[active.status]}</span></h2></div>
               <div className="flex rounded-xl bg-slate-100 p-1"><ViewButton active={view === 'shift'} onClick={() => setView('shift')} icon={LayoutGrid} label="班次视角" /><ViewButton active={view === 'employee'} onClick={() => setView('employee')} icon={Users} label="员工视角" /></div>
             </div>
-            <div className="p-4 lg:p-5">{view === 'shift' ? <ScheduleGrid schedule={active} employees={store.employees} onSelectShift={(day, shift) => store.selectShift({ day, shift })} /> : <EmployeeView schedule={active} employees={store.employees} />}</div>
+            <div className="p-4 lg:p-5">{view === 'shift' ? <ScheduleGrid schedule={active} employees={store.employees} validation={store.result?.validation} onSelectShift={(day, shift) => store.selectShift({ day, shift })} /> : <EmployeeView schedule={active} employees={store.employees} />}</div>
           </section>
 
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -86,7 +88,7 @@ export function ScheduleWorkbench() {
         </section>
       )}
 
-      <ShiftDrawer selection={store.selectedShift} schedule={active} employees={store.employees} onClose={() => store.selectShift(null)} />
+      <ShiftDrawer selection={store.selectedShift} schedule={active} employees={store.employees} validation={store.result?.validation} onClose={() => store.selectShift(null)} />
       <EntityClarifier clarification={store.clarification} onChoose={(id) => void store.resolveClarification(id)} onClose={store.dismissClarification} />
     </div>
   )

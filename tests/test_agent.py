@@ -83,6 +83,21 @@ def test_01_browser_workspace_creates_conversation(agent_client):
     assert conversation_id.startswith("conv_")
 
 
+def test_force_agent_records_structured_authorization_and_replays(agent_client):
+    agent_client.patch("/api/employees/E01", json={"leave_days": ["Mon"]})
+    conversation_id = _conversation(agent_client)
+    text = "我知道 E01 周一请假，但就是让 E01 周一早班上班。"
+    response = _send(agent_client, conversation_id, text, client_message_id="force-agent-once")
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert result["schedule_result"]["compliance_status"] == "authorized_violations"
+    calls = [call for call in result["tool_calls"] if call["tool_name"] == "force_generate_schedule"]
+    assert calls[0]["input"]["force_request"]["requested_overrides"][0]["rule_id"] == "R08"
+    retry = _send(agent_client, conversation_id, text, client_message_id="force-agent-once")
+    assert retry.status_code == 200
+    assert retry.json()["schedule_result"]["schedule_id"] == result["schedule_result"]["schedule_id"]
+
+
 def test_02_workspace_a_cannot_see_workspace_b_conversation(agent_client):
     conversation_id = _conversation(agent_client, "bw_a")
 

@@ -4,6 +4,44 @@ export const SHIFTS = ['morning', 'evening'] as const
 export type Day = (typeof DAYS)[number]
 export type ShiftType = (typeof SHIFTS)[number]
 export type ScheduleStatus = 'draft' | 'confirmed' | 'cancelled'
+export type ComplianceStatus = 'compliant' | 'authorized_violations' | 'invalid'
+export type ViolationClassification = 'SATISFIED' | 'VIOLATED_AUTHORIZED' | 'VIOLATED_UNAUTHORIZED' | 'PROTECTED_RULE_VIOLATION' | 'INTEGRITY_VIOLATION'
+
+export interface OverrideScope {
+  rule_id: 'R01' | 'R02' | 'R03' | 'R04' | 'R08'
+  day: Day
+  shift: ShiftType
+  employee_id?: string | null
+  allowed_shortage?: number | null
+}
+
+export interface Violation {
+  violation_id: string
+  rule_id: string
+  rule_name: string
+  category: ViolationClassification
+  day?: Day | null
+  shift?: ShiftType | null
+  employee_id?: string | null
+  expected?: number | string | null
+  actual?: number | string | null
+  shortage?: number | null
+  excess?: number | null
+  message: string
+  authorized: boolean
+  authorization_id?: string | null
+  authorization_source?: string | null
+  constraint_id: string
+}
+
+export interface CoverageCheck {
+  rule_id: string
+  day: Day
+  shift: ShiftType
+  expected: number
+  actual: number
+  passed: boolean
+}
 export type RunAction = 'generate' | 'leave' | 'freeform'
 export type PageId = 'schedule' | 'employees' | 'rules'
 export type ScheduleView = 'shift' | 'employee'
@@ -39,10 +77,20 @@ export interface RuleCheck {
   passed: boolean
   message?: string
   details?: Record<string, unknown>
+  classification?: ViolationClassification
 }
 
 export interface ValidationResult {
   passed: boolean
+  valid?: boolean
+  confirmable?: boolean
+  compliance_status?: ComplianceStatus
+  violations?: Violation[]
+  authorized_violations?: Violation[]
+  unauthorized_violations?: Violation[]
+  protected_violations?: Violation[]
+  integrity_violations?: Violation[]
+  coverage?: CoverageCheck[]
   total: number
   passed_count: number
   checks: RuleCheck[]
@@ -133,6 +181,9 @@ export interface ScheduleVersion {
   created_at: string
   parent_schedule_id: string | null
   base_version?: number | null
+  compliance_status?: ComplianceStatus
+  authorized_violation_count?: number
+  violations?: Violation[]
 }
 
 export interface FeasibleResult {
@@ -142,6 +193,11 @@ export interface FeasibleResult {
   schedule_status: ScheduleStatus
   schedule: Schedule
   validation: ValidationResult
+  solver_status?: string
+  lifecycle_status?: ScheduleStatus
+  compliance_status?: ComplianceStatus
+  confirmable?: boolean
+  violations?: Violation[]
   diff?: ScheduleDiff | null
   impact?: ImpactRadius | null
   metrics: ScheduleMetrics
@@ -311,6 +367,11 @@ export interface TrustedAgentAction {
   target_week?: string
   changes?: ScheduleChange[]
   minimize_changes?: boolean
+  override_requested?: boolean
+  force_generate?: boolean
+  requested_overrides?: OverrideScope[]
+  forced_assignments?: Assignment[]
+  authorization_reason?: string
 }
 
 export interface AgentTurnResult {

@@ -156,6 +156,7 @@ class Database:
                     + ", ".join(missing)
                 )
             required_columns = {
+                "schedules": {"compliance_status"},
                 "conversations": {
                     "conversation_id",
                     "browser_workspace_id",

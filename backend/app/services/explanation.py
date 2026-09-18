@@ -39,6 +39,9 @@ class ExplanationService:
             f"{validation.get('passed_count', 0)}/{validation.get('total', 10)} hard checks pass. "
             f"{preference_matches} assignments match employee shift preferences."
         )
+        if validation.get("compliance_status") == "authorized_violations":
+            base += f" {len(validation.get('authorized_violations', []))} explicitly authorized exceptions remain; this schedule is not fully compliant."
+            return {"text": base, "source": "deterministic_template", "llm_fallback": True}
         if os.getenv("LLM_ENABLED", "").lower() not in {"1", "true", "yes"}:
             return {"text": base, "source": "deterministic_template", "llm_fallback": True}
         api_key = os.getenv("LLM_API_KEY", "").strip()
@@ -106,10 +109,17 @@ def normalize_validation(result: Any) -> dict[str, Any]:
     return {
         "passed": valid,
         "valid": valid,
+        "confirmable": valid,
+        "compliance_status": "compliant" if valid else "invalid",
+        "coverage": raw.get("coverage", []),
         "total": raw.get("total_count", len(checks)),
         "total_count": raw.get("total_count", len(checks)),
         "passed_count": raw.get("passed_count", sum(c["passed"] for c in checks)),
         "checks": checks,
         "hard_constraints": hard_constraints,
         "violations": raw.get("violations", []),
+        "authorized_violations": [],
+        "unauthorized_violations": [],
+        "protected_violations": [],
+        "integrity_violations": [],
     }

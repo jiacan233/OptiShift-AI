@@ -206,6 +206,8 @@ class RuleConfig(StrictModel):
 
 
 class SchedulingContext(StrictModel):
+    user_forced_assignments: list[Assignment] = Field(default_factory=list)
+    override_scopes: list[dict[str, Any]] = Field(default_factory=list)
     base_schedule: Schedule | None = None
     previous_days: list[HistoricalAssignment] = Field(default_factory=list)
     history_schedule_id: str | None = None
@@ -222,6 +224,11 @@ class SchedulingContext(StrictModel):
         if len(employee_ids) != len(set(employee_ids)):
             raise ValueError("employee ids must be unique")
         known = set(employee_ids)
+        if any(item.employee_id not in known for item in self.user_forced_assignments):
+            raise ValueError("Forced assignment references an unknown employee")
+        for scope in self.override_scopes:
+            if scope.get("employee_id") and scope["employee_id"] not in known:
+                raise ValueError("Override scope references an unknown employee")
         unknown_changes = sorted(
             {change.employee_id for change in self.requested_changes if change.employee_id not in known}
         )
@@ -252,6 +259,7 @@ class RuleCheck(StrictModel):
 
 
 class ValidationResult(StrictModel):
+    coverage: list[dict[str, Any]] = Field(default_factory=list)
     valid: bool
     hard_constraints: dict[str, RuleCheck]
     violations: list[RuleViolation] = Field(default_factory=list)

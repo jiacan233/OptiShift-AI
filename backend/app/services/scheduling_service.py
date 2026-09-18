@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable
 from uuid import uuid4
 
 from ..models import (
+    Assignment,
     PatchOperation,
     RequestIntent,
     ScenarioPatch,
@@ -13,15 +14,27 @@ from ..models import (
     ScheduleChange,
     ScheduleStatus,
     SolverStatus,
+    ForceRequest,
+    OverrideAuthorization,
 )
 from ..repository import (
     EmployeeRepository,
     InvalidScheduleStateError,
     ScheduleNotFoundError,
     ScheduleRepository,
+    VersionConflictError,
 )
+from ..repository.scenarios import ScenarioRepository
 from ..solver.primary_solver import PrimarySolver
 from ..validator import RuleValidator
+from ..validator.authorization import (
+    authorization_is_active,
+    classify_validation,
+    compliance_fields,
+    constraint_id,
+    context_snapshot,
+    fingerprint,
+)
 from .context_builder import ContextBuilder
 from .diff_service import build_diff
 from .explanation import ExplanationService, normalize_validation
@@ -45,12 +58,14 @@ class SchedulingService:
         *,
         solver: PrimarySolver | None = None,
         validator: RuleValidator | None = None,
+        scenarios: ScenarioRepository | None = None,
     ) -> None:
         self.employees = employees
         self.schedules = schedules
         self.context_builder = ContextBuilder(employees, schedules, load_rule_config())
         self.solver = solver or PrimarySolver()
         self.validator = validator or RuleValidator()
+        self.scenarios = scenarios or ScenarioRepository(schedules.database)
         self.intent_parser = IntentParser()
         self.explanations = ExplanationService()
 
@@ -74,6 +89,8 @@ class SchedulingService:
             }
             if has_solver_status:
                 response.update({"solver_status": solver_status, "can_confirm": False})
+                response.update(compliance_fields({"passed": False}))
+                response.update(validation=None)
             return response
         raw = diagnosis.model_dump(mode="json")
         logger.info(
@@ -108,7 +125,29 @@ class SchedulingService:
         }
         if has_solver_status:
             response.update({"solver_status": solver_status, "can_confirm": False})
+        response.update(compliance_fields({"passed": False}))
+        response.update(validation=None)
         return response
+
+    @staticmethod
+    def _stored_response(record: dict[str, Any]) -> dict[str, Any]:
+        schedule: Schedule = record["schedule"]
+        metadata = record.get("metadata", {})
+        validation = record.get("validation", {})
+        return {
+            "status": "confirmed" if record["status"] == "confirmed" else "feasible",
+            "solver_status": metadata.get("solver_status", "feasible"),
+            "schedule_id": schedule.schedule_id,
+            "version": schedule.version,
+            "schedule_status": record["status"],
+            "schedule": schedule.model_dump(mode="json"),
+            "validation": validation,
+            "diff": metadata.get("diff"),
+            "impact": metadata.get("impact"),
+            "metrics": metadata.get("metrics", {}),
+            "explanation": metadata.get("explanation"),
+            **compliance_fields(validation, record["status"]),
+        }
 
     def preview_scenario(
         self,
@@ -220,6 +259,7 @@ class SchedulingService:
         metadata_extra: dict[str, Any] | None = None,
         before_commit: Callable[[], None] | None = None,
         agent_turn_guard: tuple[str, str, str] | None = None,
+        authorizations: list[OverrideAuthorization] | None = None,
     ) -> dict[str, Any]:
         if result.status is SolverStatus.INFEASIBLE:
             return self._infeasible_response(result)
@@ -235,8 +275,10 @@ class SchedulingService:
         validation_result = self.validator.validate(
             result.schedule, context.employees, context=context, rules=context.rules
         )
-        validation = normalize_validation(validation_result)
-        if not validation["passed"]:
+        validation = classify_validation(
+            normalize_validation(validation_result), result.schedule.week_start, authorizations
+        )
+        if not validation["confirmable"]:
             logger.error(
                 "solver_validation_failed",
                 extra={
@@ -255,7 +297,7 @@ class SchedulingService:
         )
         metrics["changed_shifts"] = diff["changed_shifts"]
         metrics["affected_employees"] = len(diff["affected_employees"])
-        metrics["hard_violations"] = 0
+        metrics["hard_violations"] = len(validation.get("violations", []))
         explanation = self.explanations.build(
             result.schedule, context.employees, validation, metrics
         )
@@ -273,10 +315,21 @@ class SchedulingService:
             "history_schedule_id": context.history_schedule_id,
             "history_schedule_version": context.history_schedule_version,
             "employee_revision": employee_revision,
+            "compliance_status": validation["compliance_status"],
         }
+        if authorizations:
+            metadata["override_authorizations"] = [
+                item.model_copy(
+                    update={
+                        "status": "CONSUMED",
+                        "consumed_by_schedule_id": result.schedule.schedule_id,
+                    }
+                ).model_dump(mode="json")
+                for item in authorizations
+            ]
         if before_commit is not None:
             before_commit()
-        self.schedules.save_draft(
+        saved = self.schedules.save_draft(
             result.schedule,
             lineage_id=lineage_id,
             base_schedule_id=base_schedule.schedule_id if base_schedule else None,
@@ -286,13 +339,19 @@ class SchedulingService:
             employee_revision=employee_revision,
             agent_turn_guard=agent_turn_guard,
         )
+        if saved.schedule_id != result.schedule.schedule_id:
+            return self._stored_response({**self.schedules.get_record(saved.schedule_id), "schedule": saved})
         logger.info(
             "schedule_draft_created",
             extra={
                 "schedule_id": result.schedule.schedule_id,
                 "version": result.schedule.version,
                 "solver_status": result.status.value,
-                "validation_passed": True,
+                "validation_passed": validation["passed"],
+                "authorized_violation_count": len(validation.get("authorized_violations", [])),
+                "unauthorized_violation_count": len(validation.get("unauthorized_violations", [])),
+                "protected_violation_count": len(validation.get("protected_violations", [])),
+                "compliance_status": validation["compliance_status"],
                 "solve_duration": metrics.get("solve_duration_seconds"),
             },
         )
@@ -308,6 +367,7 @@ class SchedulingService:
             "impact": impact,
             "metrics": metrics,
             "explanation": explanation,
+            **compliance_fields(validation, "draft"),
         }
 
     def generate(
@@ -368,6 +428,200 @@ class SchedulingService:
             agent_turn_guard=agent_turn_guard,
         )
 
+    def force_generate(
+        self,
+        *,
+        week_start: date,
+        force_request: ForceRequest,
+        changes: list[ScheduleChange] | None = None,
+        minimize_changes: bool = False,
+        source_conversation_id: str = "api",
+        source_message_id: str | None = None,
+        client_message_id: str | None = None,
+        scenario_revision: int = 0,
+        expected_base: tuple[str | None, int | None] | None = None,
+        metadata_extra: dict[str, Any] | None = None,
+        before_commit: Callable[[], None] | None = None,
+        agent_turn_guard: tuple[str, str, str] | None = None,
+    ) -> dict[str, Any]:
+        """Generate with exact, request-scoped exceptions after a strict attempt.
+
+        This deliberately accepts only a structured ForceRequest. Text routing may
+        identify a request, but cannot manufacture its scope or authorization.
+        """
+        if week_start.weekday() != 0:
+            raise ValueError("week_start must be a Monday")
+        if any(item.type.value in {"available", "assign", "unassign"} for item in (changes or [])):
+            raise ValueError("Force cannot change availability or ordinary assignments; use exact forced_assignments")
+        if client_message_id:
+            existing = self.schedules.find_force_schedule_for_request(
+                week_start,
+                conversation_id=source_conversation_id,
+                client_message_id=client_message_id,
+            )
+            if existing is not None:
+                return self._stored_response(existing)
+        employee_list, employee_revision = self.employees.list_with_revision()
+        effective_changes = list(changes or [])
+        validate_changes(effective_changes, employee_list)
+        base_record = self.schedules.current_confirmed_record_for_week(week_start)
+        base_schedule = base_record["schedule"] if base_record else None
+        base_version = base_schedule.version if base_schedule else None
+        version = (base_version + 1) if base_version is not None else 1
+        parent_schedule_id = base_schedule.schedule_id if base_schedule else None
+
+        if expected_base is not None and expected_base != (parent_schedule_id, base_version):
+            raise VersionConflictError(base_version, expected_base[1])
+
+        # Force input is structured but still comes from an untrusted client.
+        # The context validator below also protects the solver from impossible
+        # employee references before model variables are constructed.
+        known_employee_ids = {employee.id for employee in employee_list}
+        unknown_forced = sorted(
+            {item.employee_id for item in force_request.forced_assignments}
+            - known_employee_ids
+        )
+        unknown_override = sorted(
+            {item.employee_id for item in force_request.requested_overrides if item.employee_id}
+            - known_employee_ids
+        )
+        if unknown_forced or unknown_override:
+            logger.info("override_rejected", extra={"reason": "unknown_employee"})
+            raise ValueError("Force requests must reference existing employees")
+
+        strict_context = self.context_builder.build(
+            week_start,
+            base_schedule=base_schedule,
+            changes=effective_changes,
+            minimize_changes=minimize_changes,
+            employees=employee_list,
+            allow_history_bootstrap=True,
+            user_forced_assignments=force_request.forced_assignments,
+        )
+        strict_result = self.solver.solve(
+            strict_context,
+            week_start=week_start,
+            schedule_id=self._new_schedule_id(),
+            version=version,
+            parent_schedule_id=parent_schedule_id,
+        )
+        if strict_result.status in {SolverStatus.OPTIMAL, SolverStatus.FEASIBLE}:
+            return self._complete_draft(
+                context=strict_context,
+                result=strict_result,
+                lineage_id=base_record["lineage_id"] if base_record else strict_result.schedule.schedule_id,
+                base_schedule=base_schedule,
+                base_version=base_version,
+                employee_revision=employee_revision,
+                metadata_extra={
+                    **dict(metadata_extra or {}),
+                    "force_requested": True,
+                    "force_not_needed": True,
+                    "scenario_revision": scenario_revision,
+                    "force_source_conversation_id": source_conversation_id,
+                    "force_source_message_id": source_message_id or client_message_id,
+                    "force_client_message_id": client_message_id,
+                    "user_forced_assignments": [
+                        item.model_dump(mode="json") for item in force_request.forced_assignments
+                    ],
+                },
+                before_commit=before_commit,
+                agent_turn_guard=agent_turn_guard,
+            )
+        if strict_result.status is not SolverStatus.INFEASIBLE:
+            return {**self._infeasible_response(strict_result), "status": "solver_unknown"}
+        if not force_request.requested_overrides:
+            response = self._infeasible_response(strict_result)
+            response.update({
+                "status": "clarification_required",
+                "clarification": {
+                    "id": f"clar_{uuid4().hex[:10]}",
+                    "prompt": "严格排班不可行。请明确授权的规则、日期和班次；覆盖规则还需要缺口上限，请假例外还需要员工编号。",
+                    "candidates": [],
+                },
+            })
+            return response
+
+        snapshot_hash = fingerprint(context_snapshot(strict_context, week_start))
+        rules_fingerprint = fingerprint(strict_context.rules.model_dump(mode="json"))
+        created = datetime.now(timezone.utc)
+        message_id = source_message_id or client_message_id or f"msg_{uuid4().hex[:12]}"
+        idempotency_key = client_message_id or message_id
+        authorizations = [
+            OverrideAuthorization(
+                **scope.model_dump(),
+                constraint_id=constraint_id(
+                    week_start.isoformat(), scope.rule_id, scope.day.value, scope.shift.value, scope.employee_id
+                ),
+                authorization_source="structured_user_action" if source_conversation_id == "api" else "explicit_user_message",
+                source_conversation_id=source_conversation_id,
+                source_message_id=message_id,
+                client_message_id=idempotency_key,
+                target_week=week_start,
+                base_schedule_id=base_schedule.schedule_id if base_schedule else None,
+                base_version=base_version,
+                scenario_revision=scenario_revision,
+                employee_revision=employee_revision,
+                rules_fingerprint=rules_fingerprint,
+                constraint_snapshot_hash=snapshot_hash,
+                reason=force_request.authorization_reason,
+                created_at=created,
+                expires_at=created + timedelta(hours=24),
+            )
+            for scope in force_request.requested_overrides
+        ]
+        force_context = self.context_builder.build(
+            week_start,
+            base_schedule=base_schedule,
+            changes=effective_changes,
+            minimize_changes=minimize_changes,
+            employees=employee_list,
+            allow_history_bootstrap=True,
+            user_forced_assignments=force_request.forced_assignments,
+            override_scopes=[item.model_dump(mode="json") for item in authorizations],
+        )
+        logger.info("override_created", extra={"override_count": len(authorizations), "target_week": week_start.isoformat()})
+        logger.info("force_solve_started", extra={"target_week": week_start.isoformat(), "override_count": len(authorizations)})
+        result = self.solver.solve(
+            force_context,
+            week_start=week_start,
+            schedule_id=self._new_schedule_id(),
+            version=version,
+            parent_schedule_id=parent_schedule_id,
+        )
+        if result.status is SolverStatus.INFEASIBLE:
+            response = self._infeasible_response(result)
+            response["message"] = "Authorized scopes cannot satisfy protected rules or an unapproved hard constraint."
+            return response
+        if result.schedule is None:
+            return {**self._infeasible_response(result), "status": "solver_unknown"}
+        response = self._complete_draft(
+            context=force_context,
+            result=result,
+            lineage_id=base_record["lineage_id"] if base_record else result.schedule.schedule_id,
+            base_schedule=base_schedule,
+            base_version=base_version,
+            employee_revision=employee_revision,
+            metadata_extra={
+                **dict(metadata_extra or {}),
+                "force_requested": True,
+                "scenario_revision": scenario_revision,
+                "force_source_conversation_id": source_conversation_id,
+                "force_source_message_id": message_id,
+                "force_client_message_id": idempotency_key,
+                "rules_fingerprint": rules_fingerprint,
+                "constraint_snapshot_hash": snapshot_hash,
+                "user_forced_assignments": [
+                    item.model_dump(mode="json") for item in force_request.forced_assignments
+                ],
+            },
+            before_commit=before_commit,
+            agent_turn_guard=agent_turn_guard,
+            authorizations=authorizations,
+        )
+        logger.info("force_solve_completed", extra={"schedule_id": response.get("schedule_id"), "compliance_status": response.get("compliance_status")})
+        return response
+
     def promote_preview(
         self,
         *,
@@ -400,8 +654,11 @@ class SchedulingService:
             "parent_schedule_id": base_schedule.schedule_id if base_schedule else None,
             "status": ScheduleStatus.DRAFT,
         })
-        validation = normalize_validation(
-            self.validator.validate(schedule, employee_list, context=context, rules=context.rules)
+        validation = classify_validation(
+            normalize_validation(
+                self.validator.validate(schedule, employee_list, context=context, rules=context.rules)
+            ),
+            schedule.week_start,
         )
         if not validation["passed"]:
             raise SolverOutputError("场景预览在保存前未通过独立校验")
@@ -439,6 +696,7 @@ class SchedulingService:
             "diff": diff,
             "impact": impact,
             "metrics": dict(preview.get("metrics") or {}),
+            **compliance_fields(validation, "draft"),
         }
 
     def replan(
@@ -523,7 +781,7 @@ class SchedulingService:
         else:
             employees = context.employees
         result = self.validator.validate(schedule, employees, context=context)
-        return normalize_validation(result)
+        return classify_validation(normalize_validation(result), schedule.week_start)
 
     def validate_stored(
         self, schedule_id: str, *, enforce_employee_revision: bool = False
@@ -542,12 +800,56 @@ class SchedulingService:
             raise InvalidScheduleStateError(
                 "Employee master data changed after this draft was created"
             )
-        changes = [ScheduleChange.model_validate(item) for item in record["metadata"].get("requested_changes", [])]
+        metadata = record["metadata"]
+        changes = [ScheduleChange.model_validate(item) for item in metadata.get("requested_changes", [])]
+        forced_assignments = [
+            Assignment.model_validate(item)
+            for item in metadata.get("user_forced_assignments", [])
+        ]
+        stored_authorizations = [
+            OverrideAuthorization.model_validate(item)
+            for item in metadata.get("override_authorizations", [])
+        ]
         base = (
             self.schedules.get(record["base_schedule_id"])
             if record["base_schedule_id"]
             else None
         )
+        strict_context = self.context_builder.build(
+            schedule.week_start,
+            base_schedule=base,
+            changes=changes,
+            minimize_changes=bool(base),
+            employees=employee_list,
+            allow_history_bootstrap=False,
+            user_forced_assignments=forced_assignments,
+        )
+        rules_fingerprint = fingerprint(strict_context.rules.model_dump(mode="json"))
+        snapshot_hash = fingerprint(context_snapshot(strict_context, schedule.week_start))
+        scenario_current = True
+        source_conversation_id = metadata.get("force_source_conversation_id")
+        if source_conversation_id and self.scenarios is not None:
+            state = self.scenarios.get(source_conversation_id, schedule.week_start)
+            scenario_current = (state.revision if state is not None else 0) == metadata.get("scenario_revision", 0)
+        authorizations = [
+            authorization
+            for authorization in stored_authorizations
+            if scenario_current and authorization_is_active(
+                authorization,
+                week=schedule.week_start,
+                base_schedule_id=record.get("base_schedule_id"),
+                base_version=record.get("base_version"),
+                scenario_revision=metadata.get("scenario_revision", 0),
+                employee_revision=employee_revision,
+                rules_fingerprint=rules_fingerprint,
+                constraint_snapshot_hash=snapshot_hash,
+            ) and authorization.consumed_by_schedule_id == schedule_id
+        ]
+        if stored_authorizations and len(authorizations) != len(stored_authorizations):
+            logger.info(
+                "override_stale",
+                extra={"schedule_id": schedule_id, "active_authorization_count": len(authorizations)},
+            )
         context = self.context_builder.build(
             schedule.week_start,
             base_schedule=base,
@@ -555,21 +857,25 @@ class SchedulingService:
             minimize_changes=bool(base),
             employees=employee_list,
             allow_history_bootstrap=False,
+            user_forced_assignments=forced_assignments,
+            override_scopes=[item.model_dump(mode="json") for item in stored_authorizations],
         )
-        return self.validate(schedule, context=context)
+        result = self.validator.validate(schedule, employee_list, context=context)
+        return classify_validation(normalize_validation(result), schedule.week_start, authorizations)
 
     def confirm(self, schedule_id: str, version: int) -> dict[str, Any]:
         validation = self.validate_stored(
             schedule_id,
             enforce_employee_revision=True,
         )
-        if not validation["passed"]:
+        if not validation["confirmable"]:
             raise SolverOutputError("Draft is no longer valid against current employee data")
         confirmed = self.schedules.confirm(schedule_id, version)
         record = self.schedules.get_record(schedule_id) or {}
         metadata = record.get("metadata", {})
         return {
             "status": "confirmed",
+            "solver_status": metadata.get("solver_status", "feasible"),
             "schedule_id": confirmed.schedule_id,
             "version": confirmed.version,
             "schedule_status": "confirmed",
@@ -579,6 +885,7 @@ class SchedulingService:
             "impact": metadata.get("impact"),
             "metrics": metadata.get("metrics", {}),
             "explanation": metadata.get("explanation"),
+            **compliance_fields(validation, "confirmed"),
         }
 
     def cancel(self, schedule_id: str, version: int) -> dict[str, Any]:

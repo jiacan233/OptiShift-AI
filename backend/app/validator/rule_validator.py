@@ -62,6 +62,8 @@ class RuleValidator:
                 employees=employees,
                 rules=effective_rules,
                 requested_changes=context.requested_changes,
+                user_forced_assignments=context.user_forced_assignments,
+                override_scopes=context.override_scopes,
                 history_status=context.history_status,
                 minimize_changes=context.minimize_changes,
             )
@@ -82,6 +84,7 @@ class RuleValidator:
                         day=assignment.day,
                         shift=assignment.shift,
                         message="Assignment references an employee outside master data.",
+                        details={"expected": "existing_employee", "actual": assignment.employee_id},
                     )
                 )
             else:
@@ -108,7 +111,7 @@ class RuleValidator:
                         employee_id=employee_id,
                         day=day,
                         message="Employee has more than one assignment on the same day.",
-                        details={"shifts": [shift.value for shift in shifts]},
+                        details={"shifts": [shift.value for shift in shifts], "maximum": 1, "actual": len(shifts)},
                     )
                 )
         for employee_id, day, shift in sorted(
@@ -121,6 +124,7 @@ class RuleValidator:
                     day=day,
                     shift=shift,
                     message="Duplicate assignment record is not allowed.",
+                    details={"expected": "unique_assignment", "actual": "duplicate_assignment"},
                 )
             )
 
@@ -129,6 +133,7 @@ class RuleValidator:
             ("R02", Skill.BEVERAGE, effective_rules.beverage_per_shift, "beverage"),
             ("R03", Skill.CASHIER, effective_rules.cashier_per_shift, "cashier"),
         )
+        coverage = []
         for day in WEEK_DAYS:
             for shift in SHIFTS:
                 assigned_ids = by_slot[(day, shift)]
@@ -136,6 +141,7 @@ class RuleValidator:
                     actual = sum(
                         1 for employee_id in assigned_ids if skill in employee_by_id[employee_id].skills
                     )
+                    coverage.append(dict(rule_id=rule_id, day=day, shift=shift, expected=required, actual=actual, passed=actual >= required))
                     if actual < required:
                         violations[rule_id].append(
                             RuleViolation(
@@ -148,6 +154,7 @@ class RuleValidator:
                         )
                 required_staff = effective_rules.minimum_staff(day)
                 actual_staff = len(assigned_ids)
+                coverage.append(dict(rule_id="R04", day=day, shift=shift, expected=required_staff, actual=actual_staff, passed=actual_staff >= required_staff))
                 if actual_staff < required_staff:
                     violations["R04"].append(
                         RuleViolation(
@@ -198,6 +205,7 @@ class RuleValidator:
                             message="Employee works too many consecutive days.",
                             details={
                                 "maximum": effective_rules.max_consecutive_days,
+                                "actual": sum(timeline[start:end]),
                                 "current_week_window": [
                                     day.value for day in WEEK_DAYS[first_current : last_current + 1]
                                 ],
@@ -219,6 +227,7 @@ class RuleValidator:
                         day=Day.MON,
                         shift=Shift.MORNING,
                         message="Monday morning follows a previous Sunday evening shift.",
+                        details={"expected": "rest_after_evening", "actual": "morning_after_evening"},
                     )
                 )
             for day_index in range(len(WEEK_DAYS) - 1):
@@ -240,7 +249,7 @@ class RuleValidator:
                             day=next_day,
                             shift=Shift.MORNING,
                             message="Morning shift follows an evening shift on the prior day.",
-                            details={"previous_day": current_day.value},
+                            details={"previous_day": current_day.value, "expected": "rest_after_evening", "actual": "morning_after_evening"},
                         )
                     )
 
@@ -268,6 +277,7 @@ class RuleValidator:
         ]
         passed_count = sum(check.passed for check in checks.values())
         return ValidationResult(
+            coverage=coverage,
             valid=not flattened,
             hard_constraints=checks,
             violations=flattened,

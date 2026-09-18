@@ -1,31 +1,29 @@
 import { ArrowUpRight, CheckCircle2, Coffee, Shield, UsersRound } from 'lucide-react'
 import { DAY_LABELS, SHIFT_LABELS, SHIFT_TIMES } from '@/lib/presentation'
-import type { Assignment, Day, Employee, ShiftType } from '@/types'
-
-const requirements = { manager: 1, beverage: 2, cashier: 1 }
+import type { Assignment, CoverageCheck, Day, Employee, ShiftType, Violation } from '@/types'
 
 export function ShiftCard({
   day,
   shift,
   assignments,
   employees,
+  coverage = [],
+  violations = [],
   onClick,
 }: {
   day: Day
   shift: ShiftType
   assignments: Assignment[]
   employees: Employee[]
+  coverage?: CoverageCheck[]
+  violations?: Violation[]
   onClick(): void
 }) {
   const people = assignments.flatMap((assignment) => {
     const employee = employees.find((item) => item.id === assignment.employee_id)
     return employee ? [employee] : []
   })
-  const manager = people.filter((person) => person.skills.includes('manager')).length
-  const beverage = people.filter((person) => person.skills.includes('beverage')).length
-  const cashier = people.filter((person) => person.skills.includes('cashier')).length
-  const minimum = day === 'Sat' || day === 'Sun' ? 6 : 4
-  const healthy = manager >= 1 && beverage >= 2 && cashier >= 1 && people.length >= minimum
+  const healthy = coverage.length === 4 && coverage.every((item) => item.passed) && violations.length === 0
 
   return (
     <button
@@ -61,21 +59,19 @@ export function ShiftCard({
       </div>
 
       <div className="mt-auto grid grid-cols-2 gap-x-3 gap-y-1 border-t border-slate-100 pt-2.5 text-[10px]">
-        <Coverage label="店长" current={manager} required={requirements.manager} />
-        <Coverage label="饮品" current={beverage} required={requirements.beverage} />
-        <Coverage label="收银" current={cashier} required={requirements.cashier} />
-        <Coverage label="总人数" current={people.length} required={minimum} />
+        {coverage.map((item) => <Coverage key={item.rule_id} check={item} />)}
       </div>
+      {violations.length > 0 && <p className="mt-2 text-[10px] font-bold text-amber-700">⚠ {violations.map((item) => `${item.rule_id} ${item.authorized ? '已授权例外' : '未授权冲突'}`).join(' · ')}</p>}
     </button>
   )
 }
 
-function Coverage({ label, current, required }: { label: string; current: number; required: number }) {
-  const passed = current >= required
+function Coverage({ check }: { check: CoverageCheck }) {
+  const label = ({ R01: '店长', R02: '饮品', R03: '收银', R04: '总人数' } as Record<string, string>)[check.rule_id]
   return (
     <div className="flex items-center justify-between gap-1">
       <span className="text-slate-400">{label}</span>
-      <span className={`font-bold ${passed ? 'text-emerald-600' : 'text-red-600'}`}>{current}/{required}</span>
+      <span className={`font-bold ${check.passed ? 'text-emerald-600' : 'text-red-600'}`}>{check.actual}/{check.expected}{!check.passed && ' ⚠'}</span>
     </div>
   )
 }

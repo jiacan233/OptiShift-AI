@@ -1,15 +1,17 @@
 import { Sunrise, Sunset } from 'lucide-react'
 import { DAY_LABELS, SHIFT_LABELS, SHIFT_TIMES } from '@/lib/presentation'
-import { DAYS, SHIFTS, type Day, type Employee, type Schedule, type ShiftType } from '@/types'
+import { DAYS, SHIFTS, type Day, type Employee, type Schedule, type ShiftType, type ValidationResult } from '@/types'
 import { ShiftCard } from './ShiftCard'
 
 export function ScheduleGrid({
   schedule,
   employees,
+  validation,
   onSelectShift,
 }: {
   schedule: Schedule
   employees: Employee[]
+  validation?: ValidationResult
   onSelectShift(day: Day, shift: ShiftType): void
 }) {
   return (
@@ -25,7 +27,7 @@ export function ScheduleGrid({
           ))}
 
           {SHIFTS.map((shift) => (
-            <ShiftRow key={shift} shift={shift} schedule={schedule} employees={employees} onSelectShift={onSelectShift} />
+            <ShiftRow key={shift} shift={shift} schedule={schedule} employees={employees} validation={validation} onSelectShift={onSelectShift} />
           ))}
         </div>
       </div>
@@ -37,11 +39,13 @@ function ShiftRow({
   shift,
   schedule,
   employees,
+  validation,
   onSelectShift,
 }: {
   shift: ShiftType
   schedule: Schedule
   employees: Employee[]
+  validation?: ValidationResult
   onSelectShift(day: Day, shift: ShiftType): void
 }) {
   const Icon = shift === 'morning' ? Sunrise : Sunset
@@ -59,6 +63,8 @@ function ShiftRow({
           shift={shift}
           assignments={schedule.assignments.filter((item) => item.day === day && item.shift === shift)}
           employees={employees}
+          coverage={validation?.coverage?.filter((item) => item.day === day && item.shift === shift)}
+          violations={validation?.violations?.filter((item) => item.day === day && item.shift === shift)}
           onClick={() => onSelectShift(day, shift)}
         />
       ))}
