@@ -66,6 +66,26 @@ class AgentLLMClient:
             "rate_limit_or_quota",
             "AI Provider 当前触发限流或额度不足。",
         ),
+        500: (
+            "provider_internal_error",
+            "AI Provider 服务内部错误。",
+        ),
+        501: (
+            "provider_not_implemented",
+            "AI Provider 当前不支持该请求或接口。",
+        ),
+        502: (
+            "provider_gateway_error",
+            "AI Provider 上游网关调用失败。",
+        ),
+        503: (
+            "provider_service_unavailable",
+            "AI Provider 服务暂时不可用。",
+        ),
+        504: (
+            "provider_gateway_timeout",
+            "AI Provider 上游网关请求超时。",
+        ),
     }
 
     def __init__(self) -> None:
@@ -135,6 +155,33 @@ class AgentLLMClient:
         if not isinstance(message, str):
             return None
         return self._redact_and_truncate(message, 300)
+
+    @classmethod
+    def _classify_provider_error(
+        cls,
+        provider_status: int,
+        provider_message: str | None,
+    ) -> tuple[str, str]:
+        normalized = (provider_message or "").casefold()
+        if "all available accounts exhausted" in normalized:
+            return (
+                "provider_capacity_exhausted",
+                "AI Provider 当前没有可用的上游账号或通道。",
+            )
+        if "upstream access forbidden" in normalized:
+            return (
+                "upstream_permission_error",
+                "AI Provider 的上游账号未获授权，请联系 Provider 管理员。",
+            )
+        if "service temporarily unavailable" in normalized:
+            return (
+                "provider_service_unavailable",
+                "AI Provider 服务暂时不可用。",
+            )
+        return cls._STATUS_ERRORS.get(
+            provider_status,
+            ("provider_error", "AI Provider 请求失败，请稍后重试。"),
+        )
 
     def _fail(
         self,
@@ -214,15 +261,16 @@ class AgentLLMClient:
 
         latency_ms = max(0, round((time.perf_counter() - started) * 1000))
         if not 200 <= response.status_code < 300:
-            error_type, message = self._STATUS_ERRORS.get(
+            provider_message = self._provider_error_message(response)
+            error_type, message = self._classify_provider_error(
                 response.status_code,
-                ("provider_error", "AI Provider 请求失败，请稍后重试。"),
+                provider_message,
             )
             self._fail(
                 message,
                 error_type=error_type,
                 provider_status=response.status_code,
-                provider_message=self._provider_error_message(response),
+                provider_message=provider_message,
                 started=started,
             )
 
