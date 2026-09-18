@@ -3,6 +3,7 @@ import {
   CalendarRange,
   ChevronRight,
   Menu,
+  MessageCircleMore,
   ShieldCheck,
   Sparkles,
   Users,
@@ -20,10 +21,14 @@ export function AppShell({
   page,
   onPageChange,
   children,
+  agentOpen,
+  onOpenAgent,
 }: {
   page: PageId
   onPageChange(page: PageId): void
   children: ReactNode
+  agentOpen: boolean
+  onOpenAgent(): void
 }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const current = pages.find((item) => item.id === page)!
@@ -34,7 +39,7 @@ export function AppShell({
   }
 
   return (
-    <div className="min-h-screen bg-canvas lg:grid lg:grid-cols-[252px_minmax(0,1fr)]">
+    <div className={`min-h-screen bg-canvas transition-[padding] duration-200 lg:grid lg:grid-cols-[252px_minmax(0,1fr)] ${agentOpen ? 'lg:pr-[380px] xl:pr-[440px]' : ''}`}>
       {mobileOpen && (
         <button
           className="fixed inset-0 z-30 bg-ink/45 backdrop-blur-sm lg:hidden"
@@ -102,10 +107,13 @@ export function AppShell({
             <p className="text-xs font-semibold text-slate-500">AI 智能排班助手</p>
             <h1 className="text-lg font-extrabold tracking-tight text-ink lg:text-xl">{current.label}</h1>
           </div>
-          <div className="ml-auto hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 sm:flex">
+          <div className="ml-auto hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 xl:flex">
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
             后端统一数据源
           </div>
+          <button type="button" onClick={onOpenAgent} className={`ml-auto inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-extrabold shadow-sm transition xl:ml-3 ${agentOpen ? 'bg-teal-50 text-teal-700 ring-1 ring-teal-200' : 'bg-teal-600 text-white hover:bg-teal-700'}`}>
+            <MessageCircleMore className="h-4 w-4" />问问 AI
+          </button>
         </header>
         <div className="mx-auto max-w-[1720px] p-4 sm:p-6 lg:p-8">{children}</div>
       </main>

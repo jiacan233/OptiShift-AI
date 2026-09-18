@@ -7,6 +7,7 @@ export type ScheduleStatus = 'draft' | 'confirmed' | 'cancelled'
 export type RunAction = 'generate' | 'leave' | 'freeform'
 export type PageId = 'schedule' | 'employees' | 'rules'
 export type ScheduleView = 'shift' | 'employee'
+export type AgentIntent = 'generate' | 'replan' | 'validate' | 'advice' | 'explain' | 'ask' | 'clarification' | 'out_of_scope'
 
 export interface Employee {
   id: string
@@ -181,4 +182,119 @@ export interface ApiProblem {
   message: string
   details?: unknown
   status?: number
+}
+
+export interface ScheduleWeekSummary {
+  week_start: string
+  schedule_id?: string | null
+  version?: number | null
+  status?: ScheduleStatus | 'not_generated' | null
+}
+
+export interface ScheduleWeekContext {
+  week_start: string
+  confirmed_schedule: Schedule | null
+  draft_schedule: Schedule | null
+  display_schedule: Schedule | null
+  versions: ScheduleVersion[]
+  result?: FeasibleResult | null
+}
+
+export interface ConversationSummary {
+  conversation_id: string
+  title: string | null
+  created_at: string
+  updated_at: string
+  message_count: number
+  last_message_preview: string | null
+  target_week?: string | null
+}
+
+export interface AgentSuggestion {
+  id?: string
+  suggestion_id: string
+  title?: string
+  content?: string
+  description?: string
+  target_week?: string | null
+  proposed_changes?: ScheduleChange[]
+  based_on_schedule_id?: string | null
+  based_on_version?: number | null
+  action?: 'generate' | 'replan'
+}
+
+export interface AgentMessage {
+  message_id: string
+  conversation_id: string
+  client_message_id?: string | null
+  role: 'user' | 'assistant'
+  content: string
+  intent?: AgentIntent | null
+  mutation_requested?: boolean
+  target_week?: string | null
+  referenced_schedule_id?: string | null
+  referenced_version?: number | null
+  metadata_json?: {
+    suggestions?: AgentSuggestion[]
+    generated_draft_id?: string
+    generated_draft_version?: number
+    [key: string]: unknown
+  }
+  created_at: string
+}
+
+export interface ConversationRecord {
+  conversation_id: string
+  browser_workspace_id: string
+  title: string | null
+  summary?: string | null
+  status: 'active' | 'archived'
+  created_at: string
+  updated_at: string
+}
+
+export interface ConversationDetail {
+  conversation: ConversationRecord
+  messages: AgentMessage[]
+  tool_calls?: AgentToolCall[]
+}
+
+export interface AgentToolCall {
+  tool_call_id: string
+  conversation_id?: string
+  message_id?: string | null
+  tool_name: string
+  input_json?: Record<string, unknown>
+  output_json?: Record<string, unknown> | null
+  output_summary?: string | null
+  status: string
+  created_at?: string
+  finished_at?: string | null
+}
+
+export interface AgentTurnContext {
+  target_week: string
+  iso_year: number
+  iso_week: number
+  display_schedule_id: string | null
+  display_schedule_version: number | null
+  confirmed_schedule_id: string | null
+  confirmed_schedule_version: number | null
+}
+
+export interface TrustedAgentAction {
+  intent: Extract<AgentIntent, 'generate' | 'replan' | 'validate' | 'advice'>
+  target_week?: string
+  changes?: ScheduleChange[]
+  minimize_changes?: boolean
+}
+
+export interface AgentTurnResult {
+  user_message: AgentMessage
+  assistant_message: AgentMessage
+  intent: AgentIntent
+  mutation_requested: boolean
+  context: AgentTurnContext
+  tool_calls: AgentToolCall[]
+  schedule_result: ScheduleOperationResult | null
 }

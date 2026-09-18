@@ -1,5 +1,9 @@
 import type {
   ApiProblem,
+  AgentTurnResult,
+  ConversationDetail,
+  ConversationRecord,
+  ConversationSummary,
   Day,
   Employee,
   FeasibleResult,
@@ -7,8 +11,11 @@ import type {
   Schedule,
   ScheduleChange,
   ScheduleOperationResult,
+  ScheduleWeekContext,
+  ScheduleWeekSummary,
   ScheduleVersion,
   ShiftType,
+  TrustedAgentAction,
 } from '@/types'
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
@@ -55,14 +62,14 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 function readableStatus(status: number) {
   if (status === 400 || status === 422) return '请求内容未通过校验，请检查后重试。'
   if (status === 404) return '未找到所需的数据。'
-  if (status === 409) return '排班版本已更新，请刷新后重试。'
+  if (status === 409) return '当前操作与服务端状态冲突，请刷新后重试。'
   if (status === 503) return '排班服务暂时不可用，请稍后重试。'
   return '服务出现异常，请稍后重试。'
 }
 
 function statusCodeToProblem(status: number) {
   if (status === 404) return 'entity_not_found'
-  if (status === 409) return 'version_conflict'
+  if (status === 409) return 'conflict'
   if (status === 422) return 'validation_error'
   if (status === 503) return 'solver_unavailable'
   return 'internal_error'
@@ -90,6 +97,14 @@ export interface EmployeePatch {
   available_days?: Day[]
   leave_days?: Day[]
   preferred_shift?: ShiftType | null
+}
+
+export interface SendAgentMessageRequest {
+  browser_workspace_id: string
+  client_message_id: string
+  content: string
+  current_week_start?: string
+  trusted_action?: TrustedAgentAction
 }
 
 export const api = {
@@ -141,8 +156,10 @@ export const api = {
     get(scheduleId: string) {
       return request<Schedule>(`/api/schedules/${encodeURIComponent(scheduleId)}`)
     },
-    async latest(status: 'confirmed' | 'draft' = 'confirmed') {
-      return request<Schedule | null>(`/api/schedules/latest?status=${status}`)
+    async latest(status: 'confirmed' | 'draft' = 'confirmed', weekStart?: string) {
+      const params = new URLSearchParams({ status })
+      if (weekStart) params.set('week_start', weekStart)
+      return request<Schedule | null>(`/api/schedules/latest?${params}`)
     },
     async versions(scheduleId: string) {
       const payload = await request<ScheduleVersion[] | { versions: ScheduleVersion[] }>(
@@ -156,10 +173,45 @@ export const api = {
         body: { clarification_id: clarificationId, employee_id: employeeId },
       })
     },
+    weekContext(weekStart: string) {
+      return request<ScheduleWeekContext>(`/api/schedules/week-context?week_start=${encodeURIComponent(weekStart)}`)
+    },
+    async weeks(anchorWeekStart: string, radius = 6) {
+      const payload = await request<ScheduleWeekSummary[] | { weeks: ScheduleWeekSummary[] }>(
+        `/api/schedules/weeks?anchor_week_start=${encodeURIComponent(anchorWeekStart)}&radius=${radius}`,
+      )
+      return unwrapArray(payload, 'weeks')
+    },
+  },
+
+  agent: {
+    createConversation(browserWorkspaceId: string) {
+      return request<Pick<ConversationRecord, 'conversation_id' | 'created_at'> & Partial<ConversationRecord>>('/api/agent/conversations', {
+        method: 'POST',
+        body: { browser_workspace_id: browserWorkspaceId },
+      })
+    },
+    async listConversations(browserWorkspaceId: string) {
+      const payload = await request<ConversationSummary[] | { conversations: ConversationSummary[] }>(
+        `/api/agent/conversations?browser_workspace_id=${encodeURIComponent(browserWorkspaceId)}`,
+      )
+      return unwrapArray(payload, 'conversations')
+    },
+    getConversation(conversationId: string, browserWorkspaceId: string) {
+      return request<ConversationDetail>(
+        `/api/agent/conversations/${encodeURIComponent(conversationId)}?browser_workspace_id=${encodeURIComponent(browserWorkspaceId)}`,
+      )
+    },
+    sendMessage(conversationId: string, input: SendAgentMessageRequest) {
+      return request<AgentTurnResult>(`/api/agent/conversations/${encodeURIComponent(conversationId)}/messages`, {
+        method: 'POST',
+        body: input,
+      })
+    },
   },
 }
 
-export function apiErrorMessage(error: unknown): { code: string; message: string } {
+export function apiErrorMessage(error: unknown): ApiProblem {
   if (error instanceof ApiError) return error.problem
   if (error instanceof TypeError) {
     return { code: 'network_error', message: '无法连接排班服务，请确认服务已启动。' }

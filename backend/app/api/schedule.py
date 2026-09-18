@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..models import Assignment, Day, Schedule, ScheduleChange, Shift, Skill
@@ -274,9 +274,92 @@ def explain_counterfactual(body: CounterfactualBody) -> dict[str, Any]:
 
 
 @router.get("/api/schedules/latest")
-def latest_schedule(status: Literal["draft", "confirmed"] = "confirmed") -> dict[str, Any] | None:
-    schedule = schedule_repository.latest(status=status)
+def latest_schedule(
+    status: Literal["draft", "confirmed"] = "confirmed",
+    week_start: date | None = None,
+) -> dict[str, Any] | None:
+    schedule = schedule_repository.latest(status=status, week_start=week_start)
     return schedule.model_dump(mode="json") if schedule else None
+
+
+def _schedule_payload(record: dict[str, Any] | None) -> dict[str, Any] | None:
+    if record is None:
+        return None
+    schedule: Schedule = record["schedule"]
+    return schedule.model_dump(mode="json")
+
+
+def _result_payload(record: dict[str, Any] | None) -> dict[str, Any] | None:
+    if record is None:
+        return None
+    schedule: Schedule = record["schedule"]
+    metadata = record.get("metadata", {})
+    return {
+        "status": "feasible" if record["status"] == "draft" else "confirmed",
+        "schedule_id": record["schedule_id"],
+        "version": record["version"],
+        "schedule_status": record["status"],
+        "schedule": schedule.model_dump(mode="json"),
+        "validation": record.get("validation", {}),
+        "diff": metadata.get("diff"),
+        "impact": metadata.get("impact"),
+        "metrics": metadata.get(
+            "metrics",
+            {"preference_rate": 0.0, "workload_gap": 0, "changed_assignments": 0},
+        ),
+        "explanation": metadata.get("explanation"),
+    }
+
+
+@router.get("/api/schedules/week-context")
+def schedule_week_context(week_start: date) -> dict[str, Any]:
+    if week_start.weekday() != 0:
+        raise ValueError("week_start must be a Monday")
+    confirmed, draft = schedule_repository.current_records_for_week(week_start)
+    display = draft or confirmed
+    versions = schedule_repository.versions_for_week(week_start)
+    return {
+        "week_start": week_start.isoformat(),
+        "confirmed_schedule": _schedule_payload(confirmed),
+        "draft_schedule": _schedule_payload(draft),
+        "display_schedule": _schedule_payload(display),
+        "versions": [
+            {
+                "schedule_id": item["schedule_id"],
+                "version": item["version"],
+                "status": item["status"],
+                "created_at": item["created_at"],
+                "parent_schedule_id": item["parent_schedule_id"],
+                "base_schedule_id": item["base_schedule_id"],
+                "base_version": item["base_version"],
+            }
+            for item in versions
+        ],
+        "result": _result_payload(display),
+    }
+
+
+@router.get("/api/schedules/weeks")
+def schedule_weeks(
+    anchor_week_start: date,
+    radius: int = Query(default=6, ge=0, le=26),
+) -> dict[str, Any]:
+    if anchor_week_start.weekday() != 0:
+        raise ValueError("anchor_week_start must be a Monday")
+    weeks = []
+    for offset in range(-radius, radius + 1):
+        week = anchor_week_start + timedelta(days=offset * 7)
+        confirmed, draft = schedule_repository.current_records_for_week(week)
+        display = draft or confirmed
+        weeks.append(
+            {
+                "week_start": week.isoformat(),
+                "schedule_id": display["schedule_id"] if display else None,
+                "version": display["version"] if display else None,
+                "status": display["status"] if display else "not_generated",
+            }
+        )
+    return {"weeks": weeks}
 
 
 @router.get("/api/schedules/{schedule_id}")

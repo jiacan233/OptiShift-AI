@@ -139,7 +139,17 @@ export function errorCodeLabel(code: string) {
   const labels: Record<string, string> = {
     network_error: '网络连接异常',
     entity_not_found: '未找到员工',
+    conversation_not_found: '未找到这条对话',
     version_conflict: '排班版本冲突',
+    history_unavailable: '缺少上一周排班历史',
+    draft_pending: '已有待确认草稿',
+    suggestion_stale: '建议已失效',
+    ai_unavailable: 'AI 助手暂时不可用',
+    invalid_agent_action: 'Agent 操作无效',
+    agent_operation_failed: 'Agent 操作失败',
+    message_processing: '消息仍在处理中',
+    conversation_busy: '当前对话正在处理另一条消息',
+    turn_interrupted: '先前请求已中断',
     validation_error: '请求校验未通过',
     solver_unavailable: '排班求解服务不可用',
     solver_unknown: '求解状态异常',
@@ -148,6 +158,20 @@ export function errorCodeLabel(code: string) {
     unknown: '未知异常',
   }
   return labels[code] ?? '操作异常'
+}
+
+export function problemMessage(code: string, message?: string) {
+  const messages: Record<string, string> = {
+    history_unavailable: '目标周缺少上一周已确认排班，因此无法安全校验连续工作天数和晚班转早班规则。请补充上一周排班或选择连续的排班周次。',
+    draft_pending: '当前已有待确认草稿，请先确认或取消当前草稿。',
+    ai_unavailable: 'AI 助手暂时不可用，请稍后重试。',
+    version_conflict: '正式排班已经更新，请刷新当前周后再试。',
+    suggestion_stale: '这条建议所依据的排班已经变化，请重新获取建议。',
+    message_processing: '同一条消息仍在服务端处理中，请稍后使用原请求标识重试。',
+    conversation_busy: '当前对话正在处理另一条消息，请等待完成后再发送。',
+    turn_interrupted: '先前请求在服务中断后未完成，请重新发送。',
+  }
+  return messages[code] ?? localizeMessage(message, '请求未完成，请稍后重试。')
 }
 
 function containsChinese(value: string) {

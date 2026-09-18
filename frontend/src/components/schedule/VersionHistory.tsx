@@ -5,7 +5,7 @@ import type { ScheduleVersion } from '@/types'
 export function VersionHistory({ versions }: { versions: ScheduleVersion[] }) {
   return (
     <section className="panel p-5">
-      <div className="flex items-center justify-between"><div><p className="eyebrow">版本记录</p><h3 className="mt-1 text-base font-extrabold text-ink">排班版本</h3></div><Clock3 className="h-5 w-5 text-slate-400" /></div>
+      <div className="flex items-center justify-between"><div><p className="eyebrow">版本记录</p><h3 className="mt-1 text-base font-extrabold text-ink">当前周版本记录</h3></div><Clock3 className="h-5 w-5 text-slate-400" /></div>
       <div className="mt-4 space-y-2">
         {versions.map((item) => (
           <div key={item.schedule_id} className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5">

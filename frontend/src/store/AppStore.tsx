@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useReducer, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useMemo, useReducer, useRef, type ReactNode } from 'react'
 import { api, apiErrorMessage, type EmployeePatch } from '@/api/client'
+import { buildWeekWindow, currentMonday } from '@/lib/isoWeek'
 import type {
   ClarificationState,
   Conflict,
@@ -11,6 +12,7 @@ import type {
   ScheduleChange,
   ScheduleOperationResult,
   ScheduleVersion,
+  ScheduleWeekSummary,
   InfeasibleResult,
   ShiftType,
   Day,
@@ -20,6 +22,8 @@ interface WorkbenchState {
   page: PageId
   employees: Employee[]
   rules: RuleDefinition[]
+  activeWeekStart: string
+  weekOptions: ScheduleWeekSummary[]
   confirmedSchedule: Schedule | null
   draftSchedule: Schedule | null
   result: FeasibleResult | null
@@ -31,6 +35,7 @@ interface WorkbenchState {
   selectedShift: { day: Day; shift: ShiftType } | null
   isBootstrapping: boolean
   isRunning: boolean
+  isLoadingWeek: boolean
   isSavingEmployee: string | null
   error: { code: string; message: string } | null
   notice: string | null
@@ -40,6 +45,8 @@ const initialState: WorkbenchState = {
   page: 'schedule',
   employees: [],
   rules: [],
+  activeWeekStart: currentMonday(),
+  weekOptions: [],
   confirmedSchedule: null,
   draftSchedule: null,
   result: null,
@@ -51,6 +58,7 @@ const initialState: WorkbenchState = {
   selectedShift: null,
   isBootstrapping: true,
   isRunning: false,
+  isLoadingWeek: false,
   isSavingEmployee: null,
   error: null,
   notice: null,
@@ -82,7 +90,7 @@ function reducer(state: WorkbenchState, action: Action): WorkbenchState {
       conflicts: action.result.conflicts,
       infeasibleResult: action.result,
       clarification: null,
-      draftSchedule: null,
+      draftSchedule: state.draftSchedule,
       result: null,
       isRunning: false,
     }
@@ -113,6 +121,8 @@ interface StoreValue extends WorkbenchState {
   activeSchedule: Schedule | null
   setPage(page: PageId): void
   bootstrap(): Promise<void>
+  setActiveWeek(weekStart: string): Promise<void>
+  applyScheduleResult(result: ScheduleOperationResult): Promise<void>
   generate(prompt: string, weekStart: string): Promise<void>
   replan(prompt: string, changes: ScheduleChange[]): Promise<void>
   confirmDraft(): Promise<void>
@@ -130,53 +140,132 @@ const AppStore = createContext<StoreValue | null>(null)
 
 export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
+  const weekLoadRequestRef = useRef(0)
+  const weekOptionsRequestRef = useRef(0)
+
+  const refreshWeekOptions = useCallback(async (anchorWeekStart: string) => {
+    const requestId = weekOptionsRequestRef.current + 1
+    weekOptionsRequestRef.current = requestId
+    try {
+      const weeks = await api.schedules.weeks(anchorWeekStart)
+      if (requestId === weekOptionsRequestRef.current) {
+        dispatch({ type: 'PATCH', patch: { weekOptions: weeks.length ? weeks : buildWeekWindow(anchorWeekStart).map((week_start) => ({ week_start })) } })
+      }
+    } catch {
+      if (requestId === weekOptionsRequestRef.current) {
+        dispatch({ type: 'PATCH', patch: { weekOptions: buildWeekWindow(anchorWeekStart).map((week_start) => ({ week_start })) } })
+      }
+    }
+  }, [])
+
+  const loadWeek = useCallback(async (weekStart: string, preferredResult?: ScheduleOperationResult) => {
+    const requestId = weekLoadRequestRef.current + 1
+    weekLoadRequestRef.current = requestId
+    dispatch({ type: 'PATCH', patch: {
+      activeWeekStart: weekStart,
+      isLoadingWeek: true,
+      selectedShift: null,
+      confirmedSchedule: null,
+      draftSchedule: null,
+      result: null,
+      versions: [],
+      conflicts: [],
+      infeasibleResult: null,
+      clarification: null,
+      error: null,
+    } })
+    try {
+      const context = await api.schedules.weekContext(weekStart)
+      const display = context.display_schedule ?? context.draft_schedule ?? context.confirmed_schedule
+      const preferredMatchesDisplay = (
+        (preferredResult?.status === 'feasible' || preferredResult?.status === 'confirmed')
+        && display !== null
+        && preferredResult.schedule_id === display.schedule_id
+        && preferredResult.version === display.version
+        && preferredResult.schedule_status === display.status
+      )
+      let result = preferredMatchesDisplay ? preferredResult : context.result ?? null
+      if (!result && display) {
+        result = await api.schedules.validate(display.schedule_id, display.version).catch(() => null)
+      }
+      if (requestId !== weekLoadRequestRef.current) return
+      dispatch({ type: 'PATCH', patch: {
+        activeWeekStart: context.week_start || weekStart,
+        confirmedSchedule: context.confirmed_schedule,
+        draftSchedule: context.draft_schedule,
+        result,
+        versions: context.versions ?? [],
+        conflicts: [],
+        infeasibleResult: null,
+        clarification: null,
+        isLoadingWeek: false,
+        isRunning: false,
+      } })
+    } catch (error) {
+      if (requestId !== weekLoadRequestRef.current) return
+      dispatch({ type: 'PATCH', patch: {
+        confirmedSchedule: null,
+        draftSchedule: null,
+        result: null,
+        versions: [],
+        conflicts: [],
+        infeasibleResult: null,
+        isLoadingWeek: false,
+        isRunning: false,
+        error: apiErrorMessage(error),
+      } })
+    }
+    if (requestId === weekLoadRequestRef.current) await refreshWeekOptions(weekStart)
+  }, [refreshWeekOptions])
+
+  const applyScheduleResult = useCallback(async (result: ScheduleOperationResult) => {
+    if (result.status === 'feasible' || result.status === 'confirmed') {
+      await loadWeek(result.schedule.week_start, result)
+      return
+    }
+    dispatch({ type: 'OPERATION_RESULT', result })
+  }, [loadWeek])
 
   const run = useCallback(async (operation: () => Promise<ScheduleOperationResult>) => {
     dispatch({ type: 'PATCH', patch: { isRunning: true, error: null, notice: null } })
     try {
-      const result = await operation()
-      dispatch({ type: 'OPERATION_RESULT', result })
-      if (result.status === 'feasible' || result.status === 'confirmed') {
-        try {
-          const versions = await api.schedules.versions(result.schedule_id)
-          dispatch({ type: 'PATCH', patch: { versions } })
-        } catch {
-          // The result remains usable if optional history loading fails.
-        }
-      }
+      await applyScheduleResult(await operation())
     } catch (error) {
       dispatch({ type: 'PATCH', patch: { isRunning: false, error: apiErrorMessage(error) } })
     }
-  }, [])
+  }, [applyScheduleResult])
 
   const bootstrap = useCallback(async () => {
     dispatch({ type: 'PATCH', patch: { isBootstrapping: true, error: null } })
-    const [employeesResult, rulesResult, scheduleResult] = await Promise.allSettled([
+    const [employeesResult, rulesResult, draftResult, confirmedResult] = await Promise.allSettled([
       api.employees.list(),
       api.rules.list(),
+      api.schedules.latest('draft'),
       api.schedules.latest('confirmed'),
     ])
-    const patch: Partial<WorkbenchState> = { isBootstrapping: false }
+    const patch: Partial<WorkbenchState> = {}
     if (employeesResult.status === 'fulfilled') patch.employees = employeesResult.value
     if (rulesResult.status === 'fulfilled') patch.rules = rulesResult.value
-    if (scheduleResult.status === 'fulfilled' && scheduleResult.value) {
-      patch.confirmedSchedule = scheduleResult.value
-      try {
-        const [versions, validated] = await Promise.all([
-          api.schedules.versions(scheduleResult.value.schedule_id),
-          api.schedules.validate(scheduleResult.value.schedule_id, scheduleResult.value.version),
-        ])
-        patch.versions = versions
-        patch.result = validated
-      } catch {
-        patch.versions = []
-      }
-    }
-    if (employeesResult.status === 'rejected' && rulesResult.status === 'rejected') {
-      patch.error = apiErrorMessage(employeesResult.reason)
-    }
+    const bootstrapError = employeesResult.status === 'rejected'
+      ? apiErrorMessage(employeesResult.reason)
+      : rulesResult.status === 'rejected'
+        ? apiErrorMessage(rulesResult.reason)
+        : null
     dispatch({ type: 'PATCH', patch })
-  }, [])
+
+    const pendingDraft = draftResult.status === 'fulfilled' ? draftResult.value : null
+    const latestConfirmed = confirmedResult.status === 'fulfilled' ? confirmedResult.value : null
+    const initialWeekStart = pendingDraft?.week_start ?? latestConfirmed?.week_start ?? currentMonday()
+    await loadWeek(initialWeekStart)
+    dispatch({ type: 'PATCH', patch: {
+      isBootstrapping: false,
+      ...(bootstrapError ? { error: bootstrapError } : {}),
+    } })
+  }, [loadWeek])
+
+  const setActiveWeek = useCallback(async (weekStart: string) => {
+    await loadWeek(weekStart)
+  }, [loadWeek])
 
   const generate = useCallback((prompt: string, weekStart: string) => (
     run(() => api.schedules.generate({ prompt, week_start: weekStart }))
@@ -206,15 +295,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'PATCH', patch: { isRunning: true, error: null } })
     try {
       const result = await api.schedules.confirm(draft.schedule_id, draft.version)
-      dispatch({ type: 'OPERATION_RESULT', result })
-      if (result.status === 'feasible' || result.status === 'confirmed') {
-        const versions = await api.schedules.versions(result.schedule_id).catch(() => state.versions)
-        dispatch({ type: 'PATCH', patch: { versions, notice: `排班 v${result.version} 已确认并生效。` } })
-      }
+      await applyScheduleResult(result)
+      dispatch({ type: 'PATCH', patch: { notice: `排班 v${result.status === 'confirmed' || result.status === 'feasible' ? result.version : draft.version} 已确认并生效。` } })
     } catch (error) {
       dispatch({ type: 'PATCH', patch: { isRunning: false, error: apiErrorMessage(error) } })
     }
-  }, [state.draftSchedule, state.versions])
+  }, [applyScheduleResult, state.draftSchedule])
 
   const cancelDraft = useCallback(async () => {
     const draft = state.draftSchedule
@@ -222,16 +308,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'PATCH', patch: { isRunning: true, error: null } })
     try {
       await api.schedules.cancel(draft.schedule_id, draft.version)
-      dispatch({ type: 'PATCH', patch: {
-        draftSchedule: null,
-        result: null,
-        isRunning: false,
-        notice: '草稿已取消，正式排班保持不变。',
-      } })
+      await loadWeek(state.activeWeekStart)
+      dispatch({ type: 'PATCH', patch: { notice: '草稿已取消，正式排班保持不变。' } })
     } catch (error) {
       dispatch({ type: 'PATCH', patch: { isRunning: false, error: apiErrorMessage(error) } })
     }
-  }, [state.draftSchedule])
+  }, [loadWeek, state.activeWeekStart, state.draftSchedule])
 
   const resolveClarification = useCallback(async (employeeId: string) => {
     if (!state.clarification) return
@@ -253,6 +335,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     activeSchedule: state.draftSchedule ?? state.confirmedSchedule,
     setPage: (page) => dispatch({ type: 'PAGE', page }),
     bootstrap,
+    setActiveWeek,
+    applyScheduleResult,
     generate,
     replan,
     confirmDraft,
@@ -264,7 +348,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     dismissError: () => dispatch({ type: 'PATCH', patch: { error: null } }),
     dismissNotice: () => dispatch({ type: 'PATCH', patch: { notice: null } }),
     dismissClarification: () => dispatch({ type: 'PATCH', patch: { clarification: null } }),
-  }), [state, bootstrap, generate, replan, confirmDraft, cancelDraft, resolveClarification, updateEmployee])
+  }), [state, bootstrap, setActiveWeek, applyScheduleResult, generate, replan, confirmDraft, cancelDraft, resolveClarification, updateEmployee])
 
   return <AppStore.Provider value={value}>{children}</AppStore.Provider>
 }

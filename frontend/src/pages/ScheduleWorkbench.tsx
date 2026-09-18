@@ -1,65 +1,29 @@
 import { useState } from 'react'
-import { BarChart3, CalendarDays, Check, GitCompareArrows, LayoutGrid, ListChecks, Users, X } from 'lucide-react'
-import { ActionSelector } from '@/components/schedule/ActionSelector'
+import { BarChart3, CalendarDays, CalendarPlus, Check, GitCompareArrows, LayoutGrid, ListChecks, LoaderCircle, MessageCircleMore, ShieldCheck, Umbrella, Users, X } from 'lucide-react'
 import { ConflictView } from '@/components/schedule/ConflictView'
 import { DiffView } from '@/components/schedule/DiffView'
 import { EmployeeView } from '@/components/schedule/EmployeeView'
 import { EntityClarifier } from '@/components/schedule/EntityClarifier'
 import { ImpactView } from '@/components/schedule/ImpactView'
-import { PresetChips, type PresetId } from '@/components/schedule/PresetChips'
-import { PromptBox } from '@/components/schedule/PromptBox'
 import { RuleChecklist } from '@/components/schedule/RuleChecklist'
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid'
 import { ShiftDrawer } from '@/components/schedule/ShiftDrawer'
 import { VersionHistory } from '@/components/schedule/VersionHistory'
+import { WeekSelector } from '@/components/schedule/WeekSelector'
+import { weekLabel, weekRangeLabel } from '@/lib/isoWeek'
 import { STATUS_LABELS } from '@/lib/presentation'
+import { useAgentStore } from '@/store/AgentStore'
 import { useAppStore } from '@/store/AppStore'
-import type { RunAction, ScheduleView } from '@/types'
-
-const prompts: Record<RunAction, string> = {
-  generate: '帮我生成本周排班，尽量满足员工早晚班偏好。',
-  leave: 'E02 周五临时请假，重新排班，其他员工尽量少调整。',
-  freeform: '',
-}
+import type { ScheduleView, TrustedAgentAction } from '@/types'
 
 export function ScheduleWorkbench() {
   const store = useAppStore()
-  const [action, setAction] = useState<RunAction>('generate')
-  const [prompt, setPrompt] = useState(prompts.generate)
+  const agent = useAgentStore()
   const [view, setView] = useState<ScheduleView>('shift')
   const active = store.activeSchedule
-  const [weekStart] = useState(currentMonday)
 
-  const chooseAction = (next: RunAction) => {
-    setAction(next)
-    setPrompt(prompts[next])
-  }
-
-  const run = () => {
-    if (action === 'generate' || (!store.confirmedSchedule && action === 'freeform')) {
-      void store.generate(prompt, weekStart)
-      return
-    }
-    if (action === 'freeform' && /生成|generate/i.test(prompt)) {
-      void store.generate(prompt, weekStart)
-      return
-    }
-    void store.replan(prompt, [])
-  }
-
-  const runPreset = (preset: PresetId) => {
-    if (preset === 'normal') {
-      chooseAction('generate')
-      void store.generate(prompts.generate, weekStart)
-    } else if (preset === 'leave') {
-      chooseAction('leave')
-      void store.replan(prompts.leave, [{ employee_id: 'E02', type: 'leave', day: 'Fri' }])
-    } else {
-      const text = '周日所有店长请假，检查排班是否可行。'
-      setAction('freeform')
-      setPrompt(text)
-      void store.generate(text, weekStart)
-    }
+  const quickAction = (content: string, trustedAction?: TrustedAgentAction) => {
+    void agent.openWithPrompt(content, trustedAction && { ...trustedAction, target_week: store.activeWeekStart })
   }
 
   if (store.isBootstrapping) {
@@ -68,16 +32,29 @@ export function ScheduleWorkbench() {
 
   return (
     <div className="space-y-6">
-      <section className="panel p-5 lg:p-6">
-        <div className="mb-5"><p className="eyebrow">智能排班指令</p><h2 className="mt-1 text-xl font-extrabold tracking-tight text-ink">你想做什么？</h2></div>
-        <ActionSelector value={action} onChange={chooseAction} />
-        <div className="mt-4"><PromptBox value={prompt} onChange={setPrompt} onRun={run} running={store.isRunning} /></div>
-        <div className="mt-4 border-t border-slate-100 pt-4"><p className="mb-2 text-[10px] font-bold tracking-[0.16em] text-slate-400">演示预设 · 真实求解流程</p><PresetChips onSelect={runPreset} disabled={store.isRunning} /></div>
+      <section className="panel flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="eyebrow">排班周次</p>
+          <h2 className="mt-1 text-xl font-extrabold tracking-tight text-ink">{weekLabel(store.activeWeekStart)}</h2>
+          <p className="mt-1 text-sm font-semibold text-slate-500">{weekRangeLabel(store.activeWeekStart)}{active ? ` · v${active.version} · ${STATUS_LABELS[active.status]}` : ' · 未生成'}</p>
+        </div>
+        <WeekSelector activeWeekStart={store.activeWeekStart} weeks={store.weekOptions} disabled={store.isLoadingWeek || store.isRunning} onSelect={(weekStart) => void store.setActiveWeek(weekStart)} />
       </section>
 
+      <section className="panel p-4 lg:p-5">
+        <div className="mb-3 flex items-center justify-between"><div><p className="eyebrow">快捷操作</p><h2 className="mt-1 text-base font-extrabold text-ink">让 AI 从当前周开始</h2></div><MessageCircleMore className="h-5 w-5 text-teal-600" /></div>
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <QuickAction icon={CalendarPlus} label="生成新排班" detail="创建当前周草稿" disabled={agent.isSending} onClick={() => quickAction('帮我生成当前周排班，尽量满足员工早晚班偏好。', { intent: 'generate' })} />
+          <QuickAction icon={Umbrella} label="E02 临时请假" detail="周五请假并最小调整" disabled={agent.isSending} onClick={() => quickAction('E02 周五临时请假，帮我重新排一下，其他员工尽量少调整。', { intent: 'replan', changes: [{ employee_id: 'E02', type: 'leave', day: 'Fri' }], minimize_changes: true })} />
+          <QuickAction icon={BarChart3} label="分析优化空间" detail="只分析，不修改排班" disabled={agent.isSending} onClick={() => quickAction('这周排班有什么可以优化的吗？', { intent: 'advice' })} />
+          <QuickAction icon={ShieldCheck} label="检查排班规则" detail="运行确定性校验" disabled={agent.isSending} onClick={() => quickAction('帮我检查当前排班有没有违反规则。', { intent: 'validate' })} />
+        </div>
+      </section>
+
+      {store.isLoadingWeek && <section className="panel flex items-center justify-center gap-2 p-8 text-sm font-semibold text-slate-500"><LoaderCircle className="h-5 w-5 animate-spin text-teal-600" />正在读取这一周的排班…</section>}
       {store.infeasibleResult && <ConflictView result={store.infeasibleResult} />}
 
-      {active ? (
+      {!store.isLoadingWeek && active ? (
         <>
           {store.draftSchedule && (
             <section className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center">
@@ -88,7 +65,7 @@ export function ScheduleWorkbench() {
 
           <section className="panel overflow-hidden">
             <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1"><p className="eyebrow">本周排班结果</p><h2 className="mt-1 text-lg font-extrabold text-ink">{active.week_start} · v{active.version} <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] ${active.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{STATUS_LABELS[active.status]}</span></h2></div>
+              <div className="min-w-0 flex-1"><p className="eyebrow">排班结果</p><h2 className="mt-1 text-lg font-extrabold text-ink">{weekLabel(active.week_start)} · v{active.version} <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] ${active.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{STATUS_LABELS[active.status]}</span></h2></div>
               <div className="flex rounded-xl bg-slate-100 p-1"><ViewButton active={view === 'shift'} onClick={() => setView('shift')} icon={LayoutGrid} label="班次视角" /><ViewButton active={view === 'employee'} onClick={() => setView('employee')} icon={Users} label="员工视角" /></div>
             </div>
             <div className="p-4 lg:p-5">{view === 'shift' ? <ScheduleGrid schedule={active} employees={store.employees} onSelectShift={(day, shift) => store.selectShift({ day, shift })} /> : <EmployeeView schedule={active} employees={store.employees} />}</div>
@@ -103,9 +80,9 @@ export function ScheduleWorkbench() {
             <div className="space-y-5"><RuleChecklist validation={store.result?.validation ?? null} /><VersionHistory versions={store.versions} /></div>
           </div>
         </>
-      ) : !store.infeasibleResult && (
+      ) : !store.isLoadingWeek && !store.infeasibleResult && (
         <section className="panel grid min-h-[340px] place-items-center border-dashed p-8 text-center">
-          <div><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-teal-50 text-teal-700"><CalendarDays className="h-7 w-7" /></span><h2 className="mt-4 text-lg font-extrabold text-ink">还没有排班</h2><p className="mt-2 max-w-md text-sm leading-6 text-slate-500">运行“正常生成”预设，后端会构建排班上下文、调用约束求解器、独立校验并保存待确认草稿。</p></div>
+          <div><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-teal-50 text-teal-700"><CalendarDays className="h-7 w-7" /></span><h2 className="mt-4 text-lg font-extrabold text-ink">这一周还没有排班</h2><p className="mt-2 max-w-md text-sm leading-6 text-slate-500">点击“生成新排班”让 AI 读取当前周上下文，并由确定性求解器创建待确认草稿。</p></div>
         </section>
       )}
 
@@ -113,6 +90,10 @@ export function ScheduleWorkbench() {
       <EntityClarifier clarification={store.clarification} onChoose={(id) => void store.resolveClarification(id)} onClose={store.dismissClarification} />
     </div>
   )
+}
+
+function QuickAction({ icon: Icon, label, detail, disabled, onClick }: { icon: typeof CalendarPlus; label: string; detail: string; disabled: boolean; onClick(): void }) {
+  return <button type="button" onClick={onClick} disabled={disabled} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-teal-300 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-50"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-teal-50 text-teal-700"><Icon className="h-[18px] w-[18px]" /></span><span><span className="block text-sm font-extrabold text-slate-800">{label}</span><span className="block text-[11px] text-slate-500">{detail}</span></span></button>
 }
 
 function ViewButton({ active, onClick, icon: Icon, label }: { active: boolean; onClick(): void; icon: typeof LayoutGrid; label: string }) {
@@ -128,11 +109,4 @@ function Metrics({ result, schedule }: { result: ReturnType<typeof useAppStore>[
     { icon: CalendarDays, label: '版本与状态', value: `v${schedule.version} · ${STATUS_LABELS[schedule.status]}` },
   ]
   return <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{items.map(({ icon: Icon, label, value }) => <div key={label} className="panel flex items-center gap-3 p-4"><span className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-600"><Icon className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</p><p className="mt-1 text-lg font-black text-ink">{value}</p></div></div>)}</section>
-}
-
-function currentMonday() {
-  const now = new Date()
-  const offset = (now.getDay() + 6) % 7
-  now.setDate(now.getDate() - offset)
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }

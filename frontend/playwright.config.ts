@@ -33,6 +33,7 @@ export default defineConfig({
         ...env,
         DATABASE_URL: databasePath,
         CORS_ORIGINS: webUrl,
+        LLM_ENABLED: 'false',
       },
       url: `${apiUrl}/health`,
       reuseExistingServer: false,
@@ -53,7 +54,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
+      use: { ...devices['Desktop Chrome'] },
     },
   ],
 })

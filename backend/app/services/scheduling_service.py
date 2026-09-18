@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import date
-from typing import Any
+from typing import Any, Callable
 from uuid import uuid4
 
 from ..models import (
@@ -102,6 +102,9 @@ class SchedulingService:
         base_schedule: Schedule | None,
         base_version: int | None,
         employee_revision: int,
+        metadata_extra: dict[str, Any] | None = None,
+        before_commit: Callable[[], None] | None = None,
+        agent_turn_guard: tuple[str, str, str] | None = None,
     ) -> dict[str, Any]:
         if result.status is SolverStatus.INFEASIBLE:
             return self._infeasible_response(result)
@@ -142,6 +145,8 @@ class SchedulingService:
             result.schedule, context.employees, validation, metrics
         )
         metadata = {
+            **dict(metadata_extra or {}),
+            "solver_status": result.status.value,
             "metrics": metrics,
             "diff": diff,
             "impact": impact,
@@ -154,6 +159,8 @@ class SchedulingService:
             "history_schedule_version": context.history_schedule_version,
             "employee_revision": employee_revision,
         }
+        if before_commit is not None:
+            before_commit()
         self.schedules.save_draft(
             result.schedule,
             lineage_id=lineage_id,
@@ -162,6 +169,7 @@ class SchedulingService:
             validation=validation,
             metadata=metadata,
             employee_revision=employee_revision,
+            agent_turn_guard=agent_turn_guard,
         )
         logger.info(
             "schedule_draft_created",
@@ -193,6 +201,9 @@ class SchedulingService:
         week_start: date,
         prompt: str = "",
         changes: list[ScheduleChange] | None = None,
+        metadata_extra: dict[str, Any] | None = None,
+        before_commit: Callable[[], None] | None = None,
+        agent_turn_guard: tuple[str, str, str] | None = None,
     ) -> dict[str, Any]:
         if week_start.weekday() != 0:
             raise ValueError("week_start must be a Monday")
@@ -237,6 +248,9 @@ class SchedulingService:
             base_schedule=base_schedule,
             base_version=base_version,
             employee_revision=employee_revision,
+            metadata_extra=metadata_extra,
+            before_commit=before_commit,
+            agent_turn_guard=agent_turn_guard,
         )
 
     def replan(
@@ -247,6 +261,9 @@ class SchedulingService:
         changes: list[ScheduleChange],
         minimize_changes: bool = True,
         prompt: str = "",
+        metadata_extra: dict[str, Any] | None = None,
+        before_commit: Callable[[], None] | None = None,
+        agent_turn_guard: tuple[str, str, str] | None = None,
     ) -> dict[str, Any]:
         base_record = self.schedules.assert_current_base(base_schedule_id, base_version)
         base_schedule: Schedule = base_record["schedule"]
@@ -284,6 +301,9 @@ class SchedulingService:
             base_schedule=base_schedule,
             base_version=base_version,
             employee_revision=employee_revision,
+            metadata_extra=metadata_extra,
+            before_commit=before_commit,
+            agent_turn_guard=agent_turn_guard,
         )
 
     @staticmethod

@@ -137,13 +137,67 @@ class Database:
         """Prepare local/test databases and validate migrated production databases."""
         app_env = os.getenv("APP_ENV", "development").strip().lower()
         if app_env == "production":
-            tables = set(inspect(self.engine).get_table_names())
-            required = {"employees", "system_metadata", "schedules", "assignments"}
+            db_inspector = inspect(self.engine)
+            tables = set(db_inspector.get_table_names())
+            required = {
+                "employees",
+                "system_metadata",
+                "schedules",
+                "assignments",
+                "conversations",
+                "conversation_messages",
+                "agent_tool_calls",
+            }
             missing = sorted(required - tables)
             if missing:
                 raise RuntimeError(
                     "Database migrations have not been applied; missing tables: "
                     + ", ".join(missing)
+                )
+            required_columns = {
+                "conversations": {
+                    "conversation_id",
+                    "browser_workspace_id",
+                    "summary",
+                    "active_turn_message_id",
+                    "active_turn_owner_token",
+                    "active_turn_started_at",
+                    "updated_at",
+                },
+                "conversation_messages": {
+                    "message_id",
+                    "conversation_id",
+                    "sequence_number",
+                    "client_message_id",
+                    "metadata_json",
+                },
+                "agent_tool_calls": {
+                    "tool_call_id",
+                    "conversation_id",
+                    "sequence_number",
+                    "message_id",
+                    "output_json",
+                },
+            }
+            missing_columns = {
+                table: sorted(
+                    columns
+                    - {item["name"] for item in db_inspector.get_columns(table)}
+                )
+                for table, columns in required_columns.items()
+            }
+            missing_columns = {
+                table: columns
+                for table, columns in missing_columns.items()
+                if columns
+            }
+            if missing_columns:
+                details = "; ".join(
+                    f"{table}: {', '.join(columns)}"
+                    for table, columns in sorted(missing_columns.items())
+                )
+                raise RuntimeError(
+                    "Database migrations are incomplete; missing columns: " + details
                 )
         else:
             Base.metadata.create_all(self.engine)

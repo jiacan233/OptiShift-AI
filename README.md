@@ -1,6 +1,8 @@
-# OptiShift AI · 智能排班助手
+# OptiShift
 
-OptiShift AI 是一个面向门店周排班的可解释 Web 应用。它把自然语言或结构化变更转换为经过校验的排班请求，由 OR-Tools CP-SAT 生成排班，再由独立规则校验器验收。所有结果先保存为草稿，只有通过校验且版本仍有效时才能确认。
+**AI Scheduling Agent + Deterministic Scheduling Solver**
+
+OptiShift 是一个“单门店共享排班工作区 + 服务端持久化 AI Scheduling Agent”。员工、规则和排班属于同一个共享工作区；每个浏览器通过匿名 `browser_workspace_id` 拥有自己的多轮对话和历史记录。Agent 负责理解、分析和选择受控工具，OR-Tools CP-SAT 与独立 Validator 负责排班和业务约束。
 
 **Repository:** [github.com/jiacan233/OptiShift-AI](https://github.com/jiacan233/OptiShift-AI)
 
@@ -12,18 +14,18 @@ OptiShift AI 是一个面向门店周排班的可解释 Web 应用。它把自�
 
 ```mermaid
 flowchart LR
-  UI[React 工作台] --> API[FastAPI]
-  API --> Context[Scheduling Context]
-  Context --> Solver[OR-Tools CP-SAT]
-  Solver --> Validator[Independent Validator]
-  Solver --> Diagnosis[Infeasible Diagnosis]
-  Validator --> State[Draft / Confirm / Versions]
-  State --> DB[(SQLAlchemy Repository)]
-  DB --> Local[(SQLite · Local)]
-  DB --> Prod[(CloudBase MySQL · Production)]
+  User[User] --> Conversation[Persistent Conversation]
+  Conversation --> Router[Agent Router]
+  Router --> Resolver[Week / Context Resolver]
+  Resolver --> Gate[Action Gate]
+  Gate --> Tools[Agent Tools]
+  Tools --> Solver[CP-SAT Solver / Validator]
+  Solver --> Draft[Draft]
+  Draft --> Confirm[Human Confirm]
+  Conversation --> DB[(SQLAlchemy / Alembic)]
 ```
 
-LLM 仅用于意图解析、实体候选提取和可选的解释润色。员工技能、约束判断和最终排班均来自确定性代码与员工主数据。没有 API Key 时，结构化操作、预设、求解、校验、Diff 和诊断仍可使用。
+LLM 只负责自然语言理解、结构化 Intent、引用解析和回答组织。它不会直接执行 SQL、写 Repository、运行 Solver、绕过版本检查或确认正式排班。所有写操作都经过确定性 Action Gate；只有 `generate` 和 `replan` 可以创建 Draft，正式生效始终要求用户点击“确认变更”。
 
 ## Tech Stack
 
@@ -74,11 +76,11 @@ docker compose up --build
 | `APP_ENV` | `development` or `production`; production requires MySQL | `development` |
 | `DATABASE_URL` | SQLAlchemy URL for SQLite or MySQL | `sqlite:///./data/optishift.db` |
 | `PORT` | HTTP listening port used by CloudBase Run | `8080` |
-| `LLM_ENABLED` | Enable optional LLM parsing/polish | `false` |
-| `LLM_API_KEY` | Optional provider key | empty |
-| `LLM_MODEL` | Optional provider model | `gpt-4.1-mini` |
+| `LLM_ENABLED` | Enable free-form Structured Output routing and response composition | `false` |
+| `LLM_API_KEY` | OpenAI-compatible provider key | empty |
+| `LLM_MODEL` | Router/composer model | `gpt-4.1-mini` |
 | `LLM_BASE_URL` | OpenAI-compatible endpoint | `https://api.openai.com/v1` |
-| `LLM_TIMEOUT_SECONDS` | Short fallback timeout | `5` |
+| `LLM_TIMEOUT_SECONDS` | Provider request timeout | `5` |
 | `CORS_ORIGINS` | Local frontend origins | localhost Vite origins |
 | `SOLVER_MAX_TIME_SECONDS` | CP-SAT time limit | `10` |
 | `SOLVER_RANDOM_SEED` | Deterministic seed | `42` |
@@ -86,9 +88,31 @@ docker compose up --build
 ## Data Model
 
 - **Employee:** stable ID, role, master-data skills, available days, leave days, preferred shift.
-- **Schedule:** schedule ID, version, parent/base relationship, week start, assignments, status and timestamp.
-- **Schedule Request:** generate/replan/validate intent, explicit base ID/version, requested changes and minimize-changes flag.
+- **Schedule:** schedule ID, version, parent/base relationship, Monday `week_start`, assignments, status and timestamp.
+- **Conversation:** anonymous browser workspace ownership, title, summary, active/archived status and timestamps. A conversation can span multiple weeks.
+- **Conversation Message:** persisted user/assistant content, structured intent, mutation flag, resolved target week, schedule/version reference and audited metadata.
+- **Agent Tool Call:** persisted tool name, deterministic input/output summary, status and timestamps. Chain of thought is never stored.
 - **Scheduling Context:** base schedule, employee snapshot, rules, requested changes and previous-week history state (`known_empty`, `available`, or `unavailable`).
+
+## Browser Workspace and Conversation History
+
+首次访问时，前端生成随机 `browser_workspace_id` 并仅把该 ID 与当前 `conversation_id` 保存到 `localStorage`。聊天正文、工具结果和排班副本不会写入浏览器存储，刷新或打开历史对话时均从服务端数据库恢复完整消息。
+
+Conversation 创建后绑定当前 Browser Workspace。列表和详情接口同时校验 `browser_workspace_id`，所以一个浏览器不能列出或读取另一个浏览器的匿名对话。这是 Demo 阶段的浏览器级隔离，不是用户认证、租户边界或权限系统。
+
+每条用户消息携带 `client_message_id`。网络失败后的 Retry 复用同一个 ID；服务端按 `(conversation_id, client_message_id)` 返回首次完成的结果，不会再次生成 Draft 或重复调用 Solver。同一 Conversation 的 turn 由带 owner token 的数据库租约串行执行；进程在 Draft 写入后中断时，服务端会按草稿来源标记恢复首次结果，即使该草稿随后已确认或取消，也不会把同一用户动作重新执行一遍。
+
+## ISO Week and Schedule Context
+
+界面使用标准 ISO 8601 自然周（周一到周日）展示和解析周次，数据库仍以 Monday `week_start` 作为 Schedule key。例如 `2026年第40周` 解析为 `2026-09-28`。Resolver 的优先级是：本轮明确日期/ISO 周、本轮相对周次、可信快捷操作指定周、建议或最近对话引用、当前工作台周次、当前自然周。
+
+每周独立恢复三种状态：
+
+- `display_schedule`：该周有 Draft 时展示 Draft，否则展示 Confirmed。
+- `confirmed_schedule`：该周真正生效的正式版本。
+- `mutation_base`：Replan 使用的最新 Confirmed ID/version，绝不使用正在展示的 Draft。
+
+版本历史也按目标周加载。切换上一周、下一周或直接选择周次时，Schedule Grid、版本记录和 Agent 当前上下文会同步更新。
 
 ## Database and Migrations
 
@@ -137,6 +161,8 @@ Seed 是幂等的：只补充缺失的 Demo 员工，不覆盖已有员工资料
 Generate 永远先创建 draft，不会直接覆盖正式排班。
 同一周已经存在 Confirmed 时，再次 Generate 会沿当前 lineage 创建 vN+1，并把当前版本作为显式 Base；不会创建第二条“当前正式排班”分支。
 
+同一目标周已有待确认 Draft 时，Pending Draft Gate 返回 `draft_pending`。系统不会覆盖、取消或并行创建另一个候选 Draft。刷新页面会同时恢复该周的 Confirmed、Pending Draft、Validation、Diff、Impact 和版本记录。
+
 ### Replan
 
 Replan 请求必须携带 `base_schedule_id` 与 `base_version`：
@@ -151,6 +177,21 @@ Replan 和 Confirm 均在服务端检查乐观版本。若客户端 Base 已过�
 Draft 还会记录员工主数据修订号；员工资料在草稿生成后发生变化时，旧草稿会拒绝确认并要求重新生成。
 
 全新数据库第一次排班时会持久化一个明确的 `known_empty` 周边界。之后若中间周缺少已确认排班，服务返回 `history_unavailable`，不会把未知历史当作无人工作。
+
+## Agent Router and Tools
+
+Free-form Chat 使用 OpenAI-compatible `/chat/completions` Structured Output Router，支持：
+
+- `generate`, `replan`: 通过写工具创建 Draft。
+- `validate`, `advice`, `explain`, `ask`: 只读分析。
+- `clarification`: 信息或引用存在歧义时继续询问。
+- `out_of_scope`: 与排班工作区无关的请求。
+
+确定性 Action Gate 不信任模型声明：只有 `generate` 和 `replan` 可以进入写工具。聊天里的“确认”“应用”“就这样”不会调用 Confirm API。Quick Actions 可以携带 trusted structured intent，在 LLM 关闭时仍可直接使用确定性工具链。
+
+工具层提供真实的排班、员工、规则、历史、Validator、分析、Generate 和 Replan 操作。Advice 的建议会记录 `target_week`、`based_on_schedule_id`、`based_on_version` 和 `proposed_changes`。后续“第二条为什么”“按这个改”通过消息 metadata 解析 suggestion 引用；Version Guard 会重新读取最新 Confirmed 和业务数据后再决定是否执行。
+
+当 `LLM_ENABLED=true` 且 Provider 超时、拒绝请求或返回无效 Structured Output 时，Free-form Chat 返回 `ai_unavailable`，不会静默退回关键词路由并假装 AI 正常。
 
 ## INFEASIBLE Diagnosis
 
@@ -169,6 +210,12 @@ GET    /health
 GET    /api/employees
 PATCH  /api/employees/{employee_id}
 GET    /api/rules
+POST   /api/agent/conversations
+GET    /api/agent/conversations?browser_workspace_id=...
+GET    /api/agent/conversations/{conversation_id}?browser_workspace_id=...
+POST   /api/agent/conversations/{conversation_id}/messages
+GET    /api/schedules/week-context?week_start=...
+GET    /api/schedules/weeks?anchor_week_start=...
 POST   /api/schedule/generate
 POST   /api/schedule/replan
 POST   /api/schedule/validate
@@ -181,11 +228,13 @@ GET    /api/schedules/{schedule_id}/versions
 
 ## Demo Scenarios
 
-1. **正常生成**：生成完整一周草稿，查看 10/10 硬约束、偏好率与员工视角，然后确认 v1。
-2. **E02 周五请假**：基于 confirmed v1 重排，查看 Before/After Diff、影响范围与最小扰动，再确认 v2。
-3. **版本冲突**：使用过期 base/version 重排或确认，观察 `version_conflict`。
-4. **周日 manager 全部不可用**：Primary Solver 返回 INFEASIBLE，展示 R01 缺口和候选阻挡原因，不出现可确认的非法草稿。
-5. **LLM 不可用**：关闭 `LLM_ENABLED`，三个结构化 Preset 和所有确定性功能继续工作。
+1. 切换到 `2026年第40周`，确认日期范围是 `09月28日 - 10月04日`。
+2. 询问“你知道我们的项目怎么排班吗？”，获得 AI + Solver 分工说明，排班不发生变化。
+3. 询问“第40周有什么优化建议？”，再追问“第二条为什么？”。
+4. 发送“按这个改”，经过引用解析、Version Guard 和 Solver 创建待确认 Draft。
+5. 再次请求 Mutation，观察 `draft_pending`；在聊天里说“确认”不会让 Draft 生效。
+6. 手动点击“确认变更”，再切到第41周生成新 Draft，确认请求使用 `week_start=2026-10-05`。
+7. 从“历史”恢复旧 Conversation，刷新页面确认 Conversation 和 Pending Draft 均可恢复。
 
 ## Testing
 

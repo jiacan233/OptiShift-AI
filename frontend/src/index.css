@@ -30,3 +30,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .soft-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
 .soft-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
 .soft-scrollbar::-webkit-scrollbar-thumb { border-radius: 999px; background: #cbd5e1; }
+
+@media (max-width: 1023px) {
+  body:has([data-agent-panel="open"]) { overflow: hidden; }
+}

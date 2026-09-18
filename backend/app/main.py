@@ -20,19 +20,26 @@ from fastapi.staticfiles import StaticFiles
 
 load_dotenv()
 
+from .api.agent import router as agent_router
 from .api.employees import router as employees_router
 from .api.rules import router as rules_router
 from .api.schedule import router as schedule_router
 from .core import HistoryUnavailableError
 from .database import database, initialize_database
 from .repository import (
+    ConversationBusyError,
+    ConversationNotFoundError,
+    DraftPendingError,
     DraftNotFoundError,
     EmployeeNotFoundError,
     ImmutableEmployeeFieldError,
     InvalidScheduleStateError,
     ScheduleNotFoundError,
+    TurnLeaseLostError,
     VersionConflictError,
 )
+from .services.agent_service import AgentTurnError
+from .services.llm_client import AIUnavailableError
 from .services.request_validator import BusinessValidationError
 from .services.scheduling_service import SolverOutputError
 
@@ -132,11 +139,63 @@ async def version_conflict(_request: Request, exc: VersionConflictError):
     )
 
 
+@app.exception_handler(DraftPendingError)
+async def draft_pending(_request: Request, exc: DraftPendingError):
+    return problem(
+        409,
+        "draft_pending",
+        "A pending draft already exists for this week.",
+        {
+            "week_start": exc.week_start.isoformat(),
+            "schedule_id": exc.schedule_id,
+            "version": exc.version,
+        },
+    )
+
+
+@app.exception_handler(AgentTurnError)
+async def agent_turn_error(_request: Request, exc: AgentTurnError):
+    return problem(exc.status_code, exc.code, str(exc), exc.turn_result)
+
+
+@app.exception_handler(AIUnavailableError)
+async def ai_unavailable(_request: Request, exc: AIUnavailableError):
+    return problem(503, "ai_unavailable", str(exc))
+
+
+@app.exception_handler(ConversationNotFoundError)
+async def conversation_not_found(_request: Request, _exc: ConversationNotFoundError):
+    return problem(404, "conversation_not_found", "Conversation was not found.")
+
+
+@app.exception_handler(ConversationBusyError)
+async def conversation_busy(_request: Request, _exc: ConversationBusyError):
+    return problem(
+        409,
+        "conversation_busy",
+        "Another message in this conversation is still being processed.",
+    )
+
+
+@app.exception_handler(TurnLeaseLostError)
+async def turn_lease_lost(_request: Request, _exc: TurnLeaseLostError):
+    return problem(
+        409,
+        "message_processing",
+        "This message was recovered by another request and is still being processed.",
+    )
+
+
 @app.exception_handler(ScheduleNotFoundError)
 @app.exception_handler(DraftNotFoundError)
 @app.exception_handler(EmployeeNotFoundError)
 async def not_found(_request: Request, exc: Exception):
-    return problem(404, "entity_not_found", "The requested employee or schedule was not found.", str(exc))
+    return problem(
+        404,
+        "entity_not_found",
+        "The requested employee or schedule was not found.",
+        str(exc),
+    )
 
 
 @app.exception_handler(HistoryUnavailableError)
@@ -182,6 +241,7 @@ def health(response: Response) -> dict:
 app.include_router(employees_router)
 app.include_router(rules_router)
 app.include_router(schedule_router)
+app.include_router(agent_router)
 
 frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 if frontend_dist.is_dir():

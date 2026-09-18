@@ -4,6 +4,7 @@ import pytest
 
 from backend.app.models import Assignment, Day, Schedule, Shift
 from backend.app.repository import (
+    DraftPendingError,
     DraftNotFoundError,
     InvalidScheduleStateError,
     VersionConflictError,
@@ -90,7 +91,7 @@ def test_stale_base_is_rejected_after_new_version_confirmed(repositories, week_s
     assert repository.assert_current_base("v2", 2)["schedule"].schedule_id == "v2"
 
 
-def test_confirm_checks_base_again_inside_transaction(repositories, week_start):
+def test_pending_draft_gate_rejects_second_candidate(repositories, week_start):
     _, repository = repositories
     v1 = _schedule("v1", week_start)
     _save(repository, v1, lineage="lineage")
@@ -98,11 +99,11 @@ def test_confirm_checks_base_again_inside_transaction(repositories, week_start):
     first = _schedule("candidate-a", week_start, version=2, parent="v1")
     second = _schedule("candidate-b", week_start, version=2, parent="v1")
     _save(repository, first, lineage="lineage", base="v1", base_version=1)
-    _save(repository, second, lineage="lineage", base="v1", base_version=1)
-    repository.confirm("candidate-a", 2)
+    with pytest.raises(DraftPendingError) as error:
+        _save(repository, second, lineage="lineage", base="v1", base_version=1)
 
-    with pytest.raises(VersionConflictError):
-        repository.confirm("candidate-b", 2)
+    assert error.value.schedule_id == "candidate-a"
+    assert error.value.version == 2
 
 
 def test_cancel_hides_draft_without_changing_confirmed(repositories, week_start):
@@ -120,4 +121,3 @@ def test_cancel_hides_draft_without_changing_confirmed(repositories, week_start)
     assert repository.latest(status="confirmed").schedule_id == "v1"
     with pytest.raises(DraftNotFoundError):
         repository.confirm("draft-v2", 2)
-

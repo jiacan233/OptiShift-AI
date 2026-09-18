@@ -61,7 +61,7 @@ class Skill(StringEnum):
 class ScheduleStatus(StringEnum):
     DRAFT = "draft"
     CONFIRMED = "confirmed"
-    ABANDONED = "abandoned"
+    CANCELLED = "cancelled"
 
 
 class RequestIntent(StringEnum):

@@ -4,15 +4,18 @@ from datetime import date, timedelta
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..database import Database, utc_now
 from ..models import Assignment, HistoryStatus, Schedule
 from ..models.orm import (
     AssignmentRecord,
+    ConversationRecord,
     ScheduleRecord,
     SystemMetadataRecord,
 )
+from .conversations import TurnLeaseLostError
 
 
 class ScheduleNotFoundError(LookupError):
@@ -25,6 +28,17 @@ class DraftNotFoundError(ScheduleNotFoundError):
 
 class InvalidScheduleStateError(ValueError):
     pass
+
+
+class DraftPendingError(RuntimeError):
+    def __init__(self, week_start: date, schedule_id: str, version: int) -> None:
+        self.week_start = week_start
+        self.schedule_id = schedule_id
+        self.version = version
+        super().__init__(
+            f"A pending draft already exists for {week_start.isoformat()}: "
+            f"{schedule_id} v{version}"
+        )
 
 
 class VersionConflictError(RuntimeError):
@@ -43,6 +57,32 @@ class ScheduleRepository:
     @staticmethod
     def _as_date(value: date | str) -> date:
         return value if isinstance(value, date) else date.fromisoformat(value)
+
+    @classmethod
+    def _week_lock_key(cls, week_start: date | str) -> str:
+        return f"schedule_week_lock:{cls._as_date(week_start).isoformat()}"
+
+    def _ensure_week_lock(self, week_start: date | str) -> None:
+        """Create the stable mutex row used to serialize writes for one week."""
+
+        key = self._week_lock_key(week_start)
+        try:
+            with self.database.transaction(immediate=True) as session:
+                if session.get(SystemMetadataRecord, key) is None:
+                    session.add(SystemMetadataRecord(key=key, value="1"))
+                    session.flush()
+        except IntegrityError:
+            # Another writer created the same stable lock row first.
+            pass
+
+    @classmethod
+    def _lock_week(cls, session: Session, week_start: date | str) -> None:
+        statement = select(SystemMetadataRecord).where(
+            SystemMetadataRecord.key == cls._week_lock_key(week_start)
+        )
+        statement = cls._lock(statement, session)
+        if session.scalar(statement) is None:
+            raise InvalidScheduleStateError("Schedule week lock is unavailable")
 
     @staticmethod
     def _load_assignments(session: Session, schedule_id: str) -> list[Assignment]:
@@ -121,6 +161,31 @@ class ScheduleRepository:
             .order_by(
                 ScheduleRecord.version.desc(),
                 ScheduleRecord.confirmed_at.desc(),
+                ScheduleRecord.created_at.desc(),
+                ScheduleRecord.schedule_id.desc(),
+            )
+            .limit(1)
+        )
+        if lock:
+            statement = cls._lock(statement, session)
+        return session.scalar(statement)
+
+    @classmethod
+    def _current_draft_record(
+        cls,
+        session: Session,
+        week_start: date | str,
+        *,
+        lock: bool = False,
+    ) -> ScheduleRecord | None:
+        statement = (
+            select(ScheduleRecord)
+            .where(
+                ScheduleRecord.week_start == cls._as_date(week_start),
+                ScheduleRecord.status == "draft",
+            )
+            .order_by(
+                ScheduleRecord.version.desc(),
                 ScheduleRecord.created_at.desc(),
                 ScheduleRecord.schedule_id.desc(),
             )
@@ -216,13 +281,39 @@ class ScheduleRepository:
         validation: dict[str, Any],
         metadata: dict[str, Any] | None = None,
         employee_revision: int | None = None,
+        agent_turn_guard: tuple[str, str, str] | None = None,
     ) -> Schedule:
         payload = schedule.model_dump(mode="json")
         metadata_payload = dict(metadata or {})
         if employee_revision is not None:
             metadata_payload["employee_revision"] = employee_revision
 
+        self._ensure_week_lock(schedule.week_start)
         with self.database.transaction(immediate=True) as session:
+            self._lock_week(session, schedule.week_start)
+            if agent_turn_guard is not None:
+                conversation_id, message_id, owner_token = agent_turn_guard
+                conversation = session.scalar(
+                    self._lock(
+                        select(ConversationRecord).where(
+                            ConversationRecord.conversation_id == conversation_id
+                        ),
+                        session,
+                    )
+                )
+                if (
+                    conversation is None
+                    or conversation.active_turn_message_id != message_id
+                    or conversation.active_turn_owner_token != owner_token
+                ):
+                    raise TurnLeaseLostError(message_id)
+            pending = self._current_draft_record(
+                session, schedule.week_start, lock=True
+            )
+            if pending is not None:
+                raise DraftPendingError(
+                    pending.week_start, pending.schedule_id, pending.version
+                )
             current = self._assert_current_week_base(
                 session,
                 week_start=schedule.week_start,
@@ -250,18 +341,18 @@ class ScheduleRepository:
             )
 
             schedule_record = ScheduleRecord(
-                    schedule_id=schedule.schedule_id,
-                    lineage_id=lineage_id,
-                    version=schedule.version,
-                    parent_schedule_id=schedule.parent_schedule_id,
-                    base_schedule_id=base_schedule_id,
-                    base_version=base_version,
-                    status="draft",
-                    week_start=schedule.week_start,
-                    validation_json=validation,
-                    metadata_json=metadata_payload,
-                    created_at=schedule.created_at,
-                )
+                schedule_id=schedule.schedule_id,
+                lineage_id=lineage_id,
+                version=schedule.version,
+                parent_schedule_id=schedule.parent_schedule_id,
+                base_schedule_id=base_schedule_id,
+                base_version=base_version,
+                status="draft",
+                week_start=schedule.week_start,
+                validation_json=validation,
+                metadata_json=metadata_payload,
+                created_at=schedule.created_at,
+            )
             session.add(schedule_record)
             # AssignmentRecord does not expose an ORM relationship to ScheduleRecord.
             # Flush the parent explicitly so foreign-key checks are deterministic on
@@ -323,7 +414,14 @@ class ScheduleRepository:
             return record
 
     def confirm(self, schedule_id: str, version: int) -> Schedule:
+        with self.database.transaction() as session:
+            candidate = session.get(ScheduleRecord, schedule_id)
+            if candidate is None or candidate.status != "draft":
+                raise DraftNotFoundError(schedule_id)
+            week_start = candidate.week_start
+        self._ensure_week_lock(week_start)
         with self.database.transaction(immediate=True) as session:
+            self._lock_week(session, week_start)
             statement = self._lock(
                 select(ScheduleRecord).where(
                     ScheduleRecord.schedule_id == schedule_id
@@ -368,7 +466,14 @@ class ScheduleRepository:
             return self._schedule_from_record(session, draft)
 
     def cancel(self, schedule_id: str, version: int) -> dict[str, Any]:
+        with self.database.transaction() as session:
+            candidate = session.get(ScheduleRecord, schedule_id)
+            if candidate is None or candidate.status != "draft":
+                raise DraftNotFoundError(schedule_id)
+            week_start = candidate.week_start
+        self._ensure_week_lock(week_start)
         with self.database.transaction(immediate=True) as session:
+            self._lock_week(session, week_start)
             statement = self._lock(
                 select(ScheduleRecord).where(
                     ScheduleRecord.schedule_id == schedule_id
@@ -440,6 +545,79 @@ class ScheduleRepository:
             result = self._record_metadata(record)
             result["schedule"] = self._schedule_from_record(session, record)
             return result
+
+    def current_draft_record_for_week(
+        self, week_start: date
+    ) -> dict[str, Any] | None:
+        with self.database.transaction() as session:
+            record = self._current_draft_record(session, week_start)
+            if record is None:
+                return None
+            result = self._record_metadata(record)
+            result["schedule"] = self._schedule_from_record(session, record)
+            return result
+
+    def find_agent_schedule_for_turn(
+        self,
+        week_start: date,
+        *,
+        conversation_id: str,
+        client_message_id: str,
+        user_message_id: str,
+    ) -> dict[str, Any] | None:
+        """Find a schedule created by one Agent turn, including confirmed/cancelled rows."""
+
+        with self.database.transaction() as session:
+            records = session.scalars(
+                select(ScheduleRecord)
+                .where(ScheduleRecord.week_start == week_start)
+                .order_by(
+                    ScheduleRecord.version.desc(),
+                    ScheduleRecord.created_at.desc(),
+                )
+            ).all()
+            for record in records:
+                metadata = dict(record.metadata_json or {})
+                if (
+                    metadata.get("agent_conversation_id") == conversation_id
+                    and metadata.get("agent_client_message_id") == client_message_id
+                    and metadata.get("agent_user_message_id") == user_message_id
+                ):
+                    result = self._record_metadata(record)
+                    result["schedule"] = self._schedule_from_record(session, record)
+                    return result
+            return None
+
+    def current_records_for_week(
+        self, week_start: date
+    ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+        """Return the current confirmed and pending draft from one DB snapshot."""
+
+        with self.database.transaction() as session:
+            confirmed = self._current_confirmed_record(session, week_start)
+            draft = self._current_draft_record(session, week_start)
+
+            def serialize(record: ScheduleRecord | None) -> dict[str, Any] | None:
+                if record is None:
+                    return None
+                result = self._record_metadata(record)
+                result["schedule"] = self._schedule_from_record(session, record)
+                return result
+
+            return serialize(confirmed), serialize(draft)
+
+    def versions_for_week(self, week_start: date) -> list[dict[str, Any]]:
+        with self.database.transaction() as session:
+            records = session.scalars(
+                select(ScheduleRecord)
+                .where(ScheduleRecord.week_start == week_start)
+                .order_by(
+                    ScheduleRecord.version.desc(),
+                    ScheduleRecord.created_at.desc(),
+                    ScheduleRecord.schedule_id.desc(),
+                )
+            ).all()
+            return [self._record_metadata(record) for record in records]
 
     def previous_week_context(
         self,
