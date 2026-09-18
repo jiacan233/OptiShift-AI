@@ -35,10 +35,12 @@ class AgentTurnError(RuntimeError):
         code: str,
         message: str,
         turn_result: dict[str, Any] | None = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         self.status_code = status_code
         self.code = code
         self.turn_result = turn_result
+        self.details = details
         super().__init__(message)
 
 
@@ -107,6 +109,7 @@ class AgentService:
                 code,
                 str(error.get("message", code)),
                 result,
+                error.get("details") if isinstance(error.get("details"), dict) else None,
             )
         return result
 
@@ -574,6 +577,7 @@ class AgentService:
         intent: str | None = None,
         target_week: date | None = None,
         tool_calls: list[dict[str, Any]] | None = None,
+        error_details: dict[str, Any] | None = None,
     ) -> None:
         result = self.conversations.finalize_turn(
             conversation_id,
@@ -585,7 +589,11 @@ class AgentService:
             mutation_requested=False,
             target_week=target_week,
             metadata={
-                "error": {"code": code, "status_code": status_code},
+                "error": {
+                    "code": code,
+                    "status_code": status_code,
+                    "details": error_details,
+                },
                 "tool_call_ids": [
                     item["tool_call_id"] for item in (tool_calls or [])
                 ],
@@ -600,10 +608,11 @@ class AgentService:
                     "code": code,
                     "message": message,
                     "status_code": status_code,
+                    "details": error_details,
                 },
             },
         )
-        raise AgentTurnError(status_code, code, message, result)
+        raise AgentTurnError(status_code, code, message, result, error_details)
 
     def _resolve_week(
         self,
@@ -997,7 +1006,7 @@ class AgentService:
                 status_code=404,
             )
             raise AssertionError("unreachable")
-        except AIUnavailableError:
+        except AIUnavailableError as exc:
             self._complete_failure(
                 conversation_id=conversation_id,
                 browser_workspace_id=browser_workspace_id,
@@ -1005,8 +1014,9 @@ class AgentService:
                 owner_token=owner_token,
                 user_message=user_message,
                 code="ai_unavailable",
-                message="AI 助手暂时不可用，请稍后重试。",
+                message=exc.safe_message,
                 status_code=503,
+                error_details=exc.public_details,
             )
             raise AssertionError("unreachable")
 
@@ -1295,7 +1305,7 @@ class AgentService:
                     tool_output=tool_output,
                     suggestion=suggestion,
                 )
-        except AIUnavailableError:
+        except AIUnavailableError as exc:
             self._complete_failure(
                 conversation_id=conversation_id,
                 browser_workspace_id=browser_workspace_id,
@@ -1303,11 +1313,12 @@ class AgentService:
                 owner_token=owner_token,
                 user_message=user_message,
                 code="ai_unavailable",
-                message="AI 助手暂时不可用，请稍后重试。",
+                message=exc.safe_message,
                 status_code=503,
                 intent=route.intent.value,
                 target_week=target.week_start,
                 tool_calls=trace,
+                error_details=exc.public_details,
             )
             raise AssertionError("unreachable")
         except DraftPendingError:

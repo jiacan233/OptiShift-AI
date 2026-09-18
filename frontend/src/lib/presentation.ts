@@ -161,10 +161,12 @@ export function errorCodeLabel(code: string) {
 }
 
 export function problemMessage(code: string, message?: string) {
+  if (code === 'ai_unavailable') {
+    return message?.trim() || 'AI 助手暂时不可用，请稍后重试。'
+  }
   const messages: Record<string, string> = {
     history_unavailable: '目标周缺少上一周已确认排班，因此无法安全校验连续工作天数和晚班转早班规则。请补充上一周排班或选择连续的排班周次。',
     draft_pending: '当前已有待确认草稿，请先确认或取消当前草稿。',
-    ai_unavailable: 'AI 助手暂时不可用，请稍后重试。',
     version_conflict: '正式排班已经更新，请刷新当前周后再试。',
     suggestion_stale: '这条建议所依据的排班已经变化，请重新获取建议。',
     message_processing: '同一条消息仍在服务端处理中，请稍后使用原请求标识重试。',
@@ -172,6 +174,20 @@ export function problemMessage(code: string, message?: string) {
     turn_interrupted: '先前请求在服务中断后未完成，请重新发送。',
   }
   return messages[code] ?? localizeMessage(message, '请求未完成，请稍后重试。')
+}
+
+export function problemDetail(code: string, details?: unknown) {
+  if (code !== 'ai_unavailable' || !details || typeof details !== 'object') return null
+  const source = details as Record<string, unknown>
+  const errorType = typeof source.error_type === 'string' && source.error_type.trim()
+    ? source.error_type.trim()
+    : null
+  const providerStatus = typeof source.provider_status === 'number'
+    ? source.provider_status
+    : null
+  if (providerStatus !== null && errorType) return `HTTP ${providerStatus} · ${errorType}`
+  if (providerStatus !== null) return `HTTP ${providerStatus}`
+  return errorType
 }
 
 function containsChinese(value: string) {

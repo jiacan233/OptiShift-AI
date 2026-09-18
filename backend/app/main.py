@@ -21,6 +21,7 @@ from fastapi.staticfiles import StaticFiles
 load_dotenv()
 
 from .api.agent import router as agent_router
+from .api.dependencies import agent_llm_client
 from .api.employees import router as employees_router
 from .api.rules import router as rules_router
 from .api.schedule import router as schedule_router
@@ -155,12 +156,14 @@ async def draft_pending(_request: Request, exc: DraftPendingError):
 
 @app.exception_handler(AgentTurnError)
 async def agent_turn_error(_request: Request, exc: AgentTurnError):
-    return problem(exc.status_code, exc.code, str(exc), exc.turn_result)
+    details = dict(exc.turn_result or {})
+    details.update(exc.details or {})
+    return problem(exc.status_code, exc.code, str(exc), details or None)
 
 
 @app.exception_handler(AIUnavailableError)
 async def ai_unavailable(_request: Request, exc: AIUnavailableError):
-    return problem(503, "ai_unavailable", str(exc))
+    return problem(503, "ai_unavailable", exc.safe_message, exc.public_details)
 
 
 @app.exception_handler(ConversationNotFoundError)
@@ -236,6 +239,32 @@ def health(response: Response) -> dict:
     if not healthy:
         response.status_code = 503
     return {"status": "ok" if healthy else "degraded", "app": "optishift-ai", "database": healthy}
+
+
+@app.get("/health/llm", tags=["system"])
+def llm_health(response: Response) -> dict:
+    result: dict[str, object] = {
+        "enabled": agent_llm_client.enabled,
+        "key_present": bool(agent_llm_client.api_key),
+        "model": agent_llm_client.model,
+    }
+    try:
+        reply, latency_ms = agent_llm_client.health_check()
+    except AIUnavailableError as exc:
+        response.status_code = 503
+        result.update(
+            {
+                "status": "error",
+                "error_type": exc.error_type,
+                "message": exc.safe_message,
+                "latency_ms": exc.latency_ms or 0,
+            }
+        )
+        if exc.provider_status is not None:
+            result["provider_status"] = exc.provider_status
+        return result
+    result.update({"status": "ok", "reply": reply, "latency_ms": latency_ms})
+    return result
 
 
 app.include_router(employees_router)

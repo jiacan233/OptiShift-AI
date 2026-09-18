@@ -193,7 +193,10 @@ class AgentRouter:
         try:
             route = AgentRoute.model_validate(payload)
         except ValidationError as exc:
-            raise AIUnavailableError("The AI router returned invalid structured output") from exc
+            raise AIUnavailableError(
+                "AI Provider 返回了无法识别的响应。",
+                error_type="invalid_provider_response",
+            ) from exc
 
         known = {employee.id for employee in employees}
         referenced = set(route.employees) | {item.employee_id for item in route.changes}

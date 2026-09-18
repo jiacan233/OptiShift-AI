@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { AlertCircle, Bot, History, LoaderCircle, MessageSquarePlus, Send, Sparkles, X } from 'lucide-react'
 import { ConversationHistory } from '@/components/agent/ConversationHistory'
 import { MessageBubble } from '@/components/agent/MessageBubble'
-import { errorCodeLabel, problemMessage } from '@/lib/presentation'
+import { errorCodeLabel, problemDetail, problemMessage } from '@/lib/presentation'
 import { weekLabel } from '@/lib/isoWeek'
 import { useAgentStore } from '@/store/AgentStore'
 import { useAppStore } from '@/store/AppStore'
@@ -34,6 +34,9 @@ export function AgentPanel() {
     setInput('')
     void agent.sendMessage(content)
   }
+  const errorDetail = agent.agentError
+    ? problemDetail(agent.agentError.code, agent.agentError.details)
+    : null
 
   return (
     <>
@@ -95,7 +98,7 @@ export function AgentPanel() {
 
             {agent.agentError && (
               <div className="mx-4 mb-3 rounded-xl border border-red-200 bg-red-50 p-3 text-red-800 sm:mx-5">
-                <div className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><div><p className="text-xs font-black">{errorCodeLabel(agent.agentError.code)}</p><p className="mt-0.5 text-xs leading-5">{problemMessage(agent.agentError.code, agent.agentError.message)}</p></div><button type="button" onClick={agent.dismissError} className="ml-auto"><X className="h-3.5 w-3.5" /></button></div>
+                <div className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><div><p className="text-xs font-black">{errorCodeLabel(agent.agentError.code)}</p><p className="mt-0.5 text-xs leading-5">{problemMessage(agent.agentError.code, agent.agentError.message)}</p>{errorDetail && <p className="mt-1 font-mono text-[10px] text-red-600">{errorDetail}</p>}</div><button type="button" onClick={agent.dismissError} className="ml-auto"><X className="h-3.5 w-3.5" /></button></div>
                 {agent.pendingMessage && <button type="button" onClick={() => void agent.retryPendingMessage()} disabled={agent.isSending} className="mt-2 text-xs font-black text-red-700 underline">使用同一请求标识重试</button>}
               </div>
             )}
