@@ -1,4 +1,5 @@
 import type { Day, ScheduleStatus, ShiftDelta, ShiftType } from '@/types'
+import type { RuleConfig } from '@/api/client'
 
 export const DAY_LABELS: Record<Day, string> = {
   Mon: '周一',
@@ -95,11 +96,21 @@ export function skillLabel(skill: string) {
   return SKILL_LABELS[skill] ?? '已登记技能'
 }
 
-export function rulePresentation(ruleId: string, fallback?: Partial<RulePresentation>): RulePresentation {
-  return RULE_PRESENTATION[ruleId] ?? {
+export function rulePresentation(ruleId: string, fallback?: Partial<RulePresentation>, config?: RuleConfig): RulePresentation {
+  const copy = RULE_PRESENTATION[ruleId] ?? {
     name: fallback?.name && containsChinese(fallback.name) ? fallback.name : '排班规则',
     description: fallback?.description && containsChinese(fallback.description) ? fallback.description : '该规则由后端规则中心统一提供。',
   }
+  if (!config) return copy
+  const descriptions: Record<string, string> = {
+    R01: `每个班次至少需要 ${config.manager_per_shift} 名具备店长值班技能的员工。`,
+    R02: `每个班次至少需要 ${config.beverage_per_shift} 名具备饮品制作技能的员工。`,
+    R03: `每个班次至少需要 ${config.cashier_per_shift} 名具备收银技能的员工。`,
+    R04: `工作日每班至少 ${config.weekday_min_staff} 人，周末每班至少 ${config.weekend_min_staff} 人。`,
+    R05: `每名员工每周最多安排 ${config.max_shifts_per_week} 个班次。`,
+    R06: `连同上周边界计算，每名员工最多连续工作 ${config.max_consecutive_days} 天。`,
+  }
+  return { ...copy, description: descriptions[ruleId] ?? copy.description }
 }
 
 export function localizeMessage(message: string | undefined, fallback: string) {

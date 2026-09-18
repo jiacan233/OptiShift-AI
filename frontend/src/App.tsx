@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { AlertCircle, CheckCircle2, X } from 'lucide-react'
 import { AppShell } from '@/components/AppShell'
 import { AgentPanel } from '@/components/agent/AgentPanel'
+import { EmployeeDetail } from '@/redesign/EmployeeDetail'
 import { useAgentStore } from '@/store/AgentStore'
 import { useAppStore } from '@/store/AppStore'
 import { ScheduleWorkbench } from '@/pages/ScheduleWorkbench'
@@ -53,6 +54,7 @@ export default function App() {
       {store.page === 'rules' && <RulesPage />}
     </AppShell>
     <AgentPanel />
+    <EmployeeDetail />
     </>
   )
 }

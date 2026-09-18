@@ -40,7 +40,11 @@ class ContextBuilder:
         allow_ephemeral_known_empty: bool = False,
         user_forced_assignments: list[Any] | None = None,
         override_scopes: list[dict[str, Any]] | None = None,
+        rule_config: dict[str, Any] | None = None,
     ) -> SchedulingContext:
+        if rule_config is None and base_schedule is not None:
+            record = self.schedule_repository.get_record(base_schedule.schedule_id)
+            rule_config = (record or {}).get("metadata", {}).get("rule_config")
         previous, history_status = self.schedule_repository.previous_week_context(
             week_start,
             allow_bootstrap=allow_history_bootstrap,
@@ -68,7 +72,7 @@ class ContextBuilder:
                 if employees is not None
                 else self.employee_repository.list_with_revision()[0]
             ),
-            rules=self.rules,
+            rules=RuleConfig.model_validate(rule_config) if rule_config else self.rules,
             requested_changes=changes or [],
             history_status=history_status,
             minimize_changes=minimize_changes,

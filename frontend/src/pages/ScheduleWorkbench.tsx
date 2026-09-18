@@ -2,11 +2,14 @@ import { useState } from 'react'
 import { BarChart3, CalendarDays, CalendarPlus, Check, GitCompareArrows, LayoutGrid, ListChecks, LoaderCircle, MessageCircleMore, ShieldCheck, Umbrella, Users, X } from 'lucide-react'
 import { ConflictView } from '@/components/schedule/ConflictView'
 import { DiffView } from '@/components/schedule/DiffView'
-import { EmployeeView } from '@/components/schedule/EmployeeView'
+import { ScheduleGrid as EmployeeGrid } from '@/redesign/components/schedule/ScheduleGrid'
+import { DateCoverage, CoverageOverview, ShiftCoverageSummary } from '@/redesign/DateCoverage'
+import { Dialog } from '@/redesign/Dialog'
+import { AddShift } from '@/redesign/AddShift'
+import { useWorkspace } from '@/redesign/useWorkspace'
 import { EntityClarifier } from '@/components/schedule/EntityClarifier'
 import { ImpactView } from '@/components/schedule/ImpactView'
 import { RuleChecklist } from '@/components/schedule/RuleChecklist'
-import { ScheduleGrid } from '@/components/schedule/ScheduleGrid'
 import { ShiftDrawer } from '@/components/schedule/ShiftDrawer'
 import { VersionHistory } from '@/components/schedule/VersionHistory'
 import { WeekSelector } from '@/components/schedule/WeekSelector'
@@ -14,12 +17,18 @@ import { weekLabel, weekRangeLabel } from '@/lib/isoWeek'
 import { STATUS_LABELS } from '@/lib/presentation'
 import { useAgentStore } from '@/store/AgentStore'
 import { useAppStore } from '@/store/AppStore'
-import type { ScheduleView, TrustedAgentAction } from '@/types'
+import type { Day, ShiftType, TrustedAgentAction } from '@/types'
 
 export function ScheduleWorkbench() {
   const store = useAppStore()
   const agent = useAgentStore()
-  const [view, setView] = useState<ScheduleView>('shift')
+  const [view, setView] = useState<'employee' | 'date'>('employee')
+  const [dayDetail, setDayDetail] = useState(false)
+  const [selectedDay, setSelectedDay] = useState<Day>('Mon')
+  const [adding, setAdding] = useState<{ day: Day; shift: ShiftType; employeeId?: string } | null>(null)
+  const { rows, days } = useWorkspace()
+  const busy = store.isRunning || store.isLoadingWeek || agent.isSending || agent.isLoadingConversation || !!store.isSavingEmployee
+  const addShift = (day: Day, shift: ShiftType, employeeId?: string) => setAdding({ day, shift, employeeId })
   const active = store.activeSchedule
   const exceptionCount = store.result?.validation.authorized_violations?.length ?? 0
 
@@ -40,16 +49,17 @@ export function ScheduleWorkbench() {
           <p className="mt-1 text-sm font-semibold text-slate-500">{weekRangeLabel(store.activeWeekStart)}{active ? ` · v${active.version} · ${STATUS_LABELS[active.status]}` : ' · 未生成'}</p>
           {exceptionCount > 0 && <p className="mt-2 text-sm font-bold text-amber-700">存在 {exceptionCount} 项已授权规则例外</p>}
         </div>
-        <WeekSelector activeWeekStart={store.activeWeekStart} weeks={store.weekOptions} disabled={store.isLoadingWeek || store.isRunning} onSelect={(weekStart) => void store.setActiveWeek(weekStart)} />
+        <button className="btn-primary" disabled={busy || !!store.draftSchedule} onClick={() => addShift(selectedDay, 'morning')}><CalendarPlus className="h-4 w-4" />新增班次</button>
+        <WeekSelector activeWeekStart={store.activeWeekStart} weeks={store.weekOptions} disabled={busy} onSelect={(weekStart) => void store.setActiveWeek(weekStart)} />
       </section>
 
       <section className="panel p-4 lg:p-5">
         <div className="mb-3 flex items-center justify-between"><div><p className="eyebrow">快捷操作</p><h2 className="mt-1 text-base font-extrabold text-ink">让 AI 从当前周开始</h2></div><MessageCircleMore className="h-5 w-5 text-teal-600" /></div>
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          <QuickAction icon={CalendarPlus} label="生成新排班" detail="创建当前周草稿" disabled={agent.isSending} onClick={() => quickAction('帮我生成当前周排班，尽量满足员工早晚班偏好。', { intent: 'generate' })} />
-          <QuickAction icon={Umbrella} label="E02 临时请假" detail="周五请假并最小调整" disabled={agent.isSending} onClick={() => quickAction('E02 周五临时请假，帮我重新排一下，其他员工尽量少调整。', { intent: 'replan', changes: [{ employee_id: 'E02', type: 'leave', day: 'Fri' }], minimize_changes: true })} />
-          <QuickAction icon={BarChart3} label="分析优化空间" detail="只分析，不修改排班" disabled={agent.isSending} onClick={() => quickAction('这周排班有什么可以优化的吗？', { intent: 'advice' })} />
-          <QuickAction icon={ShieldCheck} label="检查排班规则" detail="运行确定性校验" disabled={agent.isSending} onClick={() => quickAction('帮我检查当前排班有没有违反规则。', { intent: 'validate' })} />
+          <QuickAction icon={CalendarPlus} label="生成新排班" detail="创建当前周草稿" disabled={busy || !!store.draftSchedule} onClick={() => quickAction('帮我生成当前周排班，尽量满足员工早晚班偏好。', { intent: 'generate' })} />
+          <QuickAction icon={Umbrella} label="E02 临时请假" detail="周五请假并最小调整" disabled={busy || !!store.draftSchedule || !store.confirmedSchedule || !store.employees.some(e => e.id === 'E02')} onClick={() => quickAction('E02 周五临时请假，帮我重新排一下，其他员工尽量少调整。', { intent: 'replan', changes: [{ employee_id: 'E02', type: 'leave', day: 'Fri' }], minimize_changes: true })} />
+          <QuickAction icon={BarChart3} label="分析优化空间" detail="只分析，不修改排班" disabled={busy} onClick={() => quickAction('这周排班有什么可以优化的吗？', { intent: 'advice' })} />
+          <QuickAction icon={ShieldCheck} label="检查排班规则" detail="运行确定性校验" disabled={busy} onClick={() => quickAction('帮我检查当前排班有没有违反规则。', { intent: 'validate' })} />
         </div>
       </section>
 
@@ -60,17 +70,23 @@ export function ScheduleWorkbench() {
         <>
           {store.draftSchedule && (
             <section className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1"><p className="text-sm font-extrabold text-amber-900">草稿版本 {store.draftSchedule.version} 等待确认</p><p className="text-xs text-amber-700">{exceptionCount ? `存在 ${exceptionCount} 项已授权规则例外。确认后，该版本将携带这些例外正式生效。` : (store.result?.validation.confirmable ?? store.result?.validation.passed) ? '确认后该排班版本正式生效。' : '存在未授权规则冲突，不能确认。'}</p></div>
-              <div className="flex gap-2"><button onClick={() => void store.cancelDraft()} disabled={store.isRunning} className="btn-secondary"><X className="h-4 w-4" />取消</button><button onClick={() => void store.confirmDraft()} disabled={store.isRunning || !(store.result?.validation.confirmable ?? store.result?.validation.passed)} className="btn-primary"><Check className="h-4 w-4" />{exceptionCount ? '确认含例外的排班' : '确认变更'}</button></div>
+              <div className="min-w-0 flex-1"><p className="text-sm font-extrabold text-amber-900">草稿版本 {store.draftSchedule.version} 等待确认</p><p className="text-xs text-amber-700">{(store.result?.validation.employee_data_stale || store.result?.validation.rules_data_stale) ? '员工资料或标准规则已变更，请取消此草稿后重新生成。' : exceptionCount ? `存在 ${exceptionCount} 项已授权规则例外。确认后，该版本将携带这些例外正式生效。` : (store.result?.validation.confirmable ?? store.result?.validation.passed) ? '确认后该排班版本正式生效。' : '存在未授权规则冲突，不能确认。'}</p></div>
+              <div className="flex gap-2"><button onClick={() => void store.cancelDraft()} disabled={busy} className="btn-secondary"><X className="h-4 w-4" />取消</button><button onClick={() => void store.confirmDraft()} disabled={busy || !(store.result?.validation.confirmable ?? store.result?.validation.passed)} className="btn-primary"><Check className="h-4 w-4" />{exceptionCount ? '确认含例外的排班' : '确认变更'}</button></div>
             </section>
           )}
 
           <section className="panel overflow-hidden">
             <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1"><p className="eyebrow">排班结果</p><h2 className="mt-1 text-lg font-extrabold text-ink">{weekLabel(active.week_start)} · v{active.version} <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] ${active.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{STATUS_LABELS[active.status]}</span></h2></div>
-              <div className="flex rounded-xl bg-slate-100 p-1"><ViewButton active={view === 'shift'} onClick={() => setView('shift')} icon={LayoutGrid} label="班次视角" /><ViewButton active={view === 'employee'} onClick={() => setView('employee')} icon={Users} label="员工视角" /></div>
+              <div className="flex rounded-xl bg-slate-100 p-1"><ViewButton active={view === 'employee'} onClick={() => setView('employee')} icon={Users} label="员工视图" /><ViewButton active={view === 'date'} onClick={() => setView('date')} icon={LayoutGrid} label="日期视图" /></div>
             </div>
-            <div className="p-4 lg:p-5">{view === 'shift' ? <ScheduleGrid schedule={active} employees={store.employees} validation={store.result?.validation} onSelectShift={(day, shift) => store.selectShift({ day, shift })} /> : <EmployeeView schedule={active} employees={store.employees} />}</div>
+            <div className="grid items-start gap-5 p-3 lg:p-5 2xl:grid-cols-[minmax(0,1fr)_280px]">
+              <div className="min-w-0">{view === 'employee' ? <EmployeeGrid scheduleData={rows} daysHeader={days} renderDaySummary={day => <ShiftCoverageSummary day={day as Day} />} onSelectEmployee={e => store.selectEmployee(e.id)} onShiftClick={(id, shift) => {
+                if (shift.shiftType === 'morning' || shift.shiftType === 'evening') store.selectShift({ day: shift.day as Day, shift: shift.shiftType })
+                else if (!busy && !store.draftSchedule) addShift(shift.day as Day, 'morning', id)
+              }} /> : <DateCoverage selected={selectedDay} onSelect={setSelectedDay} disabled={busy || !!store.draftSchedule} onAdd={addShift} />}</div>
+              <CoverageOverview onSelectDay={day => { setSelectedDay(day); setDayDetail(true) }} />
+            </div>
           </section>
 
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -88,6 +104,8 @@ export function ScheduleWorkbench() {
         </section>
       )}
 
+      {dayDetail && <Dialog title="当日排班详情" wide onClose={() => setDayDetail(false)}><DateCoverage selected={selectedDay} onSelect={setSelectedDay} compact onNavigate={() => setDayDetail(false)} disabled={busy || !!store.draftSchedule} onAdd={(day, shift) => { setDayDetail(false); addShift(day, shift) }} /></Dialog>}
+      {adding && <AddShift key={store.activeWeekStart} initialDay={adding.day} initialShift={adding.shift} initialEmployee={adding.employeeId} onClose={() => setAdding(null)} />}
       <ShiftDrawer selection={store.selectedShift} schedule={active} employees={store.employees} validation={store.result?.validation} onClose={() => store.selectShift(null)} />
       <EntityClarifier clarification={store.clarification} onChoose={(id) => void store.resolveClarification(id)} onClose={store.dismissClarification} />
     </div>

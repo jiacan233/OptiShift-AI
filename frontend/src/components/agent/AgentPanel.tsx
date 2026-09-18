@@ -19,6 +19,7 @@ const QUICK_QUESTIONS: Array<{ label: string; action?: TrustedAgentAction }> = [
 export function AgentPanel() {
   const agent = useAgentStore()
   const schedule = useAppStore()
+  const busy = agent.isSending || agent.isLoadingConversation || schedule.isBootstrapping || schedule.isRunning || schedule.isLoadingWeek || !!schedule.isSavingEmployee
   const [input, setInput] = useState('')
   const [llmHealth, setLlmHealth] = useState<LlmHealthResult | null>(null)
   const [llmHealthError, setLlmHealthError] = useState<string | null>(null)
@@ -34,7 +35,7 @@ export function AgentPanel() {
   const submit = (event: FormEvent) => {
     event.preventDefault()
     const content = input.trim()
-    if (!content) return
+    if (!content || busy) return
     setInput('')
     void agent.sendMessage(content)
   }
@@ -73,8 +74,8 @@ export function AgentPanel() {
             <button type="button" onClick={agent.closeChat} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="关闭 AI 助手"><X className="h-5 w-5" /></button>
           </div>
           <div className="mt-3 flex items-center gap-2">
-            <button type="button" onClick={() => void agent.showHistory()} disabled={agent.isSending} className="btn-secondary !rounded-lg !px-3 !py-1.5 !text-xs"><History className="h-3.5 w-3.5" />历史</button>
-            <button type="button" onClick={() => void agent.newConversation()} disabled={agent.isSending || agent.isLoadingConversation} className="btn-secondary !rounded-lg !px-3 !py-1.5 !text-xs"><MessageSquarePlus className="h-3.5 w-3.5" />新对话</button>
+            <button type="button" onClick={() => void agent.showHistory()} disabled={busy} className="btn-secondary !rounded-lg !px-3 !py-1.5 !text-xs"><History className="h-3.5 w-3.5" />历史</button>
+            <button type="button" onClick={() => void agent.newConversation()} disabled={busy} className="btn-secondary !rounded-lg !px-3 !py-1.5 !text-xs"><MessageSquarePlus className="h-3.5 w-3.5" />新对话</button>
             <button type="button" onClick={() => void checkLlm()} disabled={isCheckingLlm} className="btn-secondary ml-auto !rounded-lg !px-3 !py-1.5 !text-xs" aria-label="检测 AI 联通状态">
               {isCheckingLlm ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Activity className="h-3.5 w-3.5" />}
               {isCheckingLlm ? '检测中' : '检测 AI'}
@@ -104,7 +105,7 @@ export function AgentPanel() {
         </header>
 
         {agent.isHistoryOpen ? (
-          <ConversationHistory conversations={agent.conversations} currentId={agent.conversationId} disabled={agent.isLoadingConversation || agent.isSending} onBack={agent.hideHistory} onSelect={(id) => void agent.loadConversation(id).catch(() => undefined)} />
+          <ConversationHistory conversations={agent.conversations} currentId={agent.conversationId} disabled={busy} onBack={agent.hideHistory} onSelect={(id) => void agent.loadConversation(id).catch(() => undefined)} />
         ) : (
           <>
             <div className="soft-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
@@ -117,7 +118,7 @@ export function AgentPanel() {
                   <p className="mt-2 text-sm leading-6 text-slate-500">我可以帮你分析、解释和调整当前排班。排班调整只会生成草稿，正式生效仍需你点击“确认变更”。</p>
                   <div className="mt-5 space-y-2">
                     {QUICK_QUESTIONS.map((item) => (
-                      <button key={item.label} type="button" disabled={agent.isLoadingConversation || agent.isSending} onClick={() => void agent.sendMessage(item.label, item.action && { ...item.action, target_week: schedule.activeWeekStart })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-xs font-semibold leading-5 text-slate-700 transition hover:border-teal-300 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-50">
+                      <button key={item.label} type="button" disabled={busy} onClick={() => void agent.sendMessage(item.label, item.action && { ...item.action, target_week: schedule.activeWeekStart })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-xs font-semibold leading-5 text-slate-700 transition hover:border-teal-300 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-50">
                         {item.label}
                       </button>
                     ))}
@@ -126,7 +127,7 @@ export function AgentPanel() {
               ) : (
                 <div className="space-y-4">
                   {agent.messages.map((message) => (
-                    <MessageBubble key={message.message_id} message={message} trace={agent.tracesByMessage[message.message_id] ?? []} suggestionsDisabled={agent.isSending || agent.isLoadingConversation} onApplySuggestion={(suggestion) => {
+                    <MessageBubble key={message.message_id} message={message} trace={agent.tracesByMessage[message.message_id] ?? []} suggestionsDisabled={busy} onApplySuggestion={(suggestion) => {
                       if (suggestion.action === 'generate' || !suggestion.based_on_schedule_id) {
                         void agent.sendMessage(`按 ${suggestion.suggestion_id} 生成草稿。`, { intent: 'generate', target_week: suggestion.target_week ?? schedule.activeWeekStart })
                         return
@@ -143,14 +144,14 @@ export function AgentPanel() {
             {agent.agentError && (
               <div className="mx-4 mb-3 rounded-xl border border-red-200 bg-red-50 p-3 text-red-800 sm:mx-5">
                 <div className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><div><p className="text-xs font-black">{errorCodeLabel(agent.agentError.code)}</p><p className="mt-0.5 text-xs leading-5">{problemMessage(agent.agentError.code, agent.agentError.message)}</p>{errorDetail && <p className="mt-1 font-mono text-[10px] text-red-600">{errorDetail}</p>}</div><button type="button" onClick={agent.dismissError} className="ml-auto"><X className="h-3.5 w-3.5" /></button></div>
-                {agent.pendingMessage && <button type="button" onClick={() => void agent.retryPendingMessage()} disabled={agent.isSending} className="mt-2 text-xs font-black text-red-700 underline">使用同一请求标识重试</button>}
+                {agent.pendingMessage && <button type="button" onClick={() => void agent.retryPendingMessage()} disabled={busy} className="mt-2 text-xs font-black text-red-700 underline">使用同一请求标识重试</button>}
               </div>
             )}
 
             <form onSubmit={submit} className="border-t border-slate-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4">
               <div className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2 focus-within:border-teal-400 focus-within:ring-2 focus-within:ring-teal-100">
                 <textarea value={input} disabled={agent.isLoadingConversation} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} rows={2} placeholder="问排班、规则，或描述需要调整的内容…" className="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-5 text-slate-800 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed" />
-                <button type="submit" disabled={!input.trim() || agent.isSending || agent.isLoadingConversation} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-teal-600 text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40" aria-label="发送消息">{agent.isSending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</button>
+                <button type="submit" disabled={!input.trim() || busy} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-teal-600 text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40" aria-label="发送消息">{agent.isSending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</button>
               </div>
               <p className="mt-2 text-center text-[10px] text-slate-400">Enter 发送 · Shift + Enter 换行</p>
             </form>

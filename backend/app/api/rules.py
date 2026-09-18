@@ -15,5 +15,4 @@ def list_rules() -> dict:
         rule.setdefault("category", rule["kind"])
         rule.setdefault("name", rule["title"])
         rule.setdefault("enabled", True)
-    return {"rules": rules}
-
+    return {"rules": rules, "config": scheduling_service.context_builder.rules.model_dump(mode="json")}

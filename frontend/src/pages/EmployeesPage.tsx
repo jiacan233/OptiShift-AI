@@ -1,39 +1,38 @@
 import { useState } from 'react'
-import { Coffee, Save, Shield, UserRound } from 'lucide-react'
-import { roleLabel, skillLabel } from '@/lib/presentation'
+import { Plus, Search, Users, ShieldCheck, Clock, CalendarOff } from 'lucide-react'
 import { useAppStore } from '@/store/AppStore'
-import { DAYS, type Day, type Employee, type ShiftType } from '@/types'
-
-const dayLabel: Record<Day, string> = { Mon: '一', Tue: '二', Wed: '三', Thu: '四', Fri: '五', Sat: '六', Sun: '日' }
+import { useAgentStore } from '@/store/AgentStore'
+import { useWorkspace, SKILLS } from '@/redesign/useWorkspace'
+import { EmployeeTable } from '@/redesign/components/employees/EmployeeTable'
+import { SkillsMatrix } from '@/redesign/components/employees/SkillsMatrix'
+import { AddEmployee } from '@/redesign/AddEmployee'
 
 export function EmployeesPage() {
   const store = useAppStore()
-  return (
-    <div className="space-y-5">
-      <section><p className="eyebrow">员工主数据</p><h2 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">员工管理</h2><p className="mt-2 text-sm text-slate-500">可修改可工作日期、请假和班次偏好。技能为受保护主数据。</p></section>
-      <div className="grid gap-4 xl:grid-cols-2">{store.employees.map((employee) => <EmployeeEditor key={`${employee.id}-${employee.available_days.join('')}-${employee.leave_days.join('')}-${employee.preferred_shift ?? 'none'}`} employee={employee} saving={store.isSavingEmployee === employee.id} onSave={(patch) => void store.updateEmployee(employee.id, patch)} />)}</div>
-    </div>
-  )
-}
-
-function EmployeeEditor({ employee, saving, onSave }: { employee: Employee; saving: boolean; onSave(patch: { available_days: Day[]; leave_days: Day[]; preferred_shift: ShiftType | null }): void }) {
-  const [available, setAvailable] = useState<Day[]>(employee.available_days)
-  const [leave, setLeave] = useState<Day[]>(employee.leave_days)
-  const [preference, setPreference] = useState<ShiftType | null>(employee.preferred_shift)
-  const toggle = (values: Day[], day: Day, setter: (days: Day[]) => void) => setter(values.includes(day) ? values.filter((value) => value !== day) : [...values, day])
-  return (
-    <article className="panel overflow-hidden">
-      <div className="flex items-center gap-3 border-b border-slate-100 p-4"><span className="grid h-11 w-11 place-items-center rounded-xl bg-teal-50 text-teal-700"><UserRound className="h-5 w-5" /></span><div className="min-w-0 flex-1"><h3 className="text-base font-extrabold text-ink">{employee.id}</h3><p className="text-xs text-slate-400">{roleLabel(employee.role)}</p></div><button onClick={() => onSave({ available_days: available, leave_days: leave, preferred_shift: preference })} disabled={saving} className="btn-primary !px-3 !py-2"><Save className="h-4 w-4" />{saving ? '保存中' : '保存'}</button></div>
-      <div className="space-y-5 p-4">
-        <div><p className="mb-2 text-[10px] font-bold tracking-wide text-slate-400">已登记技能 · 只读</p><div className="flex flex-wrap gap-2">{employee.skills.map((skill) => <span key={skill} className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-600">{skill === 'manager' && <Shield className="h-3 w-3 text-blue-600" />}{skill === 'cashier' && <Coffee className="h-3 w-3 text-amber-700" />}{skillLabel(skill)}</span>)}</div></div>
-        <DayPicker label="可工作日期" values={available} tone="teal" onToggle={(day) => toggle(available, day, setAvailable)} />
-        <DayPicker label="请假日期" values={leave} tone="red" onToggle={(day) => toggle(leave, day, setLeave)} />
-        <label className="block"><span className="mb-2 block text-[10px] font-bold tracking-wide text-slate-400">偏好班次</span><select value={preference ?? ''} onChange={(event) => setPreference((event.target.value || null) as ShiftType | null)} className="input-base w-full"><option value="">不限</option><option value="morning">早班 · 09:00–17:00</option><option value="evening">晚班 · 13:00–21:00</option></select></label>
-      </div>
-    </article>
-  )
-}
-
-function DayPicker({ label, values, tone, onToggle }: { label: string; values: Day[]; tone: 'teal' | 'red'; onToggle(day: Day): void }) {
-  return <div><p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</p><div className="grid grid-cols-7 gap-1.5">{DAYS.map((day) => { const selected = values.includes(day); return <button key={day} onClick={() => onToggle(day)} className={`rounded-lg border py-2 text-xs font-extrabold transition ${selected ? tone === 'teal' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-red-300 bg-red-50 text-red-600' : 'border-slate-200 text-slate-400'}`}>周{dayLabel[day]}</button> })}</div></div>
+  const agent = useAgentStore()
+  const { employees, days } = useWorkspace()
+  const [query, setQuery] = useState('')
+  const [role, setRole] = useState('all')
+  const [skill, setSkill] = useState('all')
+  const [tab, setTab] = useState('roster')
+  const [adding, setAdding] = useState(false)
+  const filtered = employees.filter(e => (!query || `${e.id} ${e.role}`.toLowerCase().includes(query.toLowerCase())) && (role === 'all' || e.role === role) && (skill === 'all' || e.skills.some(s => s === skill)))
+  const reset = () => { setQuery(''); setRole('all'); setSkill('all') }
+  const select = (employee: { id: string }) => store.selectEmployee(employee.id)
+  const summaries = [
+    { icon: Users, label: '员工总数', value: employees.length },
+    { icon: ShieldCheck, label: '具备店长资格', value: employees.filter(e => e.skills.includes('店长值守')).length },
+    { icon: Clock, label: '当前周排班工时', value: `${employees.reduce((sum, e) => sum + e.currentHours, 0)} h` },
+    { icon: CalendarOff, label: '登记请假人数', value: employees.filter(e => e.leaveDays.length).length },
+  ]
+  return <div className="space-y-5 animate-fade-in">
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-extrabold">员工档案与技能中心</h2><p className="mt-1 text-xs text-slate-400">所有视图使用同一份员工档案 · 点击员工查看排班与编辑可用时间</p></div><button disabled={agent.isSending || agent.isLoadingConversation || store.isRunning || store.isLoadingWeek || !!store.isSavingEmployee} onClick={() => setAdding(true)} className="btn-primary"><Plus className="h-4 w-4" />添加员工</button></div>
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{summaries.map(({ icon: Icon, label, value }) => <div key={label} className="flex items-center gap-3 rounded-2xl border border-slate-200/80 p-4"><span className="rounded-xl bg-blue-50 p-2 text-blue-600"><Icon className="h-5 w-5" /></span><div><p className="text-[11px] text-slate-400">{label}</p><p className="mt-1 text-xl font-extrabold">{value}</p></div></div>)}</div>
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-slate-50 p-3"><div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" /><input className="input-base !pl-9" aria-label="搜索员工" placeholder="搜索工号 / 岗位" value={query} onChange={e => setQuery(e.target.value)} /></div><select aria-label="员工岗位筛选" className="input-base" value={role} onChange={e => setRole(e.target.value)}><option value="all">全部岗位</option>{[...new Set(employees.map(e => e.role))].map(role => <option key={role}>{role}</option>)}</select><select aria-label="员工技能筛选" className="input-base" value={skill} onChange={e => setSkill(e.target.value)}><option value="all">全部技能</option>{Object.values(SKILLS).map(skill => <option key={skill}>{skill}</option>)}</select><button className="text-xs font-bold text-blue-600" onClick={reset}>重置筛选</button></div>
+    <div className="flex flex-wrap gap-2">{[['roster', '员工列表'], ['skills', '技能矩阵'], ['availability', '可用性矩阵']].map(([id, label]) => <button key={id} onClick={() => setTab(id)} aria-pressed={tab === id} className={`rounded-xl px-4 py-2 text-sm font-bold ${tab === id ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-500'}`}>{label}</button>)}<span className="ml-auto self-center text-xs text-slate-400">{filtered.length} / {employees.length} 名员工</span></div>
+    {tab === 'roster' && <EmployeeTable employees={filtered} onSelectEmployee={select} onClearFilters={reset} />}
+    {tab === 'skills' && <SkillsMatrix employees={filtered} allEmployees={employees} availableSkills={Object.values(SKILLS)} onSelectEmployee={select} onClearFilters={reset} activeSkillFilter={skill} onSkillFilterChange={setSkill} />}
+    {tab === 'availability' && <div className="overflow-auto rounded-3xl border border-slate-200"><table className="w-full min-w-[740px] text-center text-xs"><thead className="bg-slate-50"><tr><th className="p-4 text-left">员工</th>{days.map(day => <th key={day.day} className="p-3">{day.dayCn}<p className="font-normal text-slate-400">{day.fullDate.slice(5)}</p></th>)}</tr></thead><tbody>{filtered.map(employee => <tr key={employee.id} className="border-t border-slate-100"><td className="p-4 text-left"><button onClick={() => select(employee)} className="font-bold text-blue-600">{employee.id}</button></td>{days.map(day => { const leave = employee.leaveDays.includes(day.day); const available = employee.availableDays.includes(day.day); return <td key={day.day} className="p-2"><span className={`block rounded-lg px-2 py-2 ${leave ? 'bg-rose-50 text-rose-600' : available ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>{leave ? '请假' : available ? '可排班' : '不可用'}</span></td> })}</tr>)}</tbody></table>{!filtered.length && <p className="p-8 text-center text-sm text-slate-400">没有匹配的员工</p>}</div>}
+    {adding && <AddEmployee onClose={() => setAdding(false)} />}
+  </div>
 }

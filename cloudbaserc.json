@@ -1,0 +1,7 @@
+{
+  "envId": "shanghai-usc-d3gyjd0d1b2b4d9a0",
+  "$schema": "https://static.cloudbase.net/cli/cloudbaserc.schema.json",
+  "cloudrun": {
+    "name": "optishift-ai"
+  }
+}

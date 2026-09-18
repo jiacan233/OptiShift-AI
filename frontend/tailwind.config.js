@@ -5,16 +5,17 @@ export default {
     extend: {
       colors: {
         ink: '#10243E',
-        canvas: '#F3F7F8',
+        canvas: '#F4F7FC',
         teal: {
-          50: '#EBFAF6',
-          100: '#D5F4EB',
-          500: '#1A9A80',
-          600: '#0F806B',
-          700: '#0B6657',
+          50: '#EFF6FF',
+          100: '#DBEAFE',
+          500: '#3B82F6',
+          600: '#2563EB',
+          700: '#1D4ED8',
         },
       },
       boxShadow: {
+        'xs': '0 1px 3px rgba(15,23,42,.04)',
         panel: '0 10px 30px rgba(16, 36, 62, 0.07)',
         drawer: '-12px 0 40px rgba(16, 36, 62, 0.16)',
       },

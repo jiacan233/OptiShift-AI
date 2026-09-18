@@ -229,7 +229,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
   ), [createConversation])
 
   const executeMessage = useCallback(async (request: PendingMessage) => {
-    if (sendingRef.current) return
+    if (sendingRef.current || scheduleStore.isBootstrapping || scheduleStore.isRunning || scheduleStore.isLoadingWeek || scheduleStore.isSavingEmployee) return
     sendingRef.current = true
     setSending(true)
     setAgentError(null)

@@ -82,6 +82,8 @@ export interface RuleCheck {
 
 export interface ValidationResult {
   passed: boolean
+  employee_data_stale?: boolean
+  rules_data_stale?: boolean
   valid?: boolean
   confirmable?: boolean
   compliance_status?: ComplianceStatus
@@ -187,6 +189,7 @@ export interface ScheduleVersion {
 }
 
 export interface FeasibleResult {
+  rule_config?: import('@/api/client').RuleConfig
   status: 'feasible' | 'confirmed'
   schedule_id: string
   version: number

@@ -28,6 +28,22 @@ class GenerateBody(ApiModel):
     prompt: str = ""
     week_start: date
     changes: list[ScheduleChange] = Field(default_factory=list)
+    weekend_min_staff: int | None = Field(default=None, ge=0, le=30)
+    max_consecutive_days: int | None = Field(default=None, ge=1, le=7)
+
+
+class StaffingPreviewBody(ApiModel):
+    week_start: date
+    weekend_min_staff: int = Field(ge=0, le=30)
+    max_consecutive_days: int | None = Field(default=None, ge=1, le=7)
+
+
+@router.post("/api/schedule/staffing-preview")
+def staffing_preview(body: StaffingPreviewBody) -> dict[str, Any]:
+    return scheduling_service.preview_staffing(
+        week_start=body.week_start, weekend_min_staff=body.weekend_min_staff,
+        max_consecutive_days=body.max_consecutive_days,
+    )
 
 
 class ForceGenerateBody(ApiModel):
@@ -103,6 +119,8 @@ def generate_schedule(body: GenerateBody) -> dict[str, Any]:
         week_start=body.week_start,
         prompt=body.prompt,
         changes=body.changes,
+        weekend_min_staff=body.weekend_min_staff,
+        max_consecutive_days=body.max_consecutive_days,
     )
     return _remember_clarification(result, "generate", body)
 
@@ -161,6 +179,7 @@ def validate_schedule(body: ValidateBody) -> dict[str, Any]:
             {"preference_rate": 0.0, "workload_gap": 0, "changed_assignments": 0},
         ),
         "explanation": metadata.get("explanation"),
+        "rule_config": metadata.get("rule_config"),
         **compliance_fields(validation, record["status"]),
     }
 
@@ -196,6 +215,8 @@ def resolve_entity(body: ResolveBody) -> dict[str, Any]:
             week_start=date.fromisoformat(pending["body"]["week_start"]),
             prompt="",
             changes=[change],
+            weekend_min_staff=pending["body"].get("weekend_min_staff"),
+            max_consecutive_days=pending["body"].get("max_consecutive_days"),
         )
     return scheduling_service.replan(
         base_schedule_id=pending["body"]["base_schedule_id"],
@@ -251,6 +272,7 @@ def explain_counterfactual(body: CounterfactualBody) -> dict[str, Any]:
         changes=changes,
         minimize_changes=bool(base),
         allow_history_bootstrap=False,
+        rule_config=record.get("metadata", {}).get("rule_config"),
     )
     validation = scheduling_service.validate(candidate, context=context)
     failures = [
@@ -346,6 +368,7 @@ def _result_payload(record: dict[str, Any] | None) -> dict[str, Any] | None:
             {"preference_rate": 0.0, "workload_gap": 0, "changed_assignments": 0},
         ),
         "explanation": metadata.get("explanation"),
+        "rule_config": metadata.get("rule_config"),
         **compliance_fields(record.get("validation", {}), record["status"]),
     }
 

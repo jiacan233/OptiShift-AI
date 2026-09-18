@@ -146,8 +146,39 @@ class SchedulingService:
             "impact": metadata.get("impact"),
             "metrics": metadata.get("metrics", {}),
             "explanation": metadata.get("explanation"),
+            "rule_config": metadata.get("rule_config"),
             **compliance_fields(validation, record["status"]),
         }
+
+    def preview_staffing(self, *, week_start: date, weekend_min_staff: int, max_consecutive_days: int | None = None) -> dict[str, Any]:
+        """Solve a staffing experiment without saving schedules or history boundaries."""
+        if week_start.weekday() != 0:
+            raise ValueError("week_start must be a Monday")
+        employees = self.employees.list()
+        base = self.schedules.current_confirmed_record_for_week(week_start)
+        context = self.context_builder.build(
+            week_start, employees=employees, base_schedule=base["schedule"] if base else None,
+            allow_history_bootstrap=False, allow_ephemeral_known_empty=True,
+        )
+        context = context.model_copy(update={
+            "rules": context.rules.model_copy(update={
+                **({"weekend_min_staff": weekend_min_staff} if weekend_min_staff is not None else {}),
+                **({"max_consecutive_days": max_consecutive_days} if max_consecutive_days is not None else {}),
+            })
+        })
+        result = self.solver.solve(context, week_start=week_start)
+        response: dict[str, Any] = {
+            "status": result.status.value, "target_week": week_start.isoformat(),
+            "weekend_min_staff": weekend_min_staff, "can_confirm": False,
+            "strict_feasible": False, "conflicts": [], "metrics": dict(result.metrics),
+        }
+        if result.schedule is not None and result.status in {SolverStatus.OPTIMAL, SolverStatus.FEASIBLE}:
+            validation = normalize_validation(self.validator.validate(result.schedule, employees, context=context))
+            response.update(strict_feasible=validation["passed"], validation=validation,
+                            preview_schedule=result.schedule.model_dump(mode="json"))
+        elif result.status is SolverStatus.INFEASIBLE:
+            response.update(self._infeasible_response(result))
+        return response
 
     def preview_scenario(
         self,
@@ -304,6 +335,8 @@ class SchedulingService:
         metadata = {
             **dict(metadata_extra or {}),
             "solver_status": result.status.value,
+            "rule_config": context.rules.model_dump(mode="json"),
+            "source_rules_fingerprint": fingerprint(self.context_builder.rules.model_dump(mode="json")),
             "metrics": metrics,
             "diff": diff,
             "impact": impact,
@@ -367,6 +400,7 @@ class SchedulingService:
             "impact": impact,
             "metrics": metrics,
             "explanation": explanation,
+            "rule_config": context.rules.model_dump(mode="json"),
             **compliance_fields(validation, "draft"),
         }
 
@@ -375,6 +409,8 @@ class SchedulingService:
         *,
         week_start: date,
         prompt: str = "",
+        weekend_min_staff: int | None = None,
+        max_consecutive_days: int | None = None,
         changes: list[ScheduleChange] | None = None,
         metadata_extra: dict[str, Any] | None = None,
         before_commit: Callable[[], None] | None = None,
@@ -408,6 +444,17 @@ class SchedulingService:
             employees=employee_list,
             allow_history_bootstrap=True,
         )
+        if max_consecutive_days is not None and not 1 <= max_consecutive_days <= 7:
+            raise ValueError("max_consecutive_days must be between 1 and 7")
+        if weekend_min_staff is not None or max_consecutive_days is not None:
+            if weekend_min_staff is not None and not 0 <= weekend_min_staff <= 30:
+                raise ValueError("weekend_min_staff must be between 0 and 30")
+            context = context.model_copy(update={
+                "rules": context.rules.model_copy(update={
+                    **({"weekend_min_staff": weekend_min_staff} if weekend_min_staff is not None else {}),
+                    **({"max_consecutive_days": max_consecutive_days} if max_consecutive_days is not None else {}),
+                })
+            })
         schedule_id = self._new_schedule_id()
         result = self.solver.solve(
             context,
@@ -801,6 +848,11 @@ class SchedulingService:
                 "Employee master data changed after this draft was created"
             )
         metadata = record["metadata"]
+        source_rules_fingerprint = metadata.get("source_rules_fingerprint")
+        rules_changed = (
+            source_rules_fingerprint is not None
+            and source_rules_fingerprint != fingerprint(self.context_builder.rules.model_dump(mode="json"))
+        )
         changes = [ScheduleChange.model_validate(item) for item in metadata.get("requested_changes", [])]
         forced_assignments = [
             Assignment.model_validate(item)
@@ -823,6 +875,7 @@ class SchedulingService:
             employees=employee_list,
             allow_history_bootstrap=False,
             user_forced_assignments=forced_assignments,
+            rule_config=metadata.get("rule_config"),
         )
         rules_fingerprint = fingerprint(strict_context.rules.model_dump(mode="json"))
         snapshot_hash = fingerprint(context_snapshot(strict_context, schedule.week_start))
@@ -834,7 +887,7 @@ class SchedulingService:
         authorizations = [
             authorization
             for authorization in stored_authorizations
-            if scenario_current and authorization_is_active(
+            if scenario_current and not rules_changed and authorization_is_active(
                 authorization,
                 week=schedule.week_start,
                 base_schedule_id=record.get("base_schedule_id"),
@@ -858,10 +911,20 @@ class SchedulingService:
             employees=employee_list,
             allow_history_bootstrap=False,
             user_forced_assignments=forced_assignments,
+            rule_config=metadata.get("rule_config"),
             override_scopes=[item.model_dump(mode="json") for item in stored_authorizations],
         )
         result = self.validator.validate(schedule, employee_list, context=context)
-        return classify_validation(normalize_validation(result), schedule.week_start, authorizations)
+        validation = classify_validation(normalize_validation(result), schedule.week_start, authorizations)
+        validation["employee_data_stale"] = (
+            record["status"] == "draft"
+            and stored_revision is not None
+            and stored_revision != employee_revision
+        )
+        validation["rules_data_stale"] = record["status"] == "draft" and rules_changed
+        if validation["employee_data_stale"] or validation["rules_data_stale"]:
+            validation["confirmable"] = False
+        return validation
 
     def confirm(self, schedule_id: str, version: int) -> dict[str, Any]:
         validation = self.validate_stored(
@@ -885,6 +948,7 @@ class SchedulingService:
             "impact": metadata.get("impact"),
             "metrics": metadata.get("metrics", {}),
             "explanation": metadata.get("explanation"),
+            "rule_config": metadata.get("rule_config"),
             **compliance_fields(validation, "confirmed"),
         }
 

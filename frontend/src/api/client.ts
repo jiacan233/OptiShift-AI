@@ -85,6 +85,29 @@ function unwrapArray<T>(payload: T[] | Record<string, T[]>, key: string): T[] {
 export interface GenerateRequest {
   prompt: string
   week_start: string
+  changes?: ScheduleChange[]
+  weekend_min_staff?: number
+  max_consecutive_days?: number
+}
+
+export interface RuleConfig {
+  manager_per_shift: number
+  beverage_per_shift: number
+  cashier_per_shift: number
+  weekday_min_staff: number
+  weekend_min_staff: number
+  max_shifts_per_week: number
+  max_consecutive_days: number
+}
+
+export interface StaffingPreview {
+  status: string
+  target_week: string
+  weekend_min_staff: number
+  strict_feasible: boolean
+  conflicts: Array<{ rule_id: string; day: Day; shift: ShiftType; shortage: number }>
+  validation?: FeasibleResult['validation']
+  preview_schedule?: Schedule
 }
 
 export interface ReplanRequest {
@@ -168,6 +191,9 @@ export const api = {
   },
 
   employees: {
+    create(employee: Employee) {
+      return request<Employee>('/api/employees', { method: 'POST', body: employee })
+    },
     async list() {
       const payload = await request<Employee[] | { employees: Employee[] }>('/api/employees')
       return unwrapArray(payload, 'employees')
@@ -181,6 +207,9 @@ export const api = {
   },
 
   rules: {
+    configuration() {
+      return request<{ rules: RuleDefinition[]; config: RuleConfig }>('/api/rules')
+    },
     async list() {
       const payload = await request<RuleDefinition[] | { rules: RuleDefinition[] }>('/api/rules')
       return unwrapArray(payload, 'rules')
@@ -188,6 +217,9 @@ export const api = {
   },
 
   schedules: {
+    previewStaffing(weekStart: string, weekendMinStaff: number, maxConsecutiveDays?: number) {
+      return request<StaffingPreview>('/api/schedule/staffing-preview', { method: 'POST', body: { week_start: weekStart, weekend_min_staff: weekendMinStaff, max_consecutive_days: maxConsecutiveDays } })
+    },
     forceGenerate(input: ForceGenerateRequest) {
       return request<ScheduleOperationResult>('/api/schedule/force', { method: 'POST', body: input })
     },

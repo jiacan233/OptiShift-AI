@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useReducer, useRef, type ReactNode } from 'react'
-import { api, apiErrorMessage, type EmployeePatch } from '@/api/client'
+import { api, apiErrorMessage, type RuleConfig, type EmployeePatch } from '@/api/client'
 import { buildWeekWindow, currentMonday } from '@/lib/isoWeek'
 import type {
   ClarificationState,
@@ -22,6 +22,7 @@ interface WorkbenchState {
   page: PageId
   employees: Employee[]
   rules: RuleDefinition[]
+  ruleConfig: RuleConfig
   activeWeekStart: string
   weekOptions: ScheduleWeekSummary[]
   confirmedSchedule: Schedule | null
@@ -45,6 +46,7 @@ const initialState: WorkbenchState = {
   page: 'schedule',
   employees: [],
   rules: [],
+  ruleConfig: { manager_per_shift: 1, beverage_per_shift: 2, cashier_per_shift: 1, weekday_min_staff: 4, weekend_min_staff: 6, max_shifts_per_week: 5, max_consecutive_days: 5 },
   activeWeekStart: currentMonday(),
   weekOptions: [],
   confirmedSchedule: null,
@@ -91,7 +93,7 @@ function reducer(state: WorkbenchState, action: Action): WorkbenchState {
       infeasibleResult: action.result,
       clarification: null,
       draftSchedule: state.draftSchedule,
-      result: null,
+      result: state.result,
       isRunning: false,
     }
   }
@@ -126,12 +128,13 @@ interface StoreValue extends WorkbenchState {
   bootstrap(): Promise<void>
   setActiveWeek(weekStart: string): Promise<void>
   applyScheduleResult(result: ScheduleOperationResult): Promise<void>
-  generate(prompt: string, weekStart: string): Promise<void>
-  replan(prompt: string, changes: ScheduleChange[]): Promise<void>
+  generate(prompt: string, weekStart: string, changes?: ScheduleChange[], weekendMinStaff?: number, maxConsecutiveDays?: number): Promise<boolean>
+  replan(prompt: string, changes: ScheduleChange[]): Promise<boolean>
   confirmDraft(): Promise<void>
   cancelDraft(): Promise<void>
   resolveClarification(employeeId: string): Promise<void>
   updateEmployee(employeeId: string, patch: EmployeePatch): Promise<void>
+  createEmployee(employee: Employee): Promise<boolean>
   selectShift(shift: { day: Day; shift: ShiftType } | null): void
   selectEmployee(employeeId: string | null): void
   dismissError(): void
@@ -188,8 +191,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         && preferredResult.schedule_status === display.status
       )
       let result = preferredMatchesDisplay ? preferredResult : context.result ?? null
-      if (!result && display) {
-        result = await api.schedules.validate(display.schedule_id, display.version).catch(() => null)
+      if (display) {
+        result = await api.schedules.validate(display.schedule_id, display.version)
       }
       if (requestId !== weekLoadRequestRef.current) return
       dispatch({ type: 'PATCH', patch: {
@@ -232,9 +235,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const run = useCallback(async (operation: () => Promise<ScheduleOperationResult>) => {
     dispatch({ type: 'PATCH', patch: { isRunning: true, error: null, notice: null } })
     try {
-      await applyScheduleResult(await operation())
+      const result = await operation()
+      await applyScheduleResult(result)
+      return result.status === 'feasible' || result.status === 'confirmed'
     } catch (error) {
       dispatch({ type: 'PATCH', patch: { isRunning: false, error: apiErrorMessage(error) } })
+      return false
     }
   }, [applyScheduleResult])
 
@@ -242,13 +248,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'PATCH', patch: { isBootstrapping: true, error: null } })
     const [employeesResult, rulesResult, draftResult, confirmedResult] = await Promise.allSettled([
       api.employees.list(),
-      api.rules.list(),
+      api.rules.configuration(),
       api.schedules.latest('draft'),
       api.schedules.latest('confirmed'),
     ])
     const patch: Partial<WorkbenchState> = {}
     if (employeesResult.status === 'fulfilled') patch.employees = employeesResult.value
-    if (rulesResult.status === 'fulfilled') patch.rules = rulesResult.value
+    if (rulesResult.status === 'fulfilled') { patch.rules = rulesResult.value.rules; patch.ruleConfig = rulesResult.value.config }
     const bootstrapError = employeesResult.status === 'rejected'
       ? apiErrorMessage(employeesResult.reason)
       : rulesResult.status === 'rejected'
@@ -270,8 +276,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     await loadWeek(weekStart)
   }, [loadWeek])
 
-  const generate = useCallback((prompt: string, weekStart: string) => (
-    run(() => api.schedules.generate({ prompt, week_start: weekStart }))
+  const generate = useCallback((prompt: string, weekStart: string, changes: ScheduleChange[] = [], weekendMinStaff?: number, maxConsecutiveDays?: number) => (
+    run(() => api.schedules.generate({ prompt, week_start: weekStart, changes, weekend_min_staff: weekendMinStaff, max_consecutive_days: maxConsecutiveDays }))
   ), [run])
 
   const replan = useCallback(async (prompt: string, changes: ScheduleChange[]) => {
@@ -281,9 +287,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         type: 'PATCH',
         patch: { error: { code: 'base_schedule_required', message: '请先生成并确认一份排班，再执行临时调整。' } },
       })
-      return
+      return false
     }
-    await run(() => api.schedules.replan({
+    return run(() => api.schedules.replan({
       base_schedule_id: base.schedule_id,
       base_version: base.version,
       changes,
@@ -328,10 +334,24 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     try {
       const employee = await api.employees.update(employeeId, patch)
       dispatch({ type: 'EMPLOYEE_UPDATED', employee })
+      await loadWeek(state.activeWeekStart)
     } catch (error) {
       dispatch({ type: 'PATCH', patch: { isSavingEmployee: null, error: apiErrorMessage(error) } })
     }
-  }, [])
+  }, [loadWeek, state.activeWeekStart])
+
+  const createEmployee = useCallback(async (input: Employee) => {
+    dispatch({ type: 'PATCH', patch: { isSavingEmployee: input.id, error: null } })
+    try {
+      const employee = await api.employees.create(input)
+      dispatch({ type: 'PATCH', patch: { employees: await api.employees.list(), isSavingEmployee: null, notice: `${employee.id} 已添加。` } })
+      await loadWeek(state.activeWeekStart)
+      return true
+    } catch (error) {
+      dispatch({ type: 'PATCH', patch: { isSavingEmployee: null, error: apiErrorMessage(error) } })
+      return false
+    }
+  }, [loadWeek, state.activeWeekStart])
 
   const value = useMemo<StoreValue>(() => ({
     ...state,
@@ -346,12 +366,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     cancelDraft,
     resolveClarification,
     updateEmployee,
+    createEmployee,
     selectShift: (selectedShift) => dispatch({ type: 'PATCH', patch: { selectedShift } }),
     selectEmployee: (selectedEmployeeId) => dispatch({ type: 'PATCH', patch: { selectedEmployeeId } }),
     dismissError: () => dispatch({ type: 'PATCH', patch: { error: null } }),
     dismissNotice: () => dispatch({ type: 'PATCH', patch: { notice: null } }),
     dismissClarification: () => dispatch({ type: 'PATCH', patch: { clarification: null } }),
-  }), [state, bootstrap, setActiveWeek, applyScheduleResult, generate, replan, confirmDraft, cancelDraft, resolveClarification, updateEmployee])
+  }), [state, bootstrap, setActiveWeek, applyScheduleResult, generate, replan, confirmDraft, cancelDraft, resolveClarification, updateEmployee, createEmployee])
 
   return <AppStore.Provider value={value}>{children}</AppStore.Provider>
 }
