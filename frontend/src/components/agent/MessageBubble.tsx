@@ -1,4 +1,6 @@
 import { Bot, CircleCheck, CircleX, FileEdit } from 'lucide-react'
+import { InfeasibleSummary } from '@/components/agent/InfeasibleSummary'
+import { MarkdownMessage } from '@/components/agent/MarkdownMessage'
 import { AgentTrace } from '@/components/agent/AgentTrace'
 import { SuggestionCard } from '@/components/agent/SuggestionCard'
 import type { AgentMessage, AgentSuggestion, AgentToolCall } from '@/types'
@@ -17,7 +19,7 @@ export function MessageBubble({
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[86%] rounded-2xl rounded-br-md bg-teal-600 px-4 py-3 text-sm leading-6 text-white shadow-sm">
+        <div className="max-w-[86%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-teal-600 px-4 py-3 text-sm leading-6 text-white shadow-sm">
           {message.content}
         </div>
       </div>
@@ -46,8 +48,9 @@ export function MessageBubble({
     <div className="flex items-start gap-2.5">
       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-ink text-white"><Bot className="h-4 w-4" /></span>
       <div className="min-w-0 max-w-[88%]">
-        <div className="rounded-2xl rounded-tl-md border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-700 shadow-sm whitespace-pre-wrap">
-          {message.content}
+        <div className="rounded-2xl rounded-tl-md border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-700 shadow-sm">
+          <MarkdownMessage content={message.content} />
+          <InfeasibleSummary message={message} />
           {draftVersion && (
             <div className={`mt-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold ${draftNoticeStyle}`}>
               <DraftStatusIcon className="h-4 w-4" /> {draftNotice}

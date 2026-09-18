@@ -7,6 +7,7 @@ import type {
   AgentTurnResult,
   ApiProblem,
   ConversationSummary,
+  InfeasibleResult,
   TrustedAgentAction,
 } from '@/types'
 
@@ -17,6 +18,12 @@ interface PendingMessage {
   clientMessageId: string
   content: string
   trustedAction?: TrustedAgentAction
+}
+
+interface LoadConversationOptions {
+  allowWhileSending?: boolean
+  syncScheduleWeek?: boolean
+  restoreWorkbenchResult?: boolean
 }
 
 interface AgentStoreValue {
@@ -37,7 +44,7 @@ interface AgentStoreValue {
   showHistory(): Promise<void>
   hideHistory(): void
   newConversation(): Promise<void>
-  loadConversation(conversationId: string): Promise<void>
+  loadConversation(conversationId: string, options?: LoadConversationOptions): Promise<void>
   sendMessage(content: string, trustedAction?: TrustedAgentAction): Promise<void>
   openWithPrompt(content: string, trustedAction?: TrustedAgentAction): Promise<void>
   retryPendingMessage(): Promise<void>
@@ -68,6 +75,21 @@ function persistedTurn(problem: ApiProblem): AgentTurnResult | null {
   return candidate.user_message && candidate.assistant_message && Array.isArray(candidate.tool_calls)
     ? candidate as AgentTurnResult
     : null
+}
+
+function latestInfeasibleMutation(messages: AgentMessage[], targetWeek: string): InfeasibleResult | null {
+  for (const message of [...messages].reverse()) {
+    if (
+      message.role !== 'assistant'
+      || message.target_week !== targetWeek
+      || !message.mutation_requested
+      || !['generate', 'replan'].includes(message.intent ?? '')
+    ) continue
+
+    const result = message.metadata_json?.infeasible_result
+    return result?.status === 'infeasible' ? result : null
+  }
+  return null
 }
 
 export function AgentStoreProvider({ children }: { children: ReactNode }) {
@@ -117,7 +139,12 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
     return operation
   }, [browserWorkspaceId, rememberConversation])
 
-  const loadConversation = useCallback(async (id: string, allowWhileSending = false) => {
+  const loadConversation = useCallback(async (id: string, options: LoadConversationOptions = {}) => {
+    const {
+      allowWhileSending = false,
+      syncScheduleWeek = true,
+      restoreWorkbenchResult = true,
+    } = options
     if (isSending && !allowWhileSending) return
     const requestId = loadRequestRef.current + 1
     loadRequestRef.current = requestId
@@ -141,8 +168,13 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
       setTracesByMessage(restoredTraces)
       setHistoryOpen(false)
       const targetWeek = [...detail.messages].reverse().find((message) => message.target_week)?.target_week
-      if (targetWeek) {
+      if (syncScheduleWeek && targetWeek) {
         await scheduleStore.setActiveWeek(targetWeek)
+        if (requestId !== loadRequestRef.current) return
+        if (restoreWorkbenchResult) {
+          const infeasible = latestInfeasibleMutation(detail.messages, targetWeek)
+          if (infeasible) await scheduleStore.applyScheduleResult(infeasible)
+        }
       }
     } catch (error) {
       if (requestId !== loadRequestRef.current) return
@@ -209,7 +241,11 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
         await scheduleStore.setActiveWeek(turn.context.target_week)
       }
       setPendingMessage(null)
-      await loadConversation(id, true).catch(() => undefined)
+      await loadConversation(id, {
+        allowWhileSending: true,
+        syncScheduleWeek: false,
+        restoreWorkbenchResult: false,
+      }).catch(() => undefined)
       await refreshHistory().catch(() => undefined)
     } catch (error) {
       const problem = apiErrorMessage(error)
@@ -222,7 +258,11 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
         setTracesByMessage((current) => ({ ...current, [turn.assistant_message.message_id]: turn.tool_calls }))
         setConversationTitle((current) => current ?? turn.user_message.content.slice(0, 28))
         const activeConversationId = conversationIdRef.current
-        if (activeConversationId) await loadConversation(activeConversationId, true).catch(() => undefined)
+        if (activeConversationId) await loadConversation(activeConversationId, {
+          allowWhileSending: true,
+          syncScheduleWeek: false,
+          restoreWorkbenchResult: false,
+        }).catch(() => undefined)
         await refreshHistory().catch(() => undefined)
       }
       if (['draft_pending', 'version_conflict'].includes(problem.code)) {

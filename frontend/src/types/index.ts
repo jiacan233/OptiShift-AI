@@ -98,6 +98,14 @@ export interface Conflict {
   blocked_candidates?: BlockingCandidate[]
 }
 
+export interface InfeasibleDiagnosis {
+  summary?: string
+  diagnostic_status?: string
+  capacity_conflicts?: Conflict[]
+  diagnostic_conflicts?: unknown[]
+  [key: string]: unknown
+}
+
 export interface ClarificationCandidate {
   employee_id: string
   role: string
@@ -145,7 +153,7 @@ export interface InfeasibleResult {
   status: 'infeasible'
   conflicts: Conflict[]
   blocking_candidates?: BlockingCandidate[]
-  diagnosis?: Record<string, unknown>
+  diagnosis?: InfeasibleDiagnosis | null
   generated_valid_schedule?: false
   message?: string
 }
@@ -238,6 +246,7 @@ export interface AgentMessage {
     suggestions?: AgentSuggestion[]
     generated_draft_id?: string
     generated_draft_version?: number
+    infeasible_result?: InfeasibleResult
     [key: string]: unknown
   }
   created_at: string

@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from backend.app.models import HistoryStatus
 from backend.app.services.agent_context import ResolvedWeek, WeekResolver
 from backend.app.services.agent_router import AgentIntent, AgentRoute
-from backend.app.services.agent_service import StaleSuggestionError
+from backend.app.services.agent_service import AgentService, StaleSuggestionError
 from backend.app.services.llm_client import AIUnavailableError
 
 
@@ -512,3 +512,74 @@ def test_28_cross_workspace_conversation_access_returns_safe_404(agent_client):
     assert write.status_code == 404
     assert read.json()["error"]["code"] == "conversation_not_found"
     assert write.json()["error"]["code"] == "conversation_not_found"
+
+
+def test_29_infeasible_agent_result_is_persisted_with_deterministic_summary(agent_client, monkeypatch):
+    from backend.app.api import dependencies
+
+    conversation_id = _conversation(agent_client)
+    infeasible = {
+        "status": "infeasible",
+        "conflicts": [{
+            "rule_id": "R01",
+            "day": "Mon",
+            "shift": "morning",
+            "required": 1,
+            "available": 0,
+            "shortage": 1,
+        }],
+        "blocking_candidates": [],
+        "diagnosis": None,
+        "message": "No valid schedule exists.",
+        "generated_valid_schedule": False,
+    }
+
+    def fake_run(tool_name, **_inputs):
+        if tool_name == "get_current_schedule":
+            return {"target_week": WEEK_40, "confirmed": None, "draft": None, "display": None}
+        if tool_name == "generate_schedule":
+            return infeasible
+        raise AssertionError(tool_name)
+
+    monkeypatch.setattr(dependencies.agent_service.tools, "run", fake_run)
+    response = _send(
+        agent_client,
+        conversation_id,
+        "第40周帮我生成一版。",
+        client_message_id="cm_infeasible_persist",
+    )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert "**主要冲突**" in payload["assistant_message"]["content"]
+    persisted = payload["assistant_message"]["metadata_json"]["infeasible_result"]
+    assert persisted == infeasible
+    restored = agent_client.get(
+        f"/api/agent/conversations/{conversation_id}",
+        params={"browser_workspace_id": WORKSPACE},
+    ).json()
+    assert restored["messages"][1]["metadata_json"]["infeasible_result"] == infeasible
+
+
+def test_30_infeasible_public_history_is_compact():
+    result = AgentService._public_messages([{
+        "role": "assistant",
+        "content": "无法排班",
+        "intent": "generate",
+        "target_week": WEEK_40,
+        "metadata": {
+            "infeasible_result": {
+                "status": "infeasible",
+                "message": "No valid schedule exists.",
+                "conflicts": [{"rule_id": str(index)} for index in range(8)],
+                "blocking_candidates": [{"employee_id": f"E{index:02d}"} for index in range(8)],
+                "diagnosis": {"summary": "summary", "diagnostic_conflicts": list(range(100))},
+                "generated_valid_schedule": False,
+            }
+        },
+    }])
+
+    metadata = result[0]["metadata"]["infeasible_result"]
+    assert len(metadata["conflicts"]) == 5
+    assert len(metadata["blocking_candidates"]) == 5
+    assert metadata["diagnosis"] == {"summary": "summary"}

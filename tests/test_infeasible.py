@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from types import SimpleNamespace
 
 import pytest
 
@@ -25,6 +26,7 @@ from backend.app.solver import (
     candidate_blocking_analysis,
     capacity_precheck,
 )
+from backend.app.services.scheduling_service import SchedulingService
 
 
 def _rules(**overrides):
@@ -208,6 +210,21 @@ def test_infeasible_service_response_is_never_persisted(demo_service, week_start
 
     assert result["status"] == "infeasible"
     assert result["generated_valid_schedule"] is False
+    assert {"status", "conflicts", "blocking_candidates", "diagnosis", "message", "generated_valid_schedule"} <= result.keys()
     assert any(item["rule_id"] == "R01" and item["day"] == "Sun" for item in result["conflicts"])
     assert demo_service.schedules.latest(status="draft") is None
 
+
+def test_infeasible_response_contract_is_complete_without_diagnosis():
+    result = SchedulingService._infeasible_response(
+        SimpleNamespace(diagnosis=None, message="No valid schedule exists.")
+    )
+
+    assert result == {
+        "status": "infeasible",
+        "conflicts": [],
+        "blocking_candidates": [],
+        "diagnosis": None,
+        "message": "No valid schedule exists.",
+        "generated_valid_schedule": False,
+    }

@@ -28,6 +28,24 @@ from .llm_client import AIUnavailableError, AgentLLMClient
 from .request_validator import validate_changes
 
 
+_INFEASIBLE_RULE_NAMES = {
+    "R01": "店长覆盖不足",
+    "R02": "饮品制作覆盖不足",
+    "R03": "收银覆盖不足",
+    "R04": "最低在岗人数不足",
+}
+_INFEASIBLE_DAY_NAMES = {
+    "Mon": "周一",
+    "Tue": "周二",
+    "Wed": "周三",
+    "Thu": "周四",
+    "Fri": "周五",
+    "Sat": "周六",
+    "Sun": "周日",
+}
+_INFEASIBLE_SHIFT_NAMES = {"morning": "早班", "evening": "晚班"}
+
+
 class AgentTurnError(RuntimeError):
     def __init__(
         self,
@@ -162,6 +180,89 @@ class AgentService:
             "target_week": target_week.isoformat(),
             "draft": draft,
             "display": draft,
+        }
+
+    @staticmethod
+    def _compose_infeasible_response(
+        schedule_result: dict[str, Any], *, target_week: date | None = None
+    ) -> str:
+        """Build a deterministic, fact-based explanation for an infeasible solve."""
+
+        if target_week is not None:
+            iso = target_week.isocalendar()
+            heading = f"当前约束下无法生成{iso.year}年第{iso.week}周排班。"
+        else:
+            heading = "当前约束下无法生成有效排班。"
+
+        raw_conflicts = schedule_result.get("conflicts")
+        conflicts = (
+            [item for item in raw_conflicts if isinstance(item, dict)]
+            if isinstance(raw_conflicts, list)
+            else []
+        )
+        if conflicts:
+            heading = f"{heading[:-1]}，共检测到 {len(conflicts)} 个主要冲突。"
+            lines = [heading, "", "**主要冲突**", ""]
+            for conflict in conflicts[:3]:
+                rule_id = str(conflict.get("rule_id") or "硬约束")
+                rule_name = _INFEASIBLE_RULE_NAMES.get(rule_id, rule_id)
+                day = _INFEASIBLE_DAY_NAMES.get(
+                    str(conflict.get("day") or ""), str(conflict.get("day") or "")
+                )
+                shift = _INFEASIBLE_SHIFT_NAMES.get(
+                    str(conflict.get("shift") or ""), str(conflict.get("shift") or "")
+                )
+                slot = f"{day}{shift}" if day or shift else "相关班次"
+                required = conflict.get("required")
+                available = conflict.get("available")
+                shortage = conflict.get("shortage")
+                if required is not None or available is not None or shortage is not None:
+                    details = (
+                        f"需要 {required if required is not None else '?'} 人，"
+                        f"当前可用 {available if available is not None else '?'} 人"
+                    )
+                    if shortage is not None:
+                        details += f"，缺少 {shortage} 人"
+                else:
+                    details = str(conflict.get("message") or "该班次无法满足此硬约束")
+                lines.append(f"- {slot}：{rule_id} {rule_name}，{details}")
+            if len(conflicts) > 3:
+                lines.append(f"- 其余 {len(conflicts) - 3} 个冲突见下方详细诊断。")
+            return "\n".join(lines)
+
+        lines = [
+            heading,
+            "",
+            "未发现单一的 R01-R04 人员覆盖缺口，当前不可行来自其他保留硬约束，或多条硬约束之间的组合冲突。",
+        ]
+        diagnosis = schedule_result.get("diagnosis")
+        if isinstance(diagnosis, dict) and diagnosis.get("summary"):
+            lines.extend(["", f"详细诊断：{diagnosis['summary']}"])
+        else:
+            lines.extend(["", "详细诊断见下方。"])
+        return "\n".join(lines)
+
+    @staticmethod
+    def _compact_infeasible_result(result: dict[str, Any]) -> dict[str, Any]:
+        """Keep enough solver facts for a follow-up without copying a large diagnosis."""
+
+        diagnosis = result.get("diagnosis")
+        compact_diagnosis = None
+        if isinstance(diagnosis, dict):
+            compact_diagnosis = {
+                key: diagnosis[key]
+                for key in ("summary", "diagnostic_status")
+                if key in diagnosis
+            }
+        return {
+            "status": "infeasible",
+            "conflicts": [item for item in (result.get("conflicts") or []) if isinstance(item, dict)][:5],
+            "blocking_candidates": [
+                item for item in (result.get("blocking_candidates") or []) if isinstance(item, dict)
+            ][:5],
+            "diagnosis": compact_diagnosis,
+            "message": result.get("message") or "No valid schedule exists.",
+            "generated_valid_schedule": False,
         }
 
     def _close_running_tool_calls(
@@ -311,7 +412,9 @@ class AgentService:
                     f"v{schedule_result['version']}。请在工作台检查后手动确认。"
                 )
         else:
-            response_content = "当前约束下无法生成有效草稿，请查看冲突说明。"
+            response_content = self._compose_infeasible_response(
+                schedule_result, target_week=target_week
+            ) if schedule_result.get("status") == "infeasible" else "恢复求解结果未创建草稿，请重新发送请求。"
         conversation = self.conversations.get_conversation(
             conversation_id, browser_workspace_id
         )
@@ -336,6 +439,17 @@ class AgentService:
                 0, f"既有摘要：{str(previous_summary)[-600:]}"
             )
         recovery_summary = "；".join(recovery_summary_items)[-1400:]
+        recovery_metadata = {
+            "target_week": target_week.isoformat(),
+            "context": context_payload,
+            "generated_draft_id": schedule_result.get("schedule_id"),
+            "generated_draft_version": schedule_result.get("version"),
+            "recovered_schedule_status": recovered_schedule_status,
+            "tool_call_ids": [item["tool_call_id"] for item in trace],
+            "recovered": True,
+        }
+        if schedule_result.get("status") == "infeasible":
+            recovery_metadata["infeasible_result"] = dict(schedule_result)
         return self.conversations.finalize_turn(
             conversation_id,
             browser_workspace_id,
@@ -351,15 +465,7 @@ class AgentService:
             referenced_version=(
                 schedule_result.get("version") or display.get("version")
             ),
-            metadata={
-                "target_week": target_week.isoformat(),
-                "context": context_payload,
-                "generated_draft_id": schedule_result.get("schedule_id"),
-                "generated_draft_version": schedule_result.get("version"),
-                "recovered_schedule_status": recovered_schedule_status,
-                "tool_call_ids": [item["tool_call_id"] for item in trace],
-                "recovered": True,
-            },
+            metadata=recovery_metadata,
             conversation_summary=recovery_summary,
             result_fields={
                 "intent": intent.value,
@@ -437,21 +543,28 @@ class AgentService:
             "current_week_start",
             "trusted_action",
             "error",
+            "infeasible_result",
         }
         result = []
         for item in messages[-12:]:
-            metadata = item.get("metadata") or {}
+            metadata = item.get("metadata") or item.get("metadata_json") or {}
+            public_metadata = {
+                key: value
+                for key, value in metadata.items()
+                if key in allowed_metadata
+            }
+            infeasible_result = public_metadata.get("infeasible_result")
+            if isinstance(infeasible_result, dict):
+                public_metadata["infeasible_result"] = AgentService._compact_infeasible_result(
+                    infeasible_result
+                )
             result.append(
                 {
                     "role": item.get("role"),
                     "content": item.get("content"),
                     "intent": item.get("intent"),
                     "target_week": item.get("target_week"),
-                    "metadata": {
-                        key: value
-                        for key, value in metadata.items()
-                        if key in allowed_metadata
-                    },
+                    "metadata": public_metadata,
                 }
             )
         return result
@@ -1240,6 +1353,8 @@ class AgentService:
                             current = self._current_after_draft(
                                 current, schedule_result, target.week_start
                             )
+                    elif schedule_result.get("status") == "infeasible":
+                        metadata["infeasible_result"] = dict(schedule_result)
             elif route.intent is AgentIntent.ADVICE:
                 tool_output = self._run_tool(
                     conversation_id=conversation_id,
@@ -1295,7 +1410,9 @@ class AgentService:
                     f"v{schedule_result['version']}。请在工作台检查后手动确认。"
                 )
             elif schedule_result and schedule_result.get("status") == "infeasible":
-                response_content = "当前约束下无法生成有效草稿，请查看冲突说明。"
+                response_content = self._compose_infeasible_response(
+                    schedule_result, target_week=target.week_start
+                )
             else:
                 response_content = self._compose_read_response(
                     route=route,

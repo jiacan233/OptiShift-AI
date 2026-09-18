@@ -63,7 +63,9 @@ class SchedulingService:
                 "status": "infeasible",
                 "conflicts": [],
                 "blocking_candidates": [],
+                "diagnosis": None,
                 "message": result.message or "No valid schedule exists.",
+                "generated_valid_schedule": False,
             }
         raw = diagnosis.model_dump(mode="json")
         logger.info(
@@ -89,7 +91,7 @@ class SchedulingService:
             "conflicts": conflicts,
             "blocking_candidates": raw.get("blocking_candidates", []),
             "diagnosis": raw,
-            "message": raw.get("summary", result.message),
+            "message": raw.get("summary") or result.message or "No valid schedule exists.",
             "generated_valid_schedule": False,
         }
 

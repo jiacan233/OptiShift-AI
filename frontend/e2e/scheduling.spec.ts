@@ -319,4 +319,82 @@ test.describe.serial('持久化排班 Agent 验收', () => {
     expect(context.draft_schedule.status).toBe('draft')
     await expect(page.getByText(/聊天不能直接确认排班/)).toBeVisible()
   })
+
+  test('场景 17：不可行结果刷新后保留冲突诊断且助手渲染 Markdown', async ({ page }) => {
+    await openWorkbench(page, WEEK_41)
+    const conversation = await page.evaluate(() => localStorage.getItem('optishift_conversation_id'))
+    expect(conversation).toMatch(/^conv_/)
+    const now = new Date().toISOString()
+    const infeasible = {
+      status: 'infeasible',
+      conflicts: [{ rule_id: 'R01', day: 'Mon', shift: 'morning', required: 1, available: 0, shortage: 1 }],
+      blocking_candidates: [],
+      diagnosis: null,
+      message: 'No valid schedule exists.',
+      generated_valid_schedule: false,
+    }
+    const userMessage = {
+      message_id: 'mock_user_infeasible',
+      conversation_id: conversation,
+      role: 'user',
+      content: '第41周帮我生成一版。',
+      target_week: WEEK_41,
+      mutation_requested: true,
+      intent: 'generate',
+      metadata_json: {},
+      created_at: now,
+    }
+    const assistantMessage = {
+      message_id: 'mock_assistant_infeasible',
+      conversation_id: conversation,
+      role: 'assistant',
+      content: '**重点**\n\n- 第一项\n- 第二项\n\n# 标题\n\n`inline`\n\n```\ncode block\n```\n\n> 引用',
+      target_week: WEEK_41,
+      mutation_requested: true,
+      intent: 'generate',
+      metadata_json: { infeasible_result: infeasible },
+      created_at: now,
+    }
+    const detail = {
+      conversation: { conversation_id: conversation, title: 'mock', browser_workspace_id: WORKSPACE, status: 'active', created_at: now, updated_at: now },
+      messages: [userMessage, assistantMessage],
+      tool_calls: [],
+    }
+    await page.route(`${API}/api/agent/conversations/${conversation}/messages`, async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        user_message: userMessage,
+        assistant_message: assistantMessage,
+        intent: 'generate',
+        mutation_requested: true,
+        context: { target_week: WEEK_41, iso_year: 2026, iso_week: 41, display_schedule_id: null, display_schedule_version: null, confirmed_schedule_id: null, confirmed_schedule_version: null },
+        tool_calls: [],
+        schedule_result: infeasible,
+      }) })
+    })
+    await page.route(`${API}/api/agent/conversations/${conversation}**`, async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(detail) })
+      } else {
+        await route.fallback()
+      }
+    })
+
+    await sendMessage(page, '第41周帮我生成一版。')
+    await expect(page.getByTestId('markdown-message').locator('strong')).toHaveText('重点')
+    await expect(page.getByTestId('markdown-message').locator('ul li')).toHaveCount(2)
+    await expect(page.getByTestId('markdown-message').locator('h1')).toHaveText('标题')
+    await expect(page.getByTestId('markdown-message').locator('code').filter({ hasText: 'inline' })).toBeVisible()
+    await expect(page.getByTestId('markdown-message').locator('pre')).toContainText('code block')
+    await expect(page.getByTestId('markdown-message').locator('blockquote')).toContainText('引用')
+    await expect(page.getByTestId('infeasible-summary')).toBeVisible()
+    await expect(page.getByText('覆盖缺口')).toBeVisible()
+    await expect(page.getByText('这一周还没有排班')).not.toBeVisible()
+
+    await page.reload()
+    await expect(page.getByTestId('infeasible-summary')).toBeVisible()
+    await expect(page.getByText('覆盖缺口')).toBeVisible()
+    await expect(page.getByText('这一周还没有排班')).not.toBeVisible()
+    await page.unroute(`${API}/api/agent/conversations/${conversation}/messages`)
+    await page.unroute(`${API}/api/agent/conversations/${conversation}**`)
+  })
 })
