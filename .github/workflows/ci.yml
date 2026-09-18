@@ -89,14 +89,38 @@ jobs:
       - run: npm install --global @cloudbase/cli@3.8.2
       - name: Deploy main to CloudBase Run
         run: |
+          set +e
           tcb --yes --env-id "$TCB_ENV_ID" login --cloudbase-api-key "$TCB_API_KEY" --json
-          tcb --yes --env-id "$TCB_ENV_ID" cloudrun deploy \
-            --service-name optishift-ai \
-            --source . \
-            --port 8080 \
-            --min-num 0 \
-            --max-num 1 \
-            --open-access-types PUBLIC,VPC \
-            --force \
-            --wait \
-            --json
+          status=1
+          for attempt in 1 2; do
+            echo "CloudBase deployment attempt ${attempt}/2"
+            tcb --yes --env-id "$TCB_ENV_ID" cloudrun deploy \
+              --service-name optishift-ai \
+              --source . \
+              --port 8080 \
+              --min-num 0 \
+              --max-num 1 \
+              --open-access-types PUBLIC,VPC \
+              --force \
+              --wait \
+              --json
+            status=$?
+            if [ "$status" -eq 0 ]; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 2 ]; then
+              echo 'CloudBase deployment failed; retrying after 20 seconds...'
+              sleep 20
+            fi
+          done
+          exit "$status"
+      - name: Dump CloudBase deployment diagnostics
+        if: ${{ failure() }}
+        run: |
+          set +e
+          echo '--- CloudBase deployment records ---'
+          tcb --yes --env-id "$TCB_ENV_ID" cloudrun record list \
+            --service-name optishift-ai --json
+          echo '--- CloudBase build log ---'
+          tcb --yes --env-id "$TCB_ENV_ID" cloudrun logs build \
+            --service-name optishift-ai --json
