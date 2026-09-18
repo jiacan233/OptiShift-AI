@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { AlertCircle, Bot, History, LoaderCircle, MessageSquarePlus, Send, Sparkles, X } from 'lucide-react'
+import { Activity, AlertCircle, Bot, CheckCircle2, History, LoaderCircle, MessageSquarePlus, Send, Sparkles, X } from 'lucide-react'
 import { ConversationHistory } from '@/components/agent/ConversationHistory'
 import { MessageBubble } from '@/components/agent/MessageBubble'
+import { api, apiErrorMessage, type LlmHealthResult } from '@/api/client'
 import { errorCodeLabel, problemDetail, problemMessage } from '@/lib/presentation'
 import { weekLabel } from '@/lib/isoWeek'
 import { useAgentStore } from '@/store/AgentStore'
@@ -19,6 +20,9 @@ export function AgentPanel() {
   const agent = useAgentStore()
   const schedule = useAppStore()
   const [input, setInput] = useState('')
+  const [llmHealth, setLlmHealth] = useState<LlmHealthResult | null>(null)
+  const [llmHealthError, setLlmHealthError] = useState<string | null>(null)
+  const [isCheckingLlm, setCheckingLlm] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -38,6 +42,20 @@ export function AgentPanel() {
     ? problemDetail(agent.agentError.code, agent.agentError.details)
     : null
 
+  const checkLlm = async () => {
+    if (isCheckingLlm) return
+    setCheckingLlm(true)
+    setLlmHealth(null)
+    setLlmHealthError(null)
+    try {
+      setLlmHealth(await api.health.checkLlm())
+    } catch (error) {
+      setLlmHealthError(apiErrorMessage(error).message)
+    } finally {
+      setCheckingLlm(false)
+    }
+  }
+
   return (
     <>
       <button type="button" className="fixed inset-0 z-40 bg-ink/35 backdrop-blur-sm lg:hidden" onClick={agent.closeChat} aria-label="关闭 AI 助手" />
@@ -54,8 +72,25 @@ export function AgentPanel() {
           <div className="mt-3 flex items-center gap-2">
             <button type="button" onClick={() => void agent.showHistory()} disabled={agent.isSending} className="btn-secondary !rounded-lg !px-3 !py-1.5 !text-xs"><History className="h-3.5 w-3.5" />历史</button>
             <button type="button" onClick={() => void agent.newConversation()} disabled={agent.isSending || agent.isLoadingConversation} className="btn-secondary !rounded-lg !px-3 !py-1.5 !text-xs"><MessageSquarePlus className="h-3.5 w-3.5" />新对话</button>
-            <span className="ml-auto flex items-center gap-1.5 text-[10px] font-semibold text-slate-400"><span className={`h-1.5 w-1.5 rounded-full ${agent.agentError ? 'bg-red-400' : agent.isSending ? 'bg-amber-400' : 'bg-emerald-500'}`} />{agent.isSending ? '正在保存' : agent.agentError ? '保存失败' : '服务端已保存'}</span>
+            <button type="button" onClick={() => void checkLlm()} disabled={isCheckingLlm} className="btn-secondary ml-auto !rounded-lg !px-3 !py-1.5 !text-xs" aria-label="检测 AI 联通状态">
+              {isCheckingLlm ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Activity className="h-3.5 w-3.5" />}
+              {isCheckingLlm ? '检测中' : '检测 AI'}
+            </button>
           </div>
+          <div className="mt-2 flex items-center gap-1.5 text-[10px] font-semibold text-slate-400"><span className={`h-1.5 w-1.5 rounded-full ${agent.agentError ? 'bg-red-400' : agent.isSending ? 'bg-amber-400' : 'bg-emerald-500'}`} />{agent.isSending ? '正在保存' : agent.agentError ? '保存失败' : '服务端已保存'}</div>
+          {(isCheckingLlm || llmHealth || llmHealthError) && (
+            <div aria-live="polite" className={`mt-2 rounded-lg border px-3 py-2 text-xs ${llmHealth?.status === 'ok' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : isCheckingLlm ? 'border-slate-200 bg-slate-50 text-slate-600' : 'border-red-200 bg-red-50 text-red-800'}`}>
+              {isCheckingLlm ? (
+                <span className="flex items-center gap-2"><LoaderCircle className="h-3.5 w-3.5 animate-spin" />正在连接 AI Provider…</span>
+              ) : llmHealth?.status === 'ok' ? (
+                <div className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div><p className="font-black">AI 联通正常</p><p className="mt-0.5 text-[10px]">{llmHealth.model} · {llmHealth.latency_ms} ms</p></div></div>
+              ) : llmHealth ? (
+                <div className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div><p className="font-black">AI 联通失败</p><p className="mt-0.5 leading-5">{llmHealth.message || 'AI Provider 暂时不可用。'}</p><p className="mt-0.5 font-mono text-[10px]">{llmHealth.provider_status ? `HTTP ${llmHealth.provider_status} · ` : ''}{llmHealth.error_type || 'provider_error'} · {llmHealth.latency_ms} ms</p></div></div>
+              ) : (
+                <div className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div><p className="font-black">无法执行检测</p><p className="mt-0.5 leading-5">{llmHealthError}</p></div></div>
+              )}
+            </div>
+          )}
           {!agent.isHistoryOpen && <p className="mt-3 truncate text-sm font-bold text-slate-700">{agent.conversationTitle || '新对话'}</p>}
         </header>
 

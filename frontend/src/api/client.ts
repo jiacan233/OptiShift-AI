@@ -107,7 +107,41 @@ export interface SendAgentMessageRequest {
   trusted_action?: TrustedAgentAction
 }
 
+export interface LlmHealthResult {
+  enabled: boolean
+  key_present: boolean
+  model: string
+  status: 'ok' | 'error'
+  reply?: string
+  error_type?: string
+  message?: string
+  latency_ms: number
+  provider_status?: number
+}
+
+async function checkLlmHealth(): Promise<LlmHealthResult> {
+  const response = await fetch(`${API_BASE}/health/llm`, {
+    headers: { Accept: 'application/json' },
+  })
+  const payload = await response.json().catch(() => null)
+
+  if (payload && typeof payload === 'object' && (payload.status === 'ok' || payload.status === 'error')) {
+    return payload as LlmHealthResult
+  }
+
+  throw new ApiError({
+    code: statusCodeToProblem(response.status),
+    message: readableStatus(response.status),
+    details: payload,
+    status: response.status,
+  })
+}
+
 export const api = {
+  health: {
+    checkLlm: checkLlmHealth,
+  },
+
   employees: {
     async list() {
       const payload = await request<Employee[] | { employees: Employee[] }>('/api/employees')
