@@ -111,8 +111,9 @@ class AgentService:
         return result
 
     @staticmethod
-    def _draft_result_from_record(record: dict[str, Any]) -> dict[str, Any]:
+    def _schedule_result_from_record(record: dict[str, Any]) -> dict[str, Any]:
         metadata = dict(record.get("metadata") or {})
+        schedule_status = str(record.get("status") or "draft")
         schedule = record.get("schedule")
         schedule_payload = (
             schedule.model_dump(mode="json")
@@ -120,13 +121,13 @@ class AgentService:
             else schedule
         )
         if isinstance(schedule_payload, dict):
-            schedule_payload = {**schedule_payload, "status": "draft"}
+            schedule_payload = {**schedule_payload, "status": schedule_status}
         return {
-            "status": "feasible",
+            "status": "confirmed" if schedule_status == "confirmed" else "feasible",
             "solver_status": metadata.get("solver_status", "feasible"),
             "schedule_id": record["schedule_id"],
             "version": record["version"],
-            "schedule_status": "draft",
+            "schedule_status": schedule_status,
             "schedule": schedule_payload,
             "validation": record.get("validation") or {},
             "diff": metadata.get("diff") or {},
@@ -237,7 +238,7 @@ class AgentService:
                 or metadata.get("agent_user_message_id") != user_message["message_id"]
             ):
                 return None
-            schedule_result = self._draft_result_from_record(source_record)
+            schedule_result = self._schedule_result_from_record(source_record)
             finished = self.conversations.finish_tool_call(
                 write_call["tool_call_id"],
                 conversation_id,
@@ -280,7 +281,7 @@ class AgentService:
             if write_call["tool_name"] == "generate_schedule"
             else AgentIntent.REPLAN
         )
-        schedule_created = schedule_result.get("status") == "feasible"
+        schedule_created = schedule_result.get("status") in {"feasible", "confirmed"}
         recovered_schedule_status = (
             str(
                 (source_record or {}).get("status")

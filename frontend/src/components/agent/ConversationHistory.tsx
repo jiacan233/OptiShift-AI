@@ -43,7 +43,7 @@ export function ConversationHistory({
             <h3 className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{group}</h3>
             <div className="space-y-2">
               {groups[group].map((conversation) => (
-                <button key={conversation.conversation_id} type="button" disabled={disabled} onClick={() => onSelect(conversation.conversation_id)} className={`w-full rounded-xl border p-3 text-left transition disabled:cursor-wait disabled:opacity-60 ${conversation.conversation_id === currentId ? 'border-teal-300 bg-teal-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                <button key={conversation.conversation_id} data-conversation-id={conversation.conversation_id} type="button" disabled={disabled} onClick={() => onSelect(conversation.conversation_id)} className={`w-full rounded-xl border p-3 text-left transition disabled:cursor-wait disabled:opacity-60 ${conversation.conversation_id === currentId ? 'border-teal-300 bg-teal-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
                   <p className="truncate text-sm font-extrabold text-slate-800">{conversation.title || '新对话'}</p>
                   <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
                     {conversation.target_week && <span>{weekLabel(conversation.target_week)}</span>}

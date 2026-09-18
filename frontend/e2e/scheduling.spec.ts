@@ -239,8 +239,13 @@ test.describe.serial('持久化排班 Agent 验收', () => {
     panel = await openAgent(page)
     await panel.getByRole('button', { name: '新对话' }).click()
     await sendMessage(page, '2026年第40周怎么样？')
+    const historyLoaded = page.waitForResponse((response) => (
+      response.request().method() === 'GET'
+      && response.url().includes('/api/agent/conversations?')
+    ))
     await panel.getByRole('button', { name: '历史' }).click()
-    await panel.getByText('2026年第39周怎么样？', { exact: true }).click()
+    await historyLoaded
+    await panel.locator(`[data-conversation-id="${week39Conversation}"]`).click()
 
     await expect(panel.getByText('当前上下文：2026年第39周')).toBeVisible()
     await expect(page.getByLabel('选择排班周次')).toHaveValue(WEEK_39)
