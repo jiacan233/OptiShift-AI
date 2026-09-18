@@ -1538,8 +1538,8 @@ class AgentService:
                             metadata["scenario_preview"] = dict(schedule_result)
                             metadata["scenario_revision"] = schedule_result.get("scenario_revision", 0)
                             metadata["suggestions"] = list(schedule_result.get("suggestions") or [])
-                            if not schedule_result.get("strict_feasible", False):
-                                metadata["infeasible_result"] = dict(schedule_result)
+                        if not schedule_result.get("strict_feasible", False):
+                            metadata["infeasible_result"] = dict(schedule_result)
             elif route.intent is AgentIntent.ADVICE:
                 tool_output = self._run_tool(
                     conversation_id=conversation_id,

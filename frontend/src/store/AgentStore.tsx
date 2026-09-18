@@ -13,6 +13,8 @@ import type {
 
 const WORKSPACE_STORAGE_KEY = 'optishift_browser_workspace_id'
 const CONVERSATION_STORAGE_KEY = 'optishift_conversation_id'
+const AGENT_PANEL_OPEN_STORAGE_KEY = 'optishift_agent_panel_open'
+const CONVERSATION_SESSION_STORAGE_KEY = 'optishift_conversation_id_session'
 
 interface PendingMessage {
   clientMessageId: string
@@ -68,6 +70,11 @@ function loadWorkspaceId() {
   return created
 }
 
+function loadConversationId() {
+  return localStorage.getItem(CONVERSATION_STORAGE_KEY)
+    ?? sessionStorage.getItem(CONVERSATION_SESSION_STORAGE_KEY)
+}
+
 function persistedTurn(problem: ApiProblem): AgentTurnResult | null {
   const details = problem.details
   if (!details || typeof details !== 'object') return null
@@ -100,7 +107,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [messages, setMessages] = useState<AgentMessage[]>([])
   const [tracesByMessage, setTracesByMessage] = useState<Record<string, AgentToolCall[]>>({})
-  const [isChatOpen, setChatOpen] = useState(false)
+  const [isChatOpen, setChatOpen] = useState(() => localStorage.getItem(AGENT_PANEL_OPEN_STORAGE_KEY) === '1')
   const [isHistoryOpen, setHistoryOpen] = useState(false)
   const [isSending, setSending] = useState(false)
   const [isLoadingConversation, setLoadingConversation] = useState(false)
@@ -112,10 +119,21 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
   const loadRequestRef = useRef(0)
   const sendingRef = useRef(false)
 
+  const openChat = useCallback(() => {
+    localStorage.setItem(AGENT_PANEL_OPEN_STORAGE_KEY, '1')
+    setChatOpen(true)
+  }, [])
+
+  const closeChat = useCallback(() => {
+    localStorage.removeItem(AGENT_PANEL_OPEN_STORAGE_KEY)
+    setChatOpen(false)
+  }, [])
+
   const rememberConversation = useCallback((id: string) => {
     conversationIdRef.current = id
     setConversationId(id)
     localStorage.setItem(CONVERSATION_STORAGE_KEY, id)
+    sessionStorage.setItem(CONVERSATION_SESSION_STORAGE_KEY, id)
   }, [])
 
   const refreshHistory = useCallback(async () => {
@@ -188,7 +206,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (scheduleStore.isBootstrapping || initialized.current) return
     initialized.current = true
-    const savedConversationId = localStorage.getItem(CONVERSATION_STORAGE_KEY)
+    const savedConversationId = loadConversationId()
     void (async () => {
       try {
         if (savedConversationId) await loadConversation(savedConversationId)
@@ -197,6 +215,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         if (['entity_not_found', 'conversation_not_found'].includes(apiErrorMessage(error).code)) {
           localStorage.removeItem(CONVERSATION_STORAGE_KEY)
+          sessionStorage.removeItem(CONVERSATION_SESSION_STORAGE_KEY)
           setAgentError(null)
           await createConversation().catch((createError) => setAgentError(apiErrorMessage(createError)))
           await refreshHistory().catch(() => undefined)
@@ -310,8 +329,8 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
     isLoadingConversation,
     agentError,
     pendingMessage,
-    openChat: () => setChatOpen(true),
-    closeChat: () => setChatOpen(false),
+    openChat,
+    closeChat,
     showHistory: async () => {
       setHistoryOpen(true)
       await refreshHistory().catch((error) => setAgentError(apiErrorMessage(error)))
@@ -321,14 +340,14 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
     loadConversation,
     sendMessage,
     openWithPrompt: async (content, trustedAction) => {
-      setChatOpen(true)
+      openChat()
       await sendMessage(content, trustedAction)
     },
     retryPendingMessage: async () => {
       if (pendingMessage) await executeMessage(pendingMessage)
     },
     dismissError: () => setAgentError(null),
-  }), [agentError, browserWorkspaceId, conversationId, conversationTitle, conversations, executeMessage, isChatOpen, isHistoryOpen, isLoadingConversation, isSending, loadConversation, messages, newConversation, pendingMessage, refreshHistory, sendMessage, tracesByMessage])
+  }), [agentError, browserWorkspaceId, closeChat, conversationId, conversationTitle, conversations, executeMessage, isChatOpen, isHistoryOpen, isLoadingConversation, isSending, loadConversation, messages, newConversation, openChat, pendingMessage, refreshHistory, sendMessage, tracesByMessage])
 
   return <AgentStore.Provider value={value}>{children}</AgentStore.Provider>
 }
