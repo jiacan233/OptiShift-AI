@@ -10,6 +10,7 @@ function reasonText(reason: BlockingCandidate['reasons'][number]) {
 
 export function InfeasibleSummary({ message }: { message: AgentMessage }) {
   const result = message.metadata_json?.infeasible_result
+  if (!result || (result.status === 'scenario_preview' && result.strict_feasible)) return null
   if (!result || !['infeasible', 'scenario_preview'].includes(result.status)) return null
   const conflicts: Conflict[] = Array.isArray(result.conflicts) ? result.conflicts.slice(0, 3) : []
   const candidates: BlockingCandidate[] = Array.isArray(result.blocking_candidates)

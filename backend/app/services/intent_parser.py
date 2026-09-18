@@ -23,6 +23,15 @@ class LLMIntentOutput(BaseModel):
     minimize_changes: bool = False
 
 
+def _normalize_identifier_text(value: str) -> str:
+    """Normalize only identifier punctuation; preserve names and free text."""
+    return value.translate(str.maketrans({
+        "ｅ": "e", "Ｅ": "E",
+        "０": "0", "１": "1", "２": "2", "３": "3", "４": "4",
+        "５": "5", "６": "6", "７": "7", "８": "8", "９": "9",
+    }))
+
+
 DAY_TOKENS = {
     Day.MON: ("mon", "monday", "周一", "星期一"),
     Day.TUE: ("tue", "tuesday", "周二", "星期二"),
@@ -75,7 +84,7 @@ class IntentParser:
         default_intent: RequestIntent = RequestIntent.GENERATE,
     ) -> ParsedIntent:
         text = prompt.strip()
-        normalized = text.lower()
+        normalized = _normalize_identifier_text(text).lower()
         intent = default_intent
         if any(token in normalized for token in ("replan", "重新排", "重排", "调整排班")):
             intent = RequestIntent.REPLAN
@@ -93,9 +102,10 @@ class IntentParser:
             token in normalized for token in ("请假", "请周", "只请", "仅请", "别排", "不排", "不可工作", "unavailable", "leave")
         )
 
-        explicit_ids = sorted(
-            {match.upper() for match in re.findall(r"\b[eE]\d{1,4}\b", text)}
-        )
+        explicit_ids = sorted({match.upper() for match in re.findall(
+            r"(?<![A-Za-z0-9_])[eE]\d{1,4}(?![A-Za-z0-9_])",
+            _normalize_identifier_text(text),
+        )})
         known_ids = {employee.id for employee in employees}
         unknown = [employee_id for employee_id in explicit_ids if employee_id not in known_ids]
         if unknown:
@@ -167,10 +177,17 @@ class IntentParser:
             )
 
         deterministic = ParsedIntent(intent, changes, minimize)
-        if changes or os.getenv("LLM_ENABLED", "").lower() not in {"1", "true", "yes"}:
+        if os.getenv("LLM_ENABLED", "").lower() not in {"1", "true", "yes"}:
             return deterministic
         llm_result = self._parse_with_llm(text, employees, default_intent)
-        return llm_result or deterministic
+        if llm_result is not None:
+            return llm_result
+        return ParsedIntent(
+            intent=default_intent,
+            changes=[],
+            minimize_changes=False,
+            resolution={"status": "ai_unavailable"},
+        )
 
     @staticmethod
     def _parse_with_llm(

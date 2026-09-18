@@ -84,7 +84,7 @@ function reducer(state: WorkbenchState, action: Action): WorkbenchState {
   if (action.result.status === 'clarification_required') {
     return { ...state, clarification: action.result.clarification, conflicts: [], infeasibleResult: null, isRunning: false }
   }
-  if (action.result.status === 'infeasible' || action.result.status === 'scenario_preview') {
+  if (action.result.status === 'infeasible' || (action.result.status === 'scenario_preview' && !action.result.strict_feasible)) {
     return {
       ...state,
       conflicts: action.result.conflicts,

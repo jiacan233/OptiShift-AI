@@ -273,6 +273,48 @@ class AgentService:
             ][:4],
         }
 
+    def _finalize_clarification_turn(
+        self,
+        *,
+        conversation_id: str,
+        browser_workspace_id: str,
+        client_message_id: str,
+        owner_token: str,
+        user_message: dict[str, Any],
+        route: AgentRoute,
+        target: ResolvedWeek,
+        trace: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Persist a pending question without reading or mutating schedules."""
+        question = route.clarification.question or "请补充完成这次操作所需的信息。"
+        metadata = {
+            "target_week": target.week_start.isoformat(),
+            "context": {**target.as_dict()},
+            "clarification": {"required": True, "question": question},
+            "tool_call_ids": [item["tool_call_id"] for item in trace],
+        }
+        return self.conversations.finalize_turn(
+            conversation_id,
+            browser_workspace_id,
+            client_message_id=client_message_id,
+            owner_token=owner_token,
+            content=question,
+            intent=AgentIntent.CLARIFICATION.value,
+            mutation_requested=False,
+            target_week=target.week_start,
+            referenced_schedule_id=None,
+            referenced_version=None,
+            metadata=metadata,
+            conversation_summary=f"待澄清：{question}",
+            result_fields={
+                "intent": AgentIntent.CLARIFICATION.value,
+                "mutation_requested": False,
+                "context": {**target.as_dict()},
+                "tool_calls": trace,
+                "schedule_result": None,
+            },
+        )
+
     def _close_running_tool_calls(
         self,
         *,
@@ -1292,6 +1334,17 @@ class AgentService:
             ) or user_message
 
         trace: list[dict[str, Any]] = prior_trace
+        if route.clarification.required:
+            return self._finalize_clarification_turn(
+                conversation_id=conversation_id,
+                browser_workspace_id=browser_workspace_id,
+                client_message_id=client_message_id,
+                owner_token=owner_token,
+                user_message=user_message,
+                route=route,
+                target=target,
+                trace=trace,
+            )
         try:
             current = self._run_tool(
                 conversation_id=conversation_id,
@@ -1309,13 +1362,11 @@ class AgentService:
                 token in content.lower()
                 for token in ("保存当前方案", "采用当前方案", "生成正式草稿")
             )
-            scenario_requested = route.intent is AgentIntent.WHAT_IF or any(
-                token in content.lower()
-                for token in (
-                    "能排吗", "能排不", "这样呢", "行不行", "重新试", "试排", "what if",
-                    "只请", "仅请", "也请", "取消", "撤销", "恢复可用", "不用请假",
-                    "帮排",
-                )
+            scenario_requested = (
+                route.intent is AgentIntent.WHAT_IF
+                and route.mutation_requested
+                and not route.clarification.required
+                and bool(route.operations or route.changes or route.operation == "clear")
             )
             if scenario_requested:
                 schedule_result = self._run_tool(
@@ -1328,20 +1379,17 @@ class AgentService:
                         "conversation_id": conversation_id,
                         "target_week": target.week_start,
                         "changes": list(route.changes),
+                        "operations": [item.model_dump(mode="json") for item in route.operations],
                         "employee_ids": list(route.employees),
-                        "operation": (
-                            "clear" if any(token in content.lower() for token in ("清掉", "清除", "恢复全部", "clear"))
-                            else "remove" if any(token in content.lower() for token in ("取消", "撤销", "恢复可用", "不用请假", "remove"))
-                            else "set" if any(token in content.lower() for token in ("只", "仅", "only", "set"))
-                            else "add"
-                        ),
+                        "operation": route.operation,
                     },
                     trace=trace,
                 )
                 tool_output = schedule_result
                 metadata["scenario_preview"] = dict(schedule_result)
                 metadata["scenario_revision"] = schedule_result.get("scenario_revision", 0)
-                metadata["infeasible_result"] = dict(schedule_result)
+                if not schedule_result.get("strict_feasible", False):
+                    metadata["infeasible_result"] = dict(schedule_result)
                 metadata["suggestions"] = list(schedule_result.get("suggestions") or [])
             write_allowed = (
                 route.intent in self.WRITE_INTENTS and route.mutation_requested
@@ -1490,7 +1538,8 @@ class AgentService:
                             metadata["scenario_preview"] = dict(schedule_result)
                             metadata["scenario_revision"] = schedule_result.get("scenario_revision", 0)
                             metadata["suggestions"] = list(schedule_result.get("suggestions") or [])
-                        metadata["infeasible_result"] = dict(schedule_result)
+                            if not schedule_result.get("strict_feasible", False):
+                                metadata["infeasible_result"] = dict(schedule_result)
             elif route.intent is AgentIntent.ADVICE:
                 tool_output = self._run_tool(
                     conversation_id=conversation_id,

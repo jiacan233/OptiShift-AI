@@ -87,7 +87,7 @@ function latestInfeasibleMutation(messages: AgentMessage[], targetWeek: string):
     ) continue
 
     const result = message.metadata_json?.infeasible_result
-    return result && (result.status === 'infeasible' || result.status === 'scenario_preview') ? result : null
+    return result && (result.status === 'infeasible' || (result.status === 'scenario_preview' && !result.strict_feasible)) ? result : null
   }
   return null
 }

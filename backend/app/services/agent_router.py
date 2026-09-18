@@ -7,8 +7,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from ..models import ChangeType, Day, Employee, ScheduleChange
-from .intent_parser import DAY_TOKENS, IntentParser
+from ..models import ChangeType, Day, Employee, ScheduleChange, Shift
+from .intent_parser import DAY_TOKENS, IntentParser, _normalize_identifier_text
 from .llm_client import AIUnavailableError, AgentLLMClient
 
 
@@ -44,6 +44,16 @@ class AgentClarification(BaseModel):
     question: str | None = None
 
 
+class AgentScenarioOperation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    operation: Literal["add", "set", "remove", "clear"] = "add"
+    employee_id: str
+    type: ChangeType = ChangeType.LEAVE
+    day: Day | None = None
+    shift: Shift | None = None
+
+
 class AgentRoute(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -56,6 +66,12 @@ class AgentRoute(BaseModel):
     target_iso_week: int | None = Field(default=None, ge=0, le=99)
     employees: list[str] = Field(default_factory=list)
     changes: list[ScheduleChange] = Field(default_factory=list)
+    # Ordered operations are authoritative for scenario mutations.  ``changes``
+    # and the legacy global operation remain for older clients.
+    operations: list[AgentScenarioOperation] = Field(default_factory=list)
+    # Structured scenario operation. Execution must use this value instead of
+    # rescanning the user's prose after routing has completed.
+    operation: Literal["add", "set", "remove", "clear"] = "add"
     minimize_changes: bool = False
     reference: AgentReference = Field(default_factory=AgentReference)
     clarification: AgentClarification = Field(default_factory=AgentClarification)
@@ -100,11 +116,6 @@ class AgentRouter:
                 employees=sorted({item.employee_id for item in trusted_action.changes}),
                 minimize_changes=trusted_action.minimize_changes,
             )
-        if any(token in content.lower() for token in (
-            "能排吗", "能排不", "这样呢", "行不行", "重新试", "试排", "what if",
-            "只请", "仅请", "也请", "取消", "撤销", "恢复可用", "不用请假",
-        )):
-            return self._deterministic_route(content, employees)
         if not self.llm.enabled:
             return self._deterministic_route(content, employees)
 
@@ -142,6 +153,22 @@ class AgentRouter:
                         "required": ["employee_id", "type", "day", "shift"],
                     },
                 },
+                "operations": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "operation": {"type": "string", "enum": ["add", "set", "remove", "clear"]},
+                            "employee_id": {"type": "string"},
+                            "type": {"type": "string", "enum": [item.value for item in ChangeType]},
+                            "day": {"anyOf": [{"type": "string", "enum": [item.value for item in Day]}, {"type": "null"}]},
+                            "shift": {"anyOf": [{"type": "string", "enum": ["morning", "evening"]}, {"type": "null"}]},
+                        },
+                        "required": ["operation", "employee_id", "type", "day", "shift"],
+                    },
+                },
+                "operation": {"type": "string", "enum": ["add", "set", "remove", "clear"]},
                 "minimize_changes": {"type": "boolean"},
                 "reference": {
                     "type": "object",
@@ -173,6 +200,7 @@ class AgentRouter:
                 "target_iso_week",
                 "employees",
                 "changes",
+                "operation",
                 "minimize_changes",
                 "reference",
                 "clarification",
@@ -185,7 +213,9 @@ class AgentRouter:
                 "user explicitly asks to generate or replan. Never treat confirmation words as "
                 "permission to confirm a schedule; confirmation remains a UI-only action. Use "
                 "only supplied employee IDs. Resolve references such as 'second one' to a "
-                "suggestion reference when supported by recent messages."
+                "suggestion reference when supported by recent messages. Set operation to "
+                "add, set, remove, or clear from the structured plan; preserve one change "
+                "per employee/day and do not invent a cross-product."
             ),
             user={
                 "message": content,
@@ -206,9 +236,21 @@ class AgentRouter:
 
         known = {employee.id for employee in employees}
         referenced = set(route.employees) | {item.employee_id for item in route.changes}
+        referenced |= {item.employee_id for item in route.operations}
         unknown = sorted(referenced - known)
         if unknown:
             raise UnknownAgentEmployeeError(unknown)
+        if not route.operations and route.changes:
+            route.operations = [
+                AgentScenarioOperation(
+                    operation=route.operation,
+                    employee_id=change.employee_id,
+                    type=change.type,
+                    day=change.day,
+                    shift=change.shift,
+                )
+                for change in route.changes
+            ]
         return route
 
     @staticmethod
@@ -232,8 +274,12 @@ class AgentRouter:
         text = content.strip()
         normalized = text.lower()
         known = {employee.id for employee in employees}
+        normalized_text = _normalize_identifier_text(text)
         referenced_ids = {
-            match.upper() for match in re.findall(r"\b[eE]\d{1,4}\b", text)
+            match.upper() for match in re.findall(
+                r"(?<![A-Za-z0-9_])[eE]\d{1,4}(?![A-Za-z0-9_])",
+                normalized_text,
+            )
         }
         unknown = sorted(referenced_ids - known)
         if unknown:
@@ -280,6 +326,10 @@ class AgentRouter:
             "保存当前方案",
             "采用当前方案",
             "生成正式草稿",
+            "清掉",
+            "清除",
+            "恢复全部",
+            "clear",
         )
         mutation_requested = any(term in normalized for term in mutation_terms)
         reference_apply = reference.type != "none" and any(
@@ -306,6 +356,7 @@ class AgentRouter:
         elif any(term in normalized for term in (
             "能排吗", "能排不", "这样呢", "行不行", "重新试", "试排", "what if",
             "只请", "仅请", "也请", "取消", "撤销", "恢复可用", "不用请假",
+            "清掉", "清除", "恢复全部", "clear",
         )):
             intent = AgentIntent.WHAT_IF
         elif reference_apply or any(
@@ -330,18 +381,18 @@ class AgentRouter:
             "请假", "请周", "只请", "仅请", "也请", "不可工作", "别排", "leave", "unavailable",
         ))
         remove_leave = any(term in normalized for term in ("取消", "撤销", "恢复可用", "不用请假", "remove"))
-        changes = (
-            [
-                ScheduleChange(
-                    employee_id=employee_id,
-                    type=ChangeType.AVAILABLE if remove_leave else ChangeType.LEAVE,
-                    day=item_day,
-                )
-                for employee_id in employee_ids
-                for item_day in days
-            ]
-            if days and leave
-            else []
+        leave = leave or remove_leave
+        operations = cls._extract_operations(text, employee_ids, days, leave, remove_leave)
+        changes = [
+            ScheduleChange(employee_id=item.employee_id, type=item.type, day=item.day)
+            for item in operations
+            if item.day is not None
+        ]
+        operation = (
+            "clear" if any(term in normalized for term in ("清掉", "清除", "恢复全部", "clear"))
+            else "remove" if remove_leave
+            else "set" if any(term in normalized for term in ("只", "仅", "only", "set"))
+            else "add"
         )
 
         target_week = None
@@ -360,9 +411,11 @@ class AgentRouter:
             )
 
         clarification = AgentClarification()
-        if leave and not employee_ids:
+        clear_requested = operation == "clear"
+        if (leave or clear_requested) and not employee_ids:
             clarification = AgentClarification(
-                required=True, question="请说明需要调整的员工编号。"
+                required=True,
+                question="请说明需要调整或清空的员工编号。" if clear_requested else "请说明需要调整的员工编号。",
             )
             intent = AgentIntent.CLARIFICATION
             mutation_requested = False
@@ -381,9 +434,96 @@ class AgentRouter:
             target_iso_week=int(iso_match.group(2)) if iso_match else None,
             employees=employee_ids,
             changes=changes,
+            operations=operations,
+            operation=operation,
             minimize_changes=any(
                 term in normalized for term in ("尽量少", "最小调整", "不要动", "minimize")
             ),
             reference=reference,
             clarification=clarification,
         )
+
+    @staticmethod
+    def _extract_changes(
+        text: str,
+        employee_ids: list[str],
+        fallback_days: list[Day],
+        leave: bool,
+        remove_leave: bool,
+    ) -> list[ScheduleChange]:
+        """Parse deterministic button-compatible input without cross-product leakage."""
+        if not leave:
+            return []
+        normalized = _normalize_identifier_text(text)
+        mentions = list(re.finditer(
+            r"(?<![A-Za-z0-9_])([eE]\d{1,4})(?![A-Za-z0-9_])", normalized
+        ))
+        if len(mentions) <= 1:
+            ids_and_spans = [(employee_ids[0], normalized)] if employee_ids else []
+        else:
+            ids_and_spans = []
+            for index, match in enumerate(mentions):
+                end = mentions[index + 1].start() if index + 1 < len(mentions) else len(normalized)
+                ids_and_spans.append((match.group(1).upper(), normalized[match.start():end]))
+        result: list[ScheduleChange] = []
+        for employee_id, span in ids_and_spans:
+            span_days = IntentParser.extract_days(span) or fallback_days
+            span_remove = any(
+                token in span.lower()
+                for token in ("不请", "不用请假", "取消", "撤销", "恢复可用", "remove")
+            )
+            if len(mentions) <= 1:
+                span_remove = remove_leave or span_remove
+            change_type = ChangeType.AVAILABLE if span_remove else ChangeType.LEAVE
+            result.extend(
+                ScheduleChange(employee_id=employee_id, type=change_type, day=day)
+                for day in span_days
+            )
+        return result
+
+    @classmethod
+    def _extract_operations(
+        cls,
+        text: str,
+        employee_ids: list[str],
+        fallback_days: list[Day],
+        leave: bool,
+        remove_leave: bool,
+    ) -> list[AgentScenarioOperation]:
+        if not leave:
+            return []
+        normalized = _normalize_identifier_text(text)
+        mentions = list(re.finditer(
+            r"(?<![A-Za-z0-9_])([eE]\d{1,4})(?![A-Za-z0-9_])", normalized
+        ))
+        if len(mentions) <= 1:
+            ids_and_spans = [(employee_ids[0], normalized)] if employee_ids else []
+        else:
+            ids_and_spans = []
+            for index, match in enumerate(mentions):
+                end = mentions[index + 1].start() if index + 1 < len(mentions) else len(normalized)
+                ids_and_spans.append((match.group(1).upper(), normalized[match.start():end]))
+        result: list[AgentScenarioOperation] = []
+        for employee_id, span in ids_and_spans:
+            lowered = span.lower()
+            span_days = IntentParser.extract_days(span) or fallback_days
+            span_remove = remove_leave or any(
+                token in lowered
+                for token in ("不请", "不用请假", "取消", "撤销", "恢复可用", "remove")
+            )
+            span_clear = any(token in lowered for token in ("清掉", "清除", "恢复全部", "clear"))
+            span_set = any(token in lowered for token in ("只", "仅", "only", "set", "改成"))
+            operation = "clear" if span_clear else "remove" if span_remove else "set" if span_set else "add"
+            change_type = ChangeType.AVAILABLE if operation == "remove" else ChangeType.LEAVE
+            if operation == "clear" and not span_days:
+                result.append(AgentScenarioOperation(
+                    operation=operation, employee_id=employee_id, type=change_type, day=None
+                ))
+                continue
+            result.extend(
+                AgentScenarioOperation(
+                    operation=operation, employee_id=employee_id, type=change_type, day=day
+                )
+                for day in span_days
+            )
+        return result

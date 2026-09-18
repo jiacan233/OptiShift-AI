@@ -11,6 +11,7 @@ from ..models import (
     ScenarioPatch,
     Schedule,
     ScheduleChange,
+    ScheduleStatus,
     SolverStatus,
 )
 from ..repository import (
@@ -60,8 +61,10 @@ class SchedulingService:
     @staticmethod
     def _infeasible_response(result: Any) -> dict[str, Any]:
         diagnosis = result.diagnosis
+        has_solver_status = hasattr(result, "status")
+        solver_status = getattr(getattr(result, "status", None), "value", "infeasible")
         if diagnosis is None:
-            return {
+            response = {
                 "status": "infeasible",
                 "conflicts": [],
                 "blocking_candidates": [],
@@ -69,6 +72,9 @@ class SchedulingService:
                 "message": result.message or "No valid schedule exists.",
                 "generated_valid_schedule": False,
             }
+            if has_solver_status:
+                response.update({"solver_status": solver_status, "can_confirm": False})
+            return response
         raw = diagnosis.model_dump(mode="json")
         logger.info(
             "schedule_infeasible solver_status=%s diagnosis_level=3 conflicts=%s",
@@ -88,7 +94,7 @@ class SchedulingService:
                 for existing in conflicts
             ):
                 conflicts.append(normalized)
-        return {
+        response = {
             "status": "infeasible",
             "conflicts": conflicts,
             "blocking_candidates": raw.get("blocking_candidates", []),
@@ -100,6 +106,9 @@ class SchedulingService:
             "strict_feasible": False,
             "minimum_shortage": raw.get("minimum_shortage", 0),
         }
+        if has_solver_status:
+            response.update({"solver_status": solver_status, "can_confirm": False})
+        return response
 
     def preview_scenario(
         self,
@@ -129,6 +138,7 @@ class SchedulingService:
             validation = normalize_validation(self.validator.validate(result.schedule, employee_list, context=context))
             return {
                 "status": "scenario_preview",
+                "solver_status": result.status.value,
                 "strict_feasible": True,
                 "target_week": week_start.isoformat(),
                 "schedule": result.schedule.model_dump(mode="json"),
@@ -138,6 +148,7 @@ class SchedulingService:
                 "coverage_gaps": [],
                 "conflicts": [],
                 "suggestions": [],
+                "can_confirm": False,
             }
         infeasible = self._infeasible_response(result)
         suggestions: list[dict[str, Any]] = []
@@ -193,6 +204,7 @@ class SchedulingService:
             "status": "scenario_preview",
             "strict_feasible": False,
             "target_week": week_start.isoformat(),
+            "can_confirm": False,
             "suggestions": suggestions,
         }
 
@@ -355,6 +367,79 @@ class SchedulingService:
             before_commit=before_commit,
             agent_turn_guard=agent_turn_guard,
         )
+
+    def promote_preview(
+        self,
+        *,
+        week_start: date,
+        preview: dict[str, Any],
+        changes: list[ScheduleChange],
+        metadata_extra: dict[str, Any] | None = None,
+        before_commit: Callable[[], None] | None = None,
+        agent_turn_guard: tuple[str, str, str] | None = None,
+    ) -> dict[str, Any]:
+        """Persist the exact assignments from a validated scenario preview."""
+        if not preview.get("strict_feasible") or not isinstance(preview.get("schedule"), dict):
+            raise SolverOutputError("当前场景没有可保存的严格可行候选")
+        employee_list, employee_revision = self.employees.list_with_revision()
+        base_record = self.schedules.current_confirmed_record_for_week(week_start)
+        base_schedule = base_record["schedule"] if base_record else None
+        base_version = base_schedule.version if base_schedule else None
+        validate_changes(changes, employee_list)
+        context = self.context_builder.build(
+            week_start,
+            base_schedule=base_schedule,
+            changes=changes,
+            minimize_changes=True,
+            employees=employee_list,
+            allow_history_bootstrap=True,
+        )
+        schedule = Schedule.model_validate(preview["schedule"]).model_copy(update={
+            "schedule_id": self._new_schedule_id(),
+            "version": (base_version + 1 if base_version is not None else 1),
+            "parent_schedule_id": base_schedule.schedule_id if base_schedule else None,
+            "status": ScheduleStatus.DRAFT,
+        })
+        validation = normalize_validation(
+            self.validator.validate(schedule, employee_list, context=context, rules=context.rules)
+        )
+        if not validation["passed"]:
+            raise SolverOutputError("场景预览在保存前未通过独立校验")
+        diff, impact = build_diff(base_schedule, schedule, context.requested_changes)
+        metadata = {
+            **dict(metadata_extra or {}),
+            "solver_status": preview.get("solver_status", "feasible"),
+            "metrics": dict(preview.get("metrics") or {}),
+            "diff": diff,
+            "impact": impact,
+            "requested_changes": [item.model_dump(mode="json") for item in changes],
+            "employee_revision": employee_revision,
+            "scenario_preview_promoted": True,
+        }
+        if before_commit is not None:
+            before_commit()
+        self.schedules.save_draft(
+            schedule,
+            lineage_id=(base_record["lineage_id"] if base_record else schedule.schedule_id),
+            base_schedule_id=base_schedule.schedule_id if base_schedule else None,
+            base_version=base_version,
+            validation=validation,
+            metadata=metadata,
+            employee_revision=employee_revision,
+            agent_turn_guard=agent_turn_guard,
+        )
+        return {
+            "status": "feasible",
+            "solver_status": preview.get("solver_status", "feasible"),
+            "schedule_id": schedule.schedule_id,
+            "version": schedule.version,
+            "schedule_status": "draft",
+            "schedule": schedule.model_dump(mode="json"),
+            "validation": validation,
+            "diff": diff,
+            "impact": impact,
+            "metrics": dict(preview.get("metrics") or {}),
+        }
 
     def replan(
         self,

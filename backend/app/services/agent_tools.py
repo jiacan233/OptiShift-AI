@@ -4,7 +4,7 @@ from collections import Counter
 from datetime import date
 from typing import Any, Callable
 
-from ..models import PatchOperation, Schedule, ScheduleChange, ScenarioPatch
+from ..models import ChangeType, PatchOperation, Schedule, ScheduleChange, ScenarioPatch
 from ..repository import EmployeeRepository, ScheduleRepository, ScenarioRepository
 from .rules import public_rules
 from .scheduling_service import SchedulingService
@@ -59,37 +59,59 @@ class AgentTools:
         target_week: date,
         changes: list[ScheduleChange],
         operation: str = "add",
+        operations: list[dict[str, Any]] | None = None,
         expected_revision: int | None = None,
         employee_ids: list[str] | None = None,
     ) -> dict[str, Any]:
         current = self.get_current_schedule(target_week=target_week)
         base = current.get("display")
         base_schedule = Schedule.model_validate(base["schedule"]) if base else None
-        grouped: dict[str, list] = {}
-        for change in changes:
-            grouped.setdefault(change.employee_id, []).append(change.day)
-        if operation == "clear":
-            for employee_id in employee_ids or []:
-                grouped.setdefault(employee_id, [])
-        state = None
-        for employee_id, days in grouped.items():
-            change_type = changes[0].type if changes else "leave"
-            # Removing availability restores the scenario's leave patch; the
-            # reducer must address the existing leave constraint rather than
-            # creating a separate `available` bucket.
-            if operation == "remove" and change_type.value == "available":
-                change_type = "leave"
-            state = self.scenarios.upsert_patch(
-                conversation_id,
-                target_week,
+        if operations:
+            # Preserve the model's ordered, per-item operation semantics.  Do
+            # not regroup a mixed ADD/REMOVE/SET request into one global action.
+            patches = []
+            for item in operations:
+                item_operation = str(item.get("operation") or operation)
+                item_day = item.get("day")
+                item_type = ChangeType(item.get("type") or ChangeType.LEAVE.value)
+                if item_operation == "remove" and item_type is ChangeType.AVAILABLE:
+                    item_type = ChangeType.LEAVE
+                patches.append(ScenarioPatch(
+                    employee_id=str(item["employee_id"]),
+                    operation=item_operation,
+                    days=[item_day] if item_day is not None else [],
+                    change_type=item_type,
+                ))
+        else:
+            grouped: dict[tuple[str, ChangeType], list] = {}
+            for change in changes:
+                change_type = change.type
+                # AVAILABLE is the structured representation of removing a leave
+                # condition; keep the stored constraint type stable for the reducer.
+                if operation == "remove" and change_type.value == "available":
+                    change_type = ChangeType.LEAVE
+                grouped.setdefault((change.employee_id, change_type), []).append(change.day)
+            patches = [
                 ScenarioPatch(
                     employee_id=employee_id,
                     operation=operation,
-                    days=days,
+                    days=list(dict.fromkeys(days)),
                     change_type=change_type,
-                ),
-                expected_revision=expected_revision if state is None else None,
+                )
+                for (employee_id, change_type), days in grouped.items()
+            ]
+        if operation == "clear":
+            patches.extend(
+                ScenarioPatch(employee_id=employee_id, operation=operation, days=[])
+                for employee_id in (employee_ids or [])
+                if not any(item.employee_id == employee_id for item in patches)
             )
+        state = self.scenarios.upsert_patches(
+            conversation_id,
+            target_week,
+            patches,
+            expected_revision=expected_revision,
+        ) if patches else self.scenarios.get(conversation_id, target_week)
         state = state or self.scenarios.get(conversation_id, target_week)
         patches = state.patches if state else []
         result = self.scheduling.preview_scenario(
@@ -124,6 +146,27 @@ class AgentTools:
         state = self.scenarios.get(conversation_id, target_week)
         if state is None:
             raise ValueError("当前周没有可保存的场景试排")
+        preview = self.scenarios.get_preview_result(conversation_id, target_week)
+        if preview and preview.get("strict_feasible") and isinstance(preview.get("schedule"), dict):
+            changes = [
+                ScheduleChange(employee_id=patch.employee_id, type=patch.change_type, day=day)
+                for patch in state.patches
+                for day in patch.days
+            ]
+            return self.scheduling.promote_preview(
+                week_start=target_week,
+                preview=preview,
+                changes=changes,
+                metadata_extra={
+                    "agent_conversation_id": source_conversation_id,
+                    "agent_client_message_id": source_client_message_id,
+                    "agent_user_message_id": source_user_message_id,
+                    "scenario_revision": state.revision,
+                    "scenario_persisted": True,
+                },
+                before_commit=_before_commit,
+                agent_turn_guard=_turn_guard,
+            )
         changes = [
             ScheduleChange(employee_id=patch.employee_id, type=patch.change_type, day=day)
             for patch in state.patches
