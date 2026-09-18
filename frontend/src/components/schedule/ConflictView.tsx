@@ -1,8 +1,10 @@
 import { AlertOctagon, Ban, ShieldAlert } from 'lucide-react'
 import { DAY_LABELS, localizeMessage, rulePresentation, SHIFT_LABELS } from '@/lib/presentation'
 import type { InfeasibleResult } from '@/types'
+import type { Employee } from '@/types'
+import { ScheduleGrid } from '@/components/schedule/ScheduleGrid'
 
-export function ConflictView({ result }: { result: InfeasibleResult }) {
+export function ConflictView({ result, employees = [] }: { result: InfeasibleResult; employees?: Employee[] }) {
   const conflicts = Array.isArray(result.conflicts) ? result.conflicts : []
   const diagnosisSummary = typeof result.diagnosis?.summary === 'string'
     ? localizeMessage(result.diagnosis.summary, result.diagnosis.summary)
@@ -11,8 +13,10 @@ export function ConflictView({ result }: { result: InfeasibleResult }) {
     <section className="panel overflow-hidden border-red-200">
       <div className="flex items-start gap-3 bg-red-50 p-5">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-red-100 text-red-700"><AlertOctagon className="h-5 w-5" /></span>
-        <div><p className="eyebrow !text-red-500">排班求解结果 · 当前不可行</p><h2 className="mt-1 text-lg font-extrabold text-red-900">系统未生成违规排班</h2><p className="mt-1 text-sm text-red-700">{localizeMessage(result.message, '当前人员条件无法同时满足全部硬约束。')}</p></div>
+        <div><p className="eyebrow !text-red-500">{result.status === 'scenario_preview' ? 'Scenario Preview · 仅供试排' : '排班求解结果 · 当前不可行'}</p><h2 className="mt-1 text-lg font-extrabold text-red-900">{result.status === 'scenario_preview' && result.strict_feasible ? '场景试排可行' : '系统未生成正式排班'}</h2><p className="mt-1 text-sm text-red-700">{localizeMessage(result.message, '当前人员条件无法同时满足全部硬约束。')}</p>{result.scenario_revision !== undefined && <p className="mt-1 text-xs font-semibold text-red-600">场景版本 {result.scenario_revision} · 不会写入正式版本历史</p>}</div>
       </div>
+      {result.preview_schedule && employees.length > 0 && <div className="border-t border-amber-200 bg-amber-50/40 p-5"><h3 className="mb-3 text-sm font-extrabold text-amber-900">最接近可行的试排结果</h3><ScheduleGrid schedule={result.preview_schedule} employees={employees} onSelectShift={() => undefined} /></div>}
+      {Array.isArray(result.suggestions) && result.suggestions.length > 0 && <div className="border-t border-slate-200 bg-white p-5"><h3 className="mb-3 text-sm font-extrabold text-ink">已验证的调整建议</h3><div className="grid gap-2 md:grid-cols-2">{result.suggestions.slice(0, 4).map((suggestion) => <div key={String(suggestion.id ?? suggestion.suggestion_id)} className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="text-sm font-bold text-ink">{String(suggestion.title ?? '方案')}</p><p className="mt-1 text-xs leading-5 text-slate-600">{String(suggestion.description ?? '')}</p>{suggestion.based_on_scenario_revision !== undefined && <p className="mt-2 text-[11px] font-semibold text-teal-700">基于场景版本 {String(suggestion.based_on_scenario_revision)}，已通过严格求解验证</p>}</div>)}</div></div>}
       <div className="grid gap-4 p-5 lg:grid-cols-2">
         <div>
           <h3 className="mb-3 flex items-center gap-2 text-sm font-extrabold text-ink"><ShieldAlert className="h-4 w-4 text-red-600" />覆盖缺口</h3>

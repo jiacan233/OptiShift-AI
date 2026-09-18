@@ -109,12 +109,44 @@ class DiagnosticSolver:
 
         diagnostic_conflicts: list[DiagnosticConflict] = []
         blocking_candidates: list[CandidateBlocking] = []
+        preview_schedule = None
         if diagnostic_status in {SolverStatus.OPTIMAL, SolverStatus.FEASIBLE}:
+            minimum_shortage = sum(
+                solver.Value(variable) for variable in built.staffing_slacks.values()
+            )
+            # Phase B: retain the minimum shortage from Phase A, then optimize
+            # the same preference, workload, and change objectives used by a
+            # normal schedule solve.
+            built.model.Add(sum(built.staffing_slacks.values()) == minimum_shortage)
+            built.model.ClearObjective()
+            weights = context.rules.objective
+            objective = weights.preference_reward * sum(built.preference_terms)
+            if built.workload_gap is not None:
+                objective -= weights.workload_gap_penalty * built.workload_gap
+            if built.change_terms:
+                objective -= weights.schedule_change_penalty * sum(built.change_terms)
+            built.model.Maximize(objective)
+            phase_b_solver = cp_model.CpSolver()
+            phase_b_solver.parameters.max_time_in_seconds = context.rules.max_time_seconds
+            phase_b_solver.parameters.random_seed = context.rules.random_seed
+            phase_b_solver.parameters.num_search_workers = context.rules.num_search_workers
+            phase_b_status = _solver_status(phase_b_solver.Solve(built.model))
+            if phase_b_status in {SolverStatus.OPTIMAL, SolverStatus.FEASIBLE}:
+                solver = phase_b_solver
+                diagnostic_status = phase_b_status
             assignments = [
                 Assignment(employee_id=employee_id, day=day, shift=shift)
                 for (employee_id, day, shift), variable in built.assignment_vars.items()
                 if solver.Value(variable)
             ]
+            from ..models import Schedule, ScheduleStatus
+            preview_schedule = Schedule(
+                schedule_id=f"preview_{week_start.isoformat().replace('-', '')}",
+                version=1,
+                status=ScheduleStatus.DRAFT,
+                week_start=week_start,
+                assignments=assignments,
+            )
             for (rule_id, day, shift), slack in built.staffing_slacks.items():
                 shortage = solver.Value(slack)
                 if shortage <= 0:
@@ -148,6 +180,9 @@ class DiagnosticSolver:
             diagnostic_conflicts=diagnostic_conflicts,
             blocking_candidates=blocking_candidates,
             summary=summary,
+            preview_schedule=preview_schedule,
+            minimum_shortage=sum(item.shortage for item in diagnostic_conflicts),
+            coverage_gaps=[item.model_dump(mode="json") for item in diagnostic_conflicts],
         )
 
 

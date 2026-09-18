@@ -47,12 +47,25 @@ class IntentParser:
         self.resolver = resolver or EntityResolver()
 
     @staticmethod
-    def extract_day(prompt: str) -> Day | None:
+    def extract_days(prompt: str) -> list[Day]:
         normalized = prompt.lower()
+        found: list[Day] = []
         for day, tokens in DAY_TOKENS.items():
-            if any(token in normalized for token in tokens):
-                return day
-        return None
+            if any(re.search(rf"(?<![a-z]){re.escape(token)}(?![a-z])", normalized) if token.isascii() else token in normalized for token in tokens):
+                found.append(day)
+        ranges = [(Day.MON, Day.TUE, "周一到周二"), (Day.MON, Day.WED, "周一到周三"), (Day.MON, Day.THU, "周一到周四"), (Day.MON, Day.FRI, "周一到周五"), (Day.MON, Day.SAT, "周一到周六"), (Day.MON, Day.SUN, "周一到周日")]
+        for start, end, token in ranges:
+            if token in normalized:
+                start_index = list(DAY_TOKENS).index(start)
+                end_index = list(DAY_TOKENS).index(end)
+                found = list(DAY_TOKENS)[start_index : end_index + 1]
+                break
+        return list(dict.fromkeys(found))
+
+    @staticmethod
+    def extract_day(prompt: str) -> Day | None:
+        days = IntentParser.extract_days(prompt)
+        return days[0] if days else None
 
     def parse(
         self,
@@ -69,14 +82,15 @@ class IntentParser:
         elif any(token in normalized for token in ("validate", "校验", "检查排班")):
             intent = RequestIntent.VALIDATE
 
-        day = self.extract_day(text)
+        days = self.extract_days(text)
+        day = days[0] if days else None
         minimize = any(
             token in normalized
             for token in ("尽量少", "不要动", "最小调整", "minimal", "minimize", "preserve")
         )
         changes: list[ScheduleChange] = []
         leave_language = any(
-            token in normalized for token in ("请假", "别排", "不排", "不可工作", "unavailable", "leave")
+            token in normalized for token in ("请假", "请周", "只请", "仅请", "别排", "不排", "不可工作", "unavailable", "leave")
         )
 
         explicit_ids = sorted(
@@ -110,8 +124,9 @@ class IntentParser:
         if day is not None and leave_language:
             if explicit_ids:
                 changes = [
-                    ScheduleChange(employee_id=employee_id, type=ChangeType.LEAVE, day=day)
+                    ScheduleChange(employee_id=employee_id, type=ChangeType.LEAVE, day=item_day)
                     for employee_id in explicit_ids
+                    for item_day in days
                 ]
             elif any(token in normalized for token in ("所有店长", "所有经理", "all manager")):
                 managers = [
@@ -120,8 +135,9 @@ class IntentParser:
                     if "manager" in {skill.value for skill in employee.skills}
                 ]
                 changes = [
-                    ScheduleChange(employee_id=employee.id, type=ChangeType.LEAVE, day=day)
+                    ScheduleChange(employee_id=employee.id, type=ChangeType.LEAVE, day=item_day)
                     for employee in managers
+                    for item_day in days
                 ]
             elif any(token in normalized for token in ("兼职", "part-time", "part time", "那个")):
                 resolution = self.resolver.resolve(text, employees, day=day).as_dict()
@@ -130,8 +146,9 @@ class IntentParser:
                         ScheduleChange(
                             employee_id=resolution["employee"]["id"],
                             type=ChangeType.LEAVE,
-                            day=day,
+                            day=item_day,
                         )
+                        for item_day in days
                     ]
                 else:
                     return ParsedIntent(intent, [], minimize, resolution)

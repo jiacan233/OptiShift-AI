@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from ..core import HistoryUnavailableError
-from ..models import ChangeType, Schedule, ScheduleChange
+from ..models import ChangeType, Day, Schedule, ScheduleChange
 from ..repository import (
     ConversationBusyError,
     ConversationNotFoundError,
@@ -263,6 +263,14 @@ class AgentService:
             "diagnosis": compact_diagnosis,
             "message": result.get("message") or "No valid schedule exists.",
             "generated_valid_schedule": False,
+            "preview_schedule": result.get("preview_schedule"),
+            "coverage_gaps": [
+                item for item in (result.get("coverage_gaps") or []) if isinstance(item, dict)
+            ][:12],
+            "strict_feasible": False,
+            "suggestions": [
+                item for item in (result.get("suggestions") or []) if isinstance(item, dict)
+            ][:4],
         }
 
     def _close_running_tool_calls(
@@ -544,6 +552,7 @@ class AgentService:
             "trusted_action",
             "error",
             "infeasible_result",
+            "scenario_preview",
         }
         result = []
         for item in messages[-12:]:
@@ -1162,13 +1171,71 @@ class AgentService:
                 }
             )
         elif suggestion is not None and route.mutation_requested:
-            suggestion_action = suggestion.get("action", "replan")
-            if suggestion_action == "generate":
-                if (
-                    suggestion.get("based_on_schedule_id") is not None
-                    or suggestion.get("based_on_version") is not None
-                    or suggestion.get("proposed_changes")
-                ):
+            scenario_patch = suggestion.get("scenario_patch")
+            if isinstance(scenario_patch, dict):
+                try:
+                    patch_days = [Day(str(item)) for item in scenario_patch.get("days", [])]
+                    patch_type = ChangeType(str(scenario_patch.get("change_type", "leave")))
+                    scenario_changes = [
+                        ScheduleChange(
+                            employee_id=str(scenario_patch["employee_id"]),
+                            type=patch_type,
+                            day=day,
+                        )
+                        for day in patch_days
+                    ]
+                except (KeyError, ValueError) as exc:
+                    self._complete_failure(
+                        conversation_id=conversation_id,
+                        browser_workspace_id=browser_workspace_id,
+                        client_message_id=client_message_id,
+                        owner_token=owner_token,
+                        user_message=user_message,
+                        code="scenario_patch_invalid",
+                        message="该建议的临时条件已失效，无法应用。",
+                        status_code=422,
+                        intent=route.intent.value,
+                    )
+                    raise AssertionError("unreachable") from exc
+                route = route.model_copy(
+                    update={
+                        "intent": AgentIntent.WHAT_IF,
+                        "changes": scenario_changes,
+                        "employees": [str(scenario_patch["employee_id"])],
+                        "mutation_requested": True,
+                    }
+                )
+                suggestion = None
+            else:
+                suggestion_action = suggestion.get("action", "replan")
+                if suggestion_action == "generate":
+                    if (
+                        suggestion.get("based_on_schedule_id") is not None
+                        or suggestion.get("based_on_version") is not None
+                        or suggestion.get("proposed_changes")
+                    ):
+                        self._complete_failure(
+                            conversation_id=conversation_id,
+                            browser_workspace_id=browser_workspace_id,
+                            client_message_id=client_message_id,
+                            owner_token=owner_token,
+                            user_message=user_message,
+                            code="invalid_agent_action",
+                            message="生成建议包含无效的排班版本引用。",
+                            status_code=422,
+                            intent=route.intent.value,
+                        )
+                        raise AssertionError("unreachable")
+                    route = route.model_copy(
+                        update={
+                            "intent": AgentIntent.GENERATE,
+                            "changes": [],
+                            "employees": [],
+                        }
+                    )
+                elif suggestion_action == "replan":
+                    route = route.model_copy(update={"intent": AgentIntent.REPLAN})
+                else:
                     self._complete_failure(
                         conversation_id=conversation_id,
                         browser_workspace_id=browser_workspace_id,
@@ -1176,33 +1243,11 @@ class AgentService:
                         owner_token=owner_token,
                         user_message=user_message,
                         code="invalid_agent_action",
-                        message="生成建议包含无效的排班版本引用。",
+                        message="建议操作类型无效。",
                         status_code=422,
                         intent=route.intent.value,
                     )
                     raise AssertionError("unreachable")
-                route = route.model_copy(
-                    update={
-                        "intent": AgentIntent.GENERATE,
-                        "changes": [],
-                        "employees": [],
-                    }
-                )
-            elif suggestion_action == "replan":
-                route = route.model_copy(update={"intent": AgentIntent.REPLAN})
-            else:
-                self._complete_failure(
-                    conversation_id=conversation_id,
-                    browser_workspace_id=browser_workspace_id,
-                    client_message_id=client_message_id,
-                    owner_token=owner_token,
-                    user_message=user_message,
-                    code="invalid_agent_action",
-                    message="建议操作类型无效。",
-                    status_code=422,
-                    intent=route.intent.value,
-                )
-                raise AssertionError("unreachable")
         try:
             target = self._resolve_week(
                 content=content,
@@ -1260,10 +1305,78 @@ class AgentService:
             schedule_result = None
             tool_output: dict[str, Any] | None = current
             metadata: dict[str, Any] = {}
+            save_scenario_requested = any(
+                token in content.lower()
+                for token in ("保存当前方案", "采用当前方案", "生成正式草稿")
+            )
+            scenario_requested = route.intent is AgentIntent.WHAT_IF or any(
+                token in content.lower()
+                for token in (
+                    "能排吗", "能排不", "这样呢", "行不行", "重新试", "试排", "what if",
+                    "只请", "仅请", "也请", "取消", "撤销", "恢复可用", "不用请假",
+                    "帮排",
+                )
+            )
+            if scenario_requested:
+                schedule_result = self._run_tool(
+                    conversation_id=conversation_id,
+                    browser_workspace_id=browser_workspace_id,
+                    message_id=user_message["message_id"],
+                    owner_token=owner_token,
+                    tool_name="preview_scenario",
+                    inputs={
+                        "conversation_id": conversation_id,
+                        "target_week": target.week_start,
+                        "changes": list(route.changes),
+                        "employee_ids": list(route.employees),
+                        "operation": (
+                            "clear" if any(token in content.lower() for token in ("清掉", "清除", "恢复全部", "clear"))
+                            else "remove" if any(token in content.lower() for token in ("取消", "撤销", "恢复可用", "不用请假", "remove"))
+                            else "set" if any(token in content.lower() for token in ("只", "仅", "only", "set"))
+                            else "add"
+                        ),
+                    },
+                    trace=trace,
+                )
+                tool_output = schedule_result
+                metadata["scenario_preview"] = dict(schedule_result)
+                metadata["scenario_revision"] = schedule_result.get("scenario_revision", 0)
+                metadata["infeasible_result"] = dict(schedule_result)
+                metadata["suggestions"] = list(schedule_result.get("suggestions") or [])
             write_allowed = (
                 route.intent in self.WRITE_INTENTS and route.mutation_requested
             )
-            if write_allowed:
+            if save_scenario_requested:
+                if current.get("draft") is not None:
+                    pending = current["draft"]
+                    raise DraftPendingError(target.week_start, pending["schedule_id"], pending["version"])
+                schedule_result = self._run_tool(
+                    conversation_id=conversation_id,
+                    browser_workspace_id=browser_workspace_id,
+                    message_id=user_message["message_id"],
+                    owner_token=owner_token,
+                    tool_name="save_scenario",
+                    inputs={
+                        "conversation_id": conversation_id,
+                        "target_week": target.week_start,
+                        "source_conversation_id": conversation_id,
+                        "source_client_message_id": client_message_id,
+                        "source_user_message_id": user_message["message_id"],
+                        "_before_commit": lambda: self.conversations.renew_turn(
+                            conversation_id,
+                            browser_workspace_id,
+                            message_id=user_message["message_id"],
+                            owner_token=owner_token,
+                        ),
+                        "_turn_guard": (conversation_id, user_message["message_id"], owner_token),
+                    },
+                    trace=trace,
+                )
+                tool_output = schedule_result
+                if schedule_result.get("status") == "feasible":
+                    metadata["generated_draft_id"] = schedule_result.get("schedule_id")
+                    metadata["generated_draft_version"] = schedule_result.get("version")
+            elif write_allowed and not scenario_requested:
                 if current.get("draft") is not None:
                     pending = current["draft"]
                     raise DraftPendingError(
@@ -1354,6 +1467,29 @@ class AgentService:
                                 current, schedule_result, target.week_start
                             )
                     elif schedule_result.get("status") == "infeasible":
+                        # A failed first generation still establishes the
+                        # conversation's scenario. Follow-up messages can then
+                        # SET/ADD/REMOVE constraints even when no draft exists.
+                        if route.changes:
+                            schedule_result = self._run_tool(
+                                conversation_id=conversation_id,
+                                browser_workspace_id=browser_workspace_id,
+                                message_id=user_message["message_id"],
+                                owner_token=owner_token,
+                                tool_name="preview_scenario",
+                                inputs={
+                                    "conversation_id": conversation_id,
+                                    "target_week": target.week_start,
+                                    "changes": list(route.changes),
+                                    "employee_ids": list(route.employees),
+                                    "operation": "add",
+                                },
+                                trace=trace,
+                            )
+                            tool_output = schedule_result
+                            metadata["scenario_preview"] = dict(schedule_result)
+                            metadata["scenario_revision"] = schedule_result.get("scenario_revision", 0)
+                            metadata["suggestions"] = list(schedule_result.get("suggestions") or [])
                         metadata["infeasible_result"] = dict(schedule_result)
             elif route.intent is AgentIntent.ADVICE:
                 tool_output = self._run_tool(
@@ -1404,7 +1540,13 @@ class AgentService:
                     trace=trace,
                 )
 
-            if schedule_result and schedule_result.get("status") == "feasible":
+            if schedule_result and schedule_result.get("status") == "scenario_preview":
+                revision = schedule_result.get("scenario_revision", 0)
+                if schedule_result.get("strict_feasible"):
+                    response_content = f"场景试排可行（场景版本 {revision}），结果仅供预览，未创建正式草稿。"
+                else:
+                    response_content = f"场景试排仍不可行（场景版本 {revision}）。我已返回最接近可行的试排结果和覆盖缺口，正式排班未改变。"
+            elif schedule_result and schedule_result.get("status") == "feasible":
                 response_content = (
                     f"已生成{target.iso_year}年第{target.iso_week}周排班草稿 "
                     f"v{schedule_result['version']}。请在工作台检查后手动确认。"
@@ -1600,7 +1742,8 @@ class AgentService:
             content=response_content,
             intent=route.intent.value,
             mutation_requested=(
-                route.intent in self.WRITE_INTENTS and route.mutation_requested
+                (route.intent in self.WRITE_INTENTS or route.intent is AgentIntent.WHAT_IF)
+                and route.mutation_requested
             ),
             target_week=target.week_start,
             referenced_schedule_id=(display or {}).get("schedule_id"),

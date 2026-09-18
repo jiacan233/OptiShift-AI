@@ -6,7 +6,9 @@ from typing import Any, Callable
 from uuid import uuid4
 
 from ..models import (
+    PatchOperation,
     RequestIntent,
+    ScenarioPatch,
     Schedule,
     ScheduleChange,
     SolverStatus,
@@ -93,6 +95,105 @@ class SchedulingService:
             "diagnosis": raw,
             "message": raw.get("summary") or result.message or "No valid schedule exists.",
             "generated_valid_schedule": False,
+            "preview_schedule": raw.get("preview_schedule"),
+            "coverage_gaps": raw.get("coverage_gaps", []),
+            "strict_feasible": False,
+            "minimum_shortage": raw.get("minimum_shortage", 0),
+        }
+
+    def preview_scenario(
+        self,
+        *,
+        week_start: date,
+        patches: list[ScenarioPatch],
+        base_schedule: Schedule | None = None,
+    ) -> dict[str, Any]:
+        employee_list, _ = self.employees.list_with_revision()
+        changes: list[ScheduleChange] = []
+        for patch in patches:
+            if patch.operation is PatchOperation.CLEAR:
+                continue
+            for day in patch.days:
+                changes.append(ScheduleChange(employee_id=patch.employee_id, type=patch.change_type, day=day))
+        validate_changes(changes, employee_list)
+        context = self.context_builder.build(
+            week_start,
+            base_schedule=base_schedule,
+            changes=changes,
+            minimize_changes=True,
+            employees=employee_list,
+            allow_history_bootstrap=True,
+        )
+        result = self.solver.solve(context, week_start=week_start, version=1)
+        if result.status in {SolverStatus.OPTIMAL, SolverStatus.FEASIBLE} and result.schedule is not None:
+            validation = normalize_validation(self.validator.validate(result.schedule, employee_list, context=context))
+            return {
+                "status": "scenario_preview",
+                "strict_feasible": True,
+                "target_week": week_start.isoformat(),
+                "schedule": result.schedule.model_dump(mode="json"),
+                "preview_schedule": result.schedule.model_dump(mode="json"),
+                "validation": validation,
+                "metrics": dict(result.metrics),
+                "coverage_gaps": [],
+                "conflicts": [],
+                "suggestions": [],
+            }
+        infeasible = self._infeasible_response(result)
+        suggestions: list[dict[str, Any]] = []
+        # Verify a small deterministic set of repairs. A suggestion is never
+        # emitted from prose alone: each candidate is solved with the same
+        # strict model before it is returned.
+        for patch_index, patch in enumerate(patches):
+            if patch.change_type.value not in {"leave", "unavailable"} or not patch.days:
+                continue
+            for day in patch.days[:2]:
+                candidate_patches = [
+                    item.model_copy(
+                        update={"days": [value for value in item.days if value != day]}
+                    )
+                    for item in patches
+                ]
+                candidate_patches = [item for item in candidate_patches if item.days]
+                candidate_changes = [
+                    ScheduleChange(employee_id=item.employee_id, type=item.change_type, day=value)
+                    for item in candidate_patches
+                    for value in item.days
+                ]
+                candidate_context = self.context_builder.build(
+                    week_start,
+                    base_schedule=base_schedule,
+                    changes=candidate_changes,
+                    minimize_changes=True,
+                    employees=employee_list,
+                    allow_history_bootstrap=True,
+                )
+                candidate_result = self.solver.solve(candidate_context, week_start=week_start, version=1)
+                if candidate_result.status not in {SolverStatus.OPTIMAL, SolverStatus.FEASIBLE}:
+                    continue
+                suggestions.append({
+                    "id": f"repair_{patch_index + 1}_{day.value.lower()}",
+                    "suggestion_id": f"repair_{patch_index + 1}_{day.value.lower()}",
+                    "title": f"恢复 {patch.employee_id} {day.value} 可用",
+                    "description": f"移除 {patch.employee_id} 在 {day.value} 的临时限制后，严格 Solver 已验证可以生成完整排班。",
+                    "scenario_patch": {
+                        "employee_id": patch.employee_id,
+                        "operation": "remove",
+                        "days": [day.value],
+                        "change_type": patch.change_type.value,
+                    },
+                    "validation_result": {"status": "feasible", "strict_feasible": True},
+                })
+                if len(suggestions) >= 4:
+                    break
+            if len(suggestions) >= 4:
+                break
+        return {
+            **infeasible,
+            "status": "scenario_preview",
+            "strict_feasible": False,
+            "target_week": week_start.isoformat(),
+            "suggestions": suggestions,
         }
 
     def _complete_draft(

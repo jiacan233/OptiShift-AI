@@ -8,7 +8,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ..models import ChangeType, Day, Employee, ScheduleChange
-from .intent_parser import DAY_TOKENS
+from .intent_parser import DAY_TOKENS, IntentParser
 from .llm_client import AIUnavailableError, AgentLLMClient
 
 
@@ -27,6 +27,7 @@ class AgentIntent(StrEnum):
     ASK = "ask"
     CLARIFICATION = "clarification"
     OUT_OF_SCOPE = "out_of_scope"
+    WHAT_IF = "what_if"
 
 
 class AgentReference(BaseModel):
@@ -99,6 +100,11 @@ class AgentRouter:
                 employees=sorted({item.employee_id for item in trusted_action.changes}),
                 minimize_changes=trusted_action.minimize_changes,
             )
+        if any(token in content.lower() for token in (
+            "能排吗", "能排不", "这样呢", "行不行", "重新试", "试排", "what if",
+            "只请", "仅请", "也请", "取消", "撤销", "恢复可用", "不用请假",
+        )):
+            return self._deterministic_route(content, employees)
         if not self.llm.enabled:
             return self._deterministic_route(content, employees)
 
@@ -217,11 +223,7 @@ class AgentRouter:
 
     @staticmethod
     def _extract_day(content: str) -> Day | None:
-        normalized = content.lower()
-        for day, tokens in DAY_TOKENS.items():
-            if any(token in normalized for token in tokens):
-                return day
-        return None
+        return IntentParser.extract_day(content)
 
     @classmethod
     def _deterministic_route(
@@ -239,7 +241,7 @@ class AgentRouter:
         employee_ids = sorted(referenced_ids)
 
         reference = AgentReference()
-        ordinal = re.search(r"(?:第\s*([一二两三四五六七八九十\d]+)\s*条|suggestion[_ ]?(\d+))", normalized)
+        ordinal = re.search(r"(?:第\s*([一二两三四五六七八九十\d]+)\s*条|(?:suggestion|方案)[_ ]?(\d+))", normalized)
         if ordinal:
             raw = ordinal.group(1) or ordinal.group(2) or ""
             chinese = {"一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5}
@@ -254,16 +256,34 @@ class AgentRouter:
             "重新排",
             "重排",
             "帮我排",
+            "帮排",
             "排一版",
             "生成",
             "按这个改",
             "按第二条改",
             "replan",
             "generate",
+            "能排吗",
+            "这样呢",
+            "重新试",
+            "试排",
+            "what if",
+            "能排不",
+            "行不行",
+            "只请",
+            "仅请",
+            "也请",
+            "取消",
+            "撤销",
+            "恢复可用",
+            "不用请假",
+            "保存当前方案",
+            "采用当前方案",
+            "生成正式草稿",
         )
         mutation_requested = any(term in normalized for term in mutation_terms)
         reference_apply = reference.type != "none" and any(
-            term in normalized for term in ("调整", "改", "应用", "apply")
+            term in normalized for term in ("调整", "改", "应用", "按方案", "apply")
         )
         mutation_requested = mutation_requested or reference_apply
 
@@ -283,12 +303,17 @@ class AgentRouter:
         elif confirmation_only:
             intent = AgentIntent.ASK
             mutation_requested = False
+        elif any(term in normalized for term in (
+            "能排吗", "能排不", "这样呢", "行不行", "重新试", "试排", "what if",
+            "只请", "仅请", "也请", "取消", "撤销", "恢复可用", "不用请假",
+        )):
+            intent = AgentIntent.WHAT_IF
         elif reference_apply or any(
             term in normalized
             for term in ("重新排", "重排", "调整排班", "按这个改", "replan")
         ):
             intent = AgentIntent.REPLAN
-        elif any(term in normalized for term in ("生成", "排一版", "新排班", "generate")):
+        elif any(term in normalized for term in ("生成", "排一版", "新排班", "帮排", "保存当前方案", "采用当前方案", "生成正式草稿", "generate")):
             intent = AgentIntent.GENERATE
         elif any(term in normalized for term in ("校验", "检查排班", "违反规则", "validate")):
             intent = AgentIntent.VALIDATE
@@ -299,14 +324,23 @@ class AgentRouter:
         else:
             intent = AgentIntent.ASK
 
-        day = cls._extract_day(text)
-        leave = any(term in normalized for term in ("请假", "不可工作", "别排", "leave", "unavailable"))
+        days = IntentParser.extract_days(text)
+        day = days[0] if days else None
+        leave = any(term in normalized for term in (
+            "请假", "请周", "只请", "仅请", "也请", "不可工作", "别排", "leave", "unavailable",
+        ))
+        remove_leave = any(term in normalized for term in ("取消", "撤销", "恢复可用", "不用请假", "remove"))
         changes = (
             [
-                ScheduleChange(employee_id=employee_id, type=ChangeType.LEAVE, day=day)
+                ScheduleChange(
+                    employee_id=employee_id,
+                    type=ChangeType.AVAILABLE if remove_leave else ChangeType.LEAVE,
+                    day=item_day,
+                )
                 for employee_id in employee_ids
+                for item_day in days
             ]
-            if day is not None and leave
+            if days and leave
             else []
         )
 

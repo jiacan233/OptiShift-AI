@@ -245,3 +245,30 @@ class AgentToolCallRecord(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="running")
     created_at: Mapped[datetime] = mapped_column(AGENT_DATETIME, nullable=False)
     finished_at: Mapped[datetime | None] = mapped_column(AGENT_DATETIME)
+
+
+class ConversationScenarioRecord(Base):
+    __tablename__ = "conversation_scenarios"
+    __table_args__ = (
+        UniqueConstraint(
+            "conversation_id", "week_start", name="uq_conversation_scenarios_week"
+        ),
+        Index(
+            "idx_conversation_scenarios_conversation_updated",
+            "conversation_id",
+            "updated_at",
+        ),
+    )
+
+    scenario_id: Mapped[str] = mapped_column(AGENT_ID, primary_key=True)
+    conversation_id: Mapped[str] = mapped_column(
+        AGENT_ID,
+        ForeignKey("conversations.conversation_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    week_start: Mapped[date] = mapped_column(Date, nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    temporary_constraints: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    last_strict_result: Mapped[dict | None] = mapped_column(JSON)
+    last_preview_result: Mapped[dict | None] = mapped_column(JSON)
+    updated_at: Mapped[datetime] = mapped_column(AGENT_DATETIME, nullable=False)

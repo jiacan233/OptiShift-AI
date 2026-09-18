@@ -10,7 +10,7 @@ function reasonText(reason: BlockingCandidate['reasons'][number]) {
 
 export function InfeasibleSummary({ message }: { message: AgentMessage }) {
   const result = message.metadata_json?.infeasible_result
-  if (!result || result.status !== 'infeasible') return null
+  if (!result || !['infeasible', 'scenario_preview'].includes(result.status)) return null
   const conflicts: Conflict[] = Array.isArray(result.conflicts) ? result.conflicts.slice(0, 3) : []
   const candidates: BlockingCandidate[] = Array.isArray(result.blocking_candidates)
     ? result.blocking_candidates.slice(0, 5)
@@ -32,7 +32,7 @@ export function InfeasibleSummary({ message }: { message: AgentMessage }) {
       <div className="flex items-start gap-2">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
         <div className="min-w-0">
-          <p className="text-xs font-extrabold text-red-900">当前约束下无法生成{targetLabel}排班</p>
+          <p className="text-xs font-extrabold text-red-900">{result.status === 'scenario_preview' ? `场景试排结果 · ${targetLabel}` : `当前约束下无法生成${targetLabel}排班`}</p>
           {result.message && <p className="mt-1 text-[11px] leading-5 text-red-700">{localizeMessage(result.message, result.message)}</p>}
         </div>
       </div>

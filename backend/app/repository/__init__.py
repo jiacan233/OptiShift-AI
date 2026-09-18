@@ -15,6 +15,7 @@ from .schedules import (
     ScheduleNotFoundError,
     VersionConflictError,
 )
+from .scenarios import ScenarioRepository, ScenarioRevisionConflict
 
 __all__ = [
     "ConversationNotFoundError",
@@ -32,4 +33,6 @@ __all__ = [
     "ScheduleNotFoundError",
     "ToolCallNotFoundError",
     "VersionConflictError",
+    "ScenarioRepository",
+    "ScenarioRevisionConflict",
 ]

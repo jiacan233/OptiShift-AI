@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..database import database
-from ..repository import ConversationRepository, EmployeeRepository, ScheduleRepository
+from ..repository import ConversationRepository, EmployeeRepository, ScheduleRepository, ScenarioRepository
 from ..services.agent_router import AgentRouter
 from ..services.agent_service import AgentService
 from ..services.agent_tools import AgentTools
@@ -13,11 +13,12 @@ from ..services.scheduling_service import SchedulingService
 
 employee_repository = EmployeeRepository(database)
 schedule_repository = ScheduleRepository(database)
+scenario_repository = ScenarioRepository(database)
 scheduling_service = SchedulingService(employee_repository, schedule_repository)
 conversation_repository = ConversationRepository(database)
 agent_llm_client = AgentLLMClient()
 agent_router = AgentRouter(agent_llm_client)
-agent_tools = AgentTools(employee_repository, schedule_repository, scheduling_service)
+agent_tools = AgentTools(employee_repository, schedule_repository, scheduling_service, scenario_repository)
 agent_service = AgentService(
     conversation_repository,
     employee_repository,

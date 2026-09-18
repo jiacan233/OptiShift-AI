@@ -52,7 +52,7 @@ export function ScheduleWorkbench() {
       </section>
 
       {store.isLoadingWeek && <section className="panel flex items-center justify-center gap-2 p-8 text-sm font-semibold text-slate-500"><LoaderCircle className="h-5 w-5 animate-spin text-teal-600" />正在读取这一周的排班…</section>}
-      {store.infeasibleResult && <ConflictView result={store.infeasibleResult} />}
+      {store.infeasibleResult && <ConflictView result={store.infeasibleResult} employees={store.employees} />}
 
       {!store.isLoadingWeek && active ? (
         <>

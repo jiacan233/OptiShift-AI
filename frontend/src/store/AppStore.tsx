@@ -84,7 +84,7 @@ function reducer(state: WorkbenchState, action: Action): WorkbenchState {
   if (action.result.status === 'clarification_required') {
     return { ...state, clarification: action.result.clarification, conflicts: [], infeasibleResult: null, isRunning: false }
   }
-  if (action.result.status === 'infeasible') {
+  if (action.result.status === 'infeasible' || action.result.status === 'scenario_preview') {
     return {
       ...state,
       conflicts: action.result.conflicts,
@@ -102,6 +102,9 @@ function reducer(state: WorkbenchState, action: Action): WorkbenchState {
       clarification: null,
       error: { code: action.result.status, message: action.result.message },
     }
+  }
+  if (!('schedule' in action.result) || !action.result.schedule) {
+    return { ...state, isRunning: false }
   }
   const schedule = action.result.schedule
   const isConfirmed = schedule.status === 'confirmed' || action.result.schedule_status === 'confirmed'

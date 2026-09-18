@@ -147,6 +147,7 @@ class Database:
                 "conversations",
                 "conversation_messages",
                 "agent_tool_calls",
+                "conversation_scenarios",
             }
             missing = sorted(required - tables)
             if missing:

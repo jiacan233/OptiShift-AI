@@ -83,11 +83,11 @@ function latestInfeasibleMutation(messages: AgentMessage[], targetWeek: string):
       message.role !== 'assistant'
       || message.target_week !== targetWeek
       || !message.mutation_requested
-      || !['generate', 'replan'].includes(message.intent ?? '')
+      || !['generate', 'replan', 'what_if'].includes(message.intent ?? '')
     ) continue
 
     const result = message.metadata_json?.infeasible_result
-    return result?.status === 'infeasible' ? result : null
+    return result && (result.status === 'infeasible' || result.status === 'scenario_preview') ? result : null
   }
   return null
 }

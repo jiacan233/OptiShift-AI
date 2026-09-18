@@ -7,7 +7,7 @@ export type ScheduleStatus = 'draft' | 'confirmed' | 'cancelled'
 export type RunAction = 'generate' | 'leave' | 'freeform'
 export type PageId = 'schedule' | 'employees' | 'rules'
 export type ScheduleView = 'shift' | 'employee'
-export type AgentIntent = 'generate' | 'replan' | 'validate' | 'advice' | 'explain' | 'ask' | 'clarification' | 'out_of_scope'
+export type AgentIntent = 'generate' | 'replan' | 'validate' | 'advice' | 'explain' | 'ask' | 'clarification' | 'out_of_scope' | 'what_if'
 
 export interface Employee {
   id: string
@@ -150,12 +150,26 @@ export interface FeasibleResult {
 }
 
 export interface InfeasibleResult {
-  status: 'infeasible'
+  status: 'infeasible' | 'scenario_preview'
   conflicts: Conflict[]
   blocking_candidates?: BlockingCandidate[]
   diagnosis?: InfeasibleDiagnosis | null
   generated_valid_schedule?: false
   message?: string
+  strict_feasible?: boolean
+  scenario_revision?: number
+  target_week?: string
+  preview_schedule?: Schedule | null
+  coverage_gaps?: Conflict[]
+  scenario_patches?: unknown[]
+  suggestions?: Array<Record<string, unknown>>
+}
+
+export interface ScenarioPreviewResult extends InfeasibleResult {
+  status: 'scenario_preview'
+  strict_feasible: boolean
+  scenario_revision: number
+  target_week: string
 }
 
 export interface EntityNotFoundResult {
@@ -175,7 +189,7 @@ export interface ClarificationResult {
   clarification: ClarificationState
 }
 
-export type ScheduleOperationResult = FeasibleResult | InfeasibleResult | ClarificationResult | EntityNotFoundResult | SolverUnknownResult
+export type ScheduleOperationResult = FeasibleResult | InfeasibleResult | ScenarioPreviewResult | ClarificationResult | EntityNotFoundResult | SolverUnknownResult
 
 export interface ScheduleChange {
   employee_id: string
@@ -247,6 +261,7 @@ export interface AgentMessage {
     generated_draft_id?: string
     generated_draft_version?: number
     infeasible_result?: InfeasibleResult
+    scenario_preview?: ScenarioPreviewResult
     [key: string]: unknown
   }
   created_at: string

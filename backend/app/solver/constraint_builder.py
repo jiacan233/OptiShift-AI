@@ -179,9 +179,12 @@ class ConstraintBuilder:
                 change_terms.append(changed)
 
         if diagnostic:
+            # Diagnostic/repair solving is performed in two phases by
+            # DiagnosticSolver. Phase A minimizes only the explicit coverage
+            # gap; Phase B fixes that minimum and restores the normal business
+            # objective so the preview is not needlessly sparse.
             total_shortage = sum(staffing_slacks.values())
-            total_assignments = sum(assignment_vars.values())
-            model.Minimize(10_000 * total_shortage + total_assignments)
+            model.Minimize(total_shortage)
         else:
             weights = rules.objective
             objective = weights.preference_reward * sum(preference_terms)

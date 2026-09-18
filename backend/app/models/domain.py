@@ -70,6 +70,13 @@ class RequestIntent(StringEnum):
     VALIDATE = "validate"
 
 
+class PatchOperation(StringEnum):
+    SET = "set"
+    ADD = "add"
+    REMOVE = "remove"
+    CLEAR = "clear"
+
+
 class ChangeType(StringEnum):
     LEAVE = "leave"
     UNAVAILABLE = "unavailable"
@@ -293,6 +300,9 @@ class DiagnosisResult(StrictModel):
     blocking_candidates: list[CandidateBlocking] = Field(default_factory=list)
     summary: str
     generated_valid_schedule: Literal[False] = False
+    preview_schedule: Schedule | None = None
+    minimum_shortage: int = 0
+    coverage_gaps: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class SolverResult(StrictModel):
@@ -302,3 +312,38 @@ class SolverResult(StrictModel):
     metrics: dict[str, Any] = Field(default_factory=dict)
     diagnosis: DiagnosisResult | None = None
     message: str | None = None
+
+
+class ScenarioPatch(StrictModel):
+    employee_id: str = Field(min_length=1)
+    operation: PatchOperation = PatchOperation.ADD
+    days: list[Day] = Field(default_factory=list)
+    change_type: ChangeType = ChangeType.LEAVE
+
+    @field_validator("days")
+    @classmethod
+    def unique_days(cls, values: list[Day]) -> list[Day]:
+        if len(values) != len(set(values)):
+            raise ValueError("days must be unique")
+        return values
+
+
+class ScenarioState(StrictModel):
+    conversation_id: str
+    week_start: date
+    revision: int = Field(default=0, ge=0)
+    patches: list[ScenarioPatch] = Field(default_factory=list)
+    updated_at: datetime | None = None
+
+
+class ScenarioPreview(StrictModel):
+    status: Literal["scenario_preview"] = "scenario_preview"
+    target_week: date
+    scenario_revision: int = Field(ge=0)
+    strict_feasible: bool
+    schedule: Schedule | None = None
+    preview_schedule: Schedule | None = None
+    conflicts: list[dict[str, Any]] = Field(default_factory=list)
+    coverage_gaps: list[dict[str, Any]] = Field(default_factory=list)
+    suggestions: list[dict[str, Any]] = Field(default_factory=list)
+    message: str
