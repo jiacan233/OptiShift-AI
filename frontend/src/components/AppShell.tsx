@@ -19,11 +19,7 @@ export function AppShell({
   const [mobile, setMobile] = useState(false)
 
   return (
-    <div
-      className={`min-h-screen bg-[#F4F7FC] pl-16 md:pl-20 transition-[padding] duration-200 ${
-        agentOpen ? 'lg:pr-[380px] xl:pr-[440px]' : ''
-      }`}
-    >
+    <div className="min-h-screen bg-[#F4F7FC] pl-16 md:pl-20">
       <SlimSidebar
         activeTab={page}
         setActiveTab={(tab) => onPageChange(tab as PageId)}

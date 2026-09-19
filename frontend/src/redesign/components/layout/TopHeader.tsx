@@ -37,49 +37,44 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-200/60">
-      {/* Left: Title & Concise Global Solver Status */}
-      <div className="flex items-center gap-3">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
-              {activeTabTitle}
-            </h1>
-
-          </div>
-          {subTitle && (
-            <div className="mt-0.5 text-xs font-semibold text-slate-400">
-              {subTitle}
+      {/* Left: Title & Week Date Picker (Row 1) + Subtitle (Row 2) */}
+      <div className="flex flex-col gap-1.5 min-w-0">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
+            {activeTabTitle}
+          </h1>
+          {weekSelector ? (
+            weekSelector
+          ) : (
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200/80 rounded-2xl px-2 py-1 shadow-xs">
+              <button
+                type="button"
+                onClick={onPrevWeek}
+                className="w-7 h-7 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition"
+                aria-label="上一周"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="px-2.5 text-xs md:text-sm font-semibold text-slate-800 tracking-tight select-none">
+                {currentWeekText}
+              </span>
+              <button
+                type="button"
+                onClick={onNextWeek}
+                className="w-7 h-7 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition"
+                aria-label="下一周"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           )}
         </div>
+        {subTitle && (
+          <div className="text-xs font-semibold text-slate-400">
+            {subTitle}
+          </div>
+        )}
       </div>
-
-      {/* Middle: Week Date Picker */}
-      {weekSelector ? (
-        weekSelector
-      ) : (
-        <div className="flex items-center gap-1.5 bg-white border border-slate-200/80 rounded-2xl px-2 py-1 shadow-xs">
-          <button
-            type="button"
-            onClick={onPrevWeek}
-            className="w-7 h-7 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition"
-            aria-label="上一周"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="px-2.5 text-xs md:text-sm font-semibold text-slate-800 tracking-tight select-none">
-            {currentWeekText}
-          </span>
-          <button
-            type="button"
-            onClick={onNextWeek}
-            className="w-7 h-7 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition"
-            aria-label="下一周"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
 
       {/* Right: Actions with Clear Visual Hierarchy */}
       <div className="flex items-center gap-2">

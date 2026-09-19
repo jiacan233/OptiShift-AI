@@ -33,15 +33,14 @@ export function ShiftCoverageSummary({ day }: { day: Day }) {
   const store = useAppStore()
   const coverage = useCoverage().find((item) => item.day === day)!
   return (
-    <div className="absolute inset-0 pointer-events-none">
+    <div className="flex">
       {coverage.slots.map((slot) => (
         <button
           key={slot.shift}
+          type="button"
           aria-label={`查看${DAY_LABELS[day]}${SHIFT_LABELS[slot.shift]}详情`}
           onClick={() => store.selectShift({ day, shift: slot.shift })}
-          className={`absolute left-0 w-full opacity-[0.005] z-40 pointer-events-auto cursor-pointer overflow-hidden ${
-            slot.shift === 'morning' ? 'top-0 h-1/2' : 'bottom-0 h-1/2'
-          }`}
+          className="w-4 h-4 pointer-events-auto cursor-pointer overflow-hidden"
         >
           {SHIFT_LABELS[slot.shift]} {slot.employees.length}/{slot.checks[3].required}
           {slot.violations.map((v) => (

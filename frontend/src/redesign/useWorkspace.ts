@@ -77,7 +77,7 @@ export const EMPLOYEE_ROSTER: Record<string, EmployeeRosterEntry> = {
     name: '刘畅 (E10)',
     role: '店员',
     avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
-    preferredShift: 'none',
+    preferredShift: 'evening',
   },
   E11: {
     name: '钱佳 (E11)',

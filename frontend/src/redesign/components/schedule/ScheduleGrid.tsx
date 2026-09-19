@@ -10,7 +10,6 @@ interface ScheduleGridProps {
   daysHeader: { day: string; dayCn: string; date: number; fullDate: string }[]
   onSelectEmployee?: (employee: Employee) => void
   onSwapClick?: () => void
-  renderDaySummary?: (day: string) => React.ReactNode
 }
 
 export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
@@ -19,7 +18,6 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   daysHeader,
   onSelectEmployee,
   onSwapClick,
-  renderDaySummary,
 }) => {
   // Lightweight Filter States
   const [searchQuery, setSearchQuery] = useState('')
@@ -205,14 +203,13 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
               </div>
 
               {daysHeader.map((col) => (
-                <div key={col.day} className="text-center relative">
+                <div key={col.day} className="text-center">
                   <div className="text-[11px] font-semibold text-slate-400">
                     {col.day} ({col.dayCn})
                   </div>
                   <div className="text-sm font-extrabold text-slate-800">
                     {col.fullDate.slice(5).replace('-', '/')}
                   </div>
-                  {renderDaySummary?.(col.day)}
                 </div>
               ))}
             </div>
