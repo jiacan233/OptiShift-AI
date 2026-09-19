@@ -108,6 +108,9 @@ export interface ShiftCoverage {
   managerCount: number
   baristaCount: number
   cashierCount: number
+  managerRequired: number
+  beverageRequired: number
+  cashierRequired: number
 }
 
 export interface DayCoverage {
