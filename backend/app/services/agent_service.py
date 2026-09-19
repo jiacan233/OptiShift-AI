@@ -35,6 +35,8 @@ from .llm_client import AgentLLMClient, AIUnavailableError
 from .request_validator import validate_changes
 from .read_query import normalize_plan, tool_for_plan
 from .read_response import compose_read_answer, READ_ONLY_NOTICE
+from .product_knowledge import compose_product_help, resolve_product_topics
+from .turn_semantics import AgentDomain, non_scheduling_semantics
 
 _INFEASIBLE_RULE_NAMES = {
     "R01": "店长覆盖不足",
@@ -366,6 +368,7 @@ class AgentService:
             "target_week": target.week_start.isoformat(),
             "context": {**target.as_dict()},
             "clarification": {"required": True, "question": question},
+            "turn_semantics": self._semantics_metadata(route),
             "tool_call_ids": [item["tool_call_id"] for item in trace],
         }
         return self.conversations.finalize_turn(
@@ -388,6 +391,46 @@ class AgentService:
                 "tool_calls": trace,
                 "schedule_result": None,
             },
+        )
+
+    @staticmethod
+    def _semantics_metadata(route: AgentRoute) -> dict[str, str]:
+        return {"domain": route.domain.value, "speech_act": route.speech_act.value,
+                "classification_source": route.classification_source}
+
+    def _finalize_non_scheduling_turn(self, *, conversation_id, browser_workspace_id,
+                                      client_message_id, owner_token, user_message, content, route):
+        metadata = {"turn_semantics": self._semantics_metadata(route), "tool_call_ids": []}
+        if route.domain == AgentDomain.PRODUCT:
+            with execution_stage("product_lookup"):
+                topics = resolve_product_topics("确认按钮" if AgentRouter._confirmation_only(content) else content)
+            metadata["product_help"] = {
+                "topic_id": topics[0][0].id if topics else None,
+                "matched_alias": topics[0][1] if topics else None,
+                "topics": [{"topic_id": entry.id, "matched_alias": alias} for entry, alias in topics],
+            }
+            response = compose_product_help(topics)
+            if not topics:
+                metadata["fallback_reason"] = "product_topic_unresolved"
+        else:
+            with execution_stage("response_compose"):
+                response = ("你好！可以问我排班或工作台功能。" if route.domain == AgentDomain.SMALLTALK
+                            else "我主要帮助处理排班和工作台功能问题。可以问我当前排班、规则或草稿流程。")
+        run = getattr(self.router, "last_run", None)
+        if run and run.error_type:
+            metadata["fallback_reason"] = run.error_type
+        self.conversations.annotate_user_message(
+            conversation_id, browser_workspace_id, user_message["message_id"],
+            intent=route.intent.value, mutation_requested=False, target_week=None,
+            metadata=metadata, owner_token=owner_token,
+        )
+        return self.conversations.finalize_turn(
+            conversation_id, browser_workspace_id, client_message_id=client_message_id,
+            owner_token=owner_token, content=response, intent=route.intent.value,
+            mutation_requested=False, target_week=None, referenced_schedule_id=None,
+            referenced_version=None, metadata=metadata,
+            result_fields={"intent": route.intent.value, "mutation_requested": False,
+                           "context": None, "tool_calls": [], "schedule_result": None},
         )
 
     def _close_running_tool_calls(
@@ -1312,7 +1355,8 @@ class AgentService:
         prior_messages = [
             item for item in messages if item["message_id"] != user_message["message_id"]
         ]
-        employees = self.employees.list()
+        static_turn = trusted_action is None and (non_scheduling_semantics(content) or AgentRouter._confirmation_only(content))
+        employees = [] if static_turn else self.employees.list()
         conversation = self.conversations.get_conversation(
             conversation_id, browser_workspace_id
         )
@@ -1352,6 +1396,15 @@ class AgentService:
                 error_details=exc.public_details,
             )
             raise AssertionError("unreachable")
+
+        # Product help and smalltalk are grounded, side-effect-free turns.
+        # They must finish before week resolution or any scheduling tool call.
+        if trusted_action is None and route.domain != AgentDomain.SCHEDULING:
+            return self._finalize_non_scheduling_turn(
+                conversation_id=conversation_id, browser_workspace_id=browser_workspace_id,
+                client_message_id=client_message_id, owner_token=owner_token,
+                user_message=user_message, content=content, route=route,
+            )
 
         self.conversations.renew_turn(
             conversation_id,
@@ -1533,7 +1586,7 @@ class AgentService:
             )
             schedule_result = None
             tool_output: dict[str, Any] | None = current
-            metadata: dict[str, Any] = {}
+            metadata: dict[str, Any] = {"turn_semantics": self._semantics_metadata(route)}
             read_plan = route.read_query if (
                 route.read_query and route.intent in {AgentIntent.ASK, AgentIntent.EXPLAIN, AgentIntent.ADVICE, AgentIntent.VALIDATE}
                 and suggestion is None and route.read_query.question_type != "general_question"
@@ -1541,7 +1594,7 @@ class AgentService:
             if route.read_query:
                 metadata["query_plan"] = route.read_query.model_dump(mode="json")
             save_scenario_requested = any(
-                token in content.lower()
+                route.mutation_requested and token in content.lower()
                 for token in ("保存当前方案", "采用当前方案", "生成正式草稿")
             )
             scenario_requested = (

@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from backend.app.database import DEMO_EMPLOYEES
 from backend.app.models import Employee
 from backend.app.services.agent_router import (
-    AgentRoute, AgentRouter, ForcePlan, MutationPlan, RouterDecision, TrustedAgentAction,
+    AgentDomain, AgentRoute, AgentRouter, ForcePlan, MutationPlan, RouterDecision, SpeechAct, TrustedAgentAction,
     UnknownAgentEmployeeError, agent_route_json_schema, lite_router_json_schema,
 )
 from backend.app.services.llm_client import AgentLLMClient, AIUnavailableError, strict_json_schema, validate_strict_json_schema
@@ -22,7 +22,7 @@ def employees():
 
 
 def decision(**kwargs):
-    return {"intent": "ask", "mutation_requested": False, "employees": [],
+    return {"intent": "ask", "domain": "scheduling", "speech_act": "question", "mutation_requested": False, "employees": [],
             "force_or_override_intent": False, "clarification_required": False,
             "question_type": "general_question", **kwargs}
 
@@ -201,6 +201,34 @@ def test_fast_paths_never_call_llm(router_factory, employees):
     router.llm.enabled = False
     assert route(router, employees, "生成本周排班").mutation_requested
     assert not calls
+
+
+@pytest.mark.parametrize("text", ["你能重新排班吗？", "你会生成排班吗？", "你能强制生成吗？", "重新排班是怎么工作的？"])
+def test_capability_questions_are_non_mutating(router_factory, employees, text):
+    router, _ = router_factory(decision())
+    result = route(router, employees, text)
+    assert result.domain is AgentDomain.PRODUCT
+    assert result.speech_act in {SpeechAct.CAPABILITY_QUESTION, SpeechAct.EXPLANATION_REQUEST}
+    assert not result.mutation_requested
+    assert not result.force_generate
+    assert result.requested_overrides == []
+    assert result.forced_assignments == []
+
+
+@pytest.mark.parametrize("text", ["帮我生成本周排班", "请重新排一下", "E01 周一请假，帮我重新排一下", "能不能帮我重新排一下？"])
+def test_action_requests_remain_actions(router_factory, employees, text):
+    router, _ = router_factory(decision(), {"operations": [operation()] if "E01" in text else [], "minimize_changes": False, "clarification": None})
+    result = route(router, employees, text)
+    assert result.domain is AgentDomain.SCHEDULING
+    assert result.mutation_requested
+
+
+@pytest.mark.parametrize("text", ["确认生效是干嘛的？", "为什么要有草稿？", "员工视图和日期视图有什么区别？", "检测 AI 是做什么的？", "你好", "谢谢"])
+def test_product_and_smalltalk_domains(router_factory, employees, text):
+    router, _ = router_factory(decision())
+    result = route(router, employees, text)
+    assert result.domain in {AgentDomain.PRODUCT, AgentDomain.SMALLTALK}
+    assert not result.mutation_requested
 
 
 def test_current_read_never_inherits_suggestion(router_factory, employees):

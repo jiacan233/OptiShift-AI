@@ -65,6 +65,9 @@ def is_counterfactual(content: str) -> bool:
 
 def is_read_only_question(content: str) -> bool:
     """Feasibility questions do not authorize a draft or scenario mutation."""
+    from .turn_semantics import non_scheduling_semantics
+    if non_scheduling_semantics(content):
+        return True
     if re.search(r"帮我.*(?:试排|排一下)|生成看看|重新排|就这么排|给我出一版|试排一下|请.*生成", content, re.I):
         return False
     return bool(re.search(r"能不能|行不行|能排吗|能排不|是否可以|可不可以|只是问|(?:如果|假如).*(?:会|怎样|如何)|can .* be scheduled", content, re.I))

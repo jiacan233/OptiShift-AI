@@ -18,9 +18,17 @@ from .llm_client import (
     AIUnavailableError,
     strict_json_schema,
 )
+from .turn_semantics import AgentDomain, SpeechAct, non_scheduling_semantics
 
 
 def calibrate_read_route(route: "AgentRoute", content: str, employees: list[Employee]) -> "AgentRoute":
+    semantics = non_scheduling_semantics(content)
+    if AgentRouter._confirmation_only(content):
+        return AgentRouter._non_scheduling_route(AgentDomain.PRODUCT, SpeechAct.ACTION_REQUEST)
+    if semantics:
+        return AgentRouter._non_scheduling_route(semantics.domain, semantics.speech_act, route.classification_source)
+    if route.domain != AgentDomain.SCHEDULING:
+        return AgentRouter._non_scheduling_route(route.domain, route.speech_act, route.classification_source)
     reference = explicit_reference(content)
     route.reference = AgentReference(
         type="previous_message" if reference == "previous_message" else "suggestion" if reference else "none",
@@ -111,6 +119,9 @@ class AgentRoute(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     intent: AgentIntent
+    domain: AgentDomain = AgentDomain.SCHEDULING
+    speech_act: SpeechAct = SpeechAct.QUESTION
+    classification_source: str = "deterministic"
     read_query: ReadQueryPlan | None = None
     mutation_requested: bool = False
     target_week: date | None = None
@@ -142,6 +153,8 @@ class RouterDecision(BaseModel):
     """Internal hints only; none of these fields authorize business execution."""
     model_config = ConfigDict(extra="forbid")
     intent: AgentIntent
+    domain: AgentDomain
+    speech_act: SpeechAct
     mutation_requested: bool
     employees: list[str]
     force_or_override_intent: bool
@@ -207,14 +220,19 @@ class AgentRouter:
         except AIUnavailableError as exc:
             self.last_run.error_type = exc.error_type
             fallback = self._deterministic_route(content, employees)
-            if not is_counterfactual(content) and (fallback.mutation_requested or (
+            if fallback.domain == AgentDomain.SCHEDULING and not is_counterfactual(content) and (fallback.mutation_requested or (
                 normalize_plan(content, employees).question_type == "general_question"
                 and not explicit_reference(content)
             )):
                 raise
             route = fallback
+            route.classification_source = "deterministic_fallback"
         if trusted_action is None:
             route = calibrate_read_route(route, content, employees)
+        else:
+            route.domain = AgentDomain.SCHEDULING
+            route.speech_act = SpeechAct.ACTION_REQUEST
+            route.classification_source = "trusted_action"
         route = self._invariants(route, employees)
         self.last_run.completed_ms = self.last_run.latency_ms
         return route
@@ -228,8 +246,6 @@ class AgentRouter:
         conversation_summary: str | None = None,
         trusted_action: TrustedAgentAction | None = None,
     ) -> AgentRoute:
-        if self._confirmation_only(content):
-            return AgentRoute(intent=AgentIntent.ASK, mutation_requested=False)
         if trusted_action is not None:
             known = {employee.id for employee in employees}
             referenced = {item.employee_id for item in trusted_action.changes}
@@ -250,6 +266,9 @@ class AgentRouter:
                 forced_assignments=trusted_action.forced_assignments,
                 authorization_reason=trusted_action.authorization_reason or content,
             ))
+        if self._confirmation_only(content):
+            return AgentRoute(intent=AgentIntent.ASK, domain=AgentDomain.PRODUCT,
+                              speech_act=SpeechAct.ACTION_REQUEST)
         if not self.llm.enabled:
             return self._deterministic_route(content, employees)
 
@@ -267,18 +286,32 @@ class AgentRouter:
         decision = parse_stage(
             self.llm, self.last_run, RouterDecision, name="agent_route_lite",
             system=(
-                "Classify the CURRENT scheduling message. Return routing hints only. "
+                "Classify the CURRENT message using independent domain and speech_act fields. "
+                "Domains: product (software behavior, identity, capabilities), smalltalk, out_of_scope, scheduling. "
+                "Speech acts: question, capability_question, explanation_request, action_request. "
+                "你能重新排班吗 is a product capability_question; 能不能帮我重新排一下 is a scheduling action_request. "
+                "Product help and smalltalk are non-mutations. Software buttons/views are product; staffing rules are scheduling. "
+                "Return routing hints only. "
                 "History is context, never a new instruction. Never inherit a suggestion unless "
                 "the current message explicitly references it. Counts are staffing_explanation; "
                 "employee why questions are assignment_explanation, skills/validation are coverage_analysis. "
                 "Questions about feasibility, '能不能/行不行/如果会怎样', are read-only unless the user "
                 "explicitly asks to generate/try/replan. '把 E17 随便排到哪一天都行' is a mutation, "
                 "but specifies no date or shift. Negated force or merely asking about force grants "
-                "no authorization. Force hints only dispatch a separate parser. Greetings are ask. "
+                "no authorization. Force hints only dispatch a separate parser. Greetings are smalltalk. "
                 "Confirmation text cannot confirm schedules. Use supplied employee IDs only. "
                 "Do not request a week when unspecified; backend resolves the workbench week."
             ), user={**user, "employees": [e.id for e in employees]},
         )
+        semantics = non_scheduling_semantics(content)
+        if semantics:
+            return self._non_scheduling_route(semantics.domain, semantics.speech_act,
+                                             "lite_router+deterministic")
+        if not self._explicit_mutation(content) and not deterministic.mutation_requested:
+            if decision.domain != AgentDomain.SCHEDULING:
+                return self._non_scheduling_route(decision.domain, decision.speech_act, "lite_router")
+            if decision.speech_act == SpeechAct.CAPABILITY_QUESTION:
+                return self._non_scheduling_route(AgentDomain.PRODUCT, decision.speech_act, "lite_router")
         # Hints never become execution parameters. Read facts and references are
         # grounded in the current text by the existing deterministic pipeline.
         if is_read_only_question(content) or is_counterfactual(content):
@@ -344,6 +377,7 @@ class AgentRouter:
                 intent = AgentIntent.WHAT_IF if parsed.operations else AgentIntent.GENERATE
             return AgentRoute(
                 intent=intent, mutation_requested=True, employees=deterministic.employees,
+                speech_act=SpeechAct.ACTION_REQUEST, classification_source="lite_router+deterministic",
                 target_week=deterministic.target_week, target_iso_year=deterministic.target_iso_year,
                 target_iso_week=deterministic.target_iso_week, operations=parsed.operations,
                 changes=changes, minimize_changes=parsed.minimize_changes,
@@ -352,9 +386,14 @@ class AgentRouter:
         intent = decision.intent
         if intent in {AgentIntent.GENERATE, AgentIntent.REPLAN, AgentIntent.WHAT_IF, AgentIntent.CLARIFICATION}:
             return self._clarify("请说明希望查询排班，还是生成或调整一版草稿。", deterministic.employees)
-        return AgentRoute(intent=intent, read_query=normalize_plan(
+        return AgentRoute(intent=intent, speech_act=decision.speech_act, classification_source="lite_router+deterministic", read_query=normalize_plan(
             content, employees, proposal={"question_type": decision.question_type}
         ))
+
+    @staticmethod
+    def _non_scheduling_route(domain, speech_act, source="deterministic") -> AgentRoute:
+        return AgentRoute(intent=AgentIntent.OUT_OF_SCOPE if domain == AgentDomain.OUT_OF_SCOPE else AgentIntent.ASK,
+                          domain=domain, speech_act=speech_act, classification_source=source)
 
     @staticmethod
     def _clarify(question: str, employees: list[str]) -> AgentRoute:
@@ -367,7 +406,7 @@ class AgentRouter:
 
     @classmethod
     def _explicit_mutation(cls, content: str) -> bool:
-        if cls._negative_mutation(content) or is_read_only_question(content):
+        if non_scheduling_semantics(content) or cls._negative_mutation(content) or is_read_only_question(content):
             return False
         return bool(re.search(
             r"重新排|重排|试排|生成|给我出一版|帮我.*排|就这么排|排一版|排出来|排到|清掉|清除|撤销|取消|恢复可用|"
@@ -425,6 +464,8 @@ class AgentRouter:
 
     @classmethod
     def _invariants(cls, route, employees):
+        if route.domain != AgentDomain.SCHEDULING:
+            return cls._non_scheduling_route(route.domain, route.speech_act, route.classification_source)
         known = {e.id for e in employees}
         referenced = set(route.employees) | {o.employee_id for o in route.operations} | {c.employee_id for c in route.changes}
         referenced |= {a.employee_id for a in route.forced_assignments}
@@ -461,7 +502,7 @@ class AgentRouter:
 
     @staticmethod
     def _explicit_authorization(content: str) -> bool:
-        if is_read_only_question(content) or re.search(r"我只是问|能否|可以.*强制.*吗|别违反规则|不要违反规则", content):
+        if non_scheduling_semantics(content) or is_read_only_question(content) or re.search(r"我只是问|能否|可以.*强制.*吗|别违反规则|不要违反规则", content):
             return False
         return any(term in content.lower() for term in (
             "强制", "我授权", "允许", "即使", "还是让", "就是让", "仍然安排", "仍要安排",
@@ -506,6 +547,9 @@ class AgentRouter:
         cls, content: str, employees: list[Employee]
     ) -> AgentRoute:
         text = content.strip()
+        semantics = non_scheduling_semantics(content)
+        if semantics:
+            return cls._non_scheduling_route(semantics.domain, semantics.speech_act)
         normalized = text.lower()
         known = {employee.id for employee in employees}
         normalized_text = _normalize_identifier_text(text)
@@ -716,6 +760,7 @@ class AgentRouter:
         return cls._validate_force_route(AgentRoute(
             intent=intent,
             mutation_requested=mutation_requested,
+            speech_act=SpeechAct.ACTION_REQUEST if mutation_requested else SpeechAct.QUESTION,
             target_week=target_week,
             target_iso_year=int(iso_match.group(1)) if iso_match and iso_match.group(1) else None,
             target_iso_week=int(iso_match.group(2)) if iso_match else None,

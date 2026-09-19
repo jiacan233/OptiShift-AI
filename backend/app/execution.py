@@ -24,6 +24,8 @@ from .config import positive_seconds
 logger = logging.getLogger("optishift.execution")
 
 LABELS = {
+    "product_lookup": "查询产品知识",
+    "response_compose": "组织回复",
     "turn_started": "已收到请求",
     "agent_route": "理解排班请求",
     "agent_route_lite": "Agent Router",
