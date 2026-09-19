@@ -10,11 +10,55 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from ..execution import traced
 from ..models import Assignment, ChangeType, Day, Employee, OverrideScope, ScheduleChange, Shift
 from .intent_parser import DAY_TOKENS, IntentParser, _normalize_identifier_text
+from .read_query import ReadQueryPlan, explicit_reference, is_counterfactual, normalize_plan
 from .llm_client import (
     AgentLLMClient,
     AIUnavailableError,
     strict_json_schema,
 )
+
+
+def calibrate_read_route(route: "AgentRoute", content: str, employees: list[Employee]) -> "AgentRoute":
+    reference = explicit_reference(content)
+    route.reference = AgentReference(
+        type="previous_message" if reference == "previous_message" else "suggestion" if reference else "none",
+        suggestion_id=reference if reference and reference != "previous_message" else None,
+    )
+    plan = normalize_plan(content, employees, proposal=route.read_query)
+    deterministic = AgentRouter._deterministic_route(content, employees)
+    if reference and re.search(r"(?:按|就用|采用|应用).*(?:条|建议|方案|suggestion)|^(?:apply|use)\b", content, re.I):
+        deterministic.intent = AgentIntent.REPLAN
+        deterministic.mutation_requested = True
+    explicit_read = (
+        not deterministic.mutation_requested and plan.question_type != "general_question"
+        and not (deterministic.intent is AgentIntent.ADVICE and deterministic.changes)
+    )
+    if is_counterfactual(content) or (explicit_read and route.intent is not AgentIntent.VALIDATE):
+        route = route.model_copy(update={
+            "intent": AgentIntent.EXPLAIN, "mutation_requested": False, "changes": [],
+            "operations": [], "force_generate": False, "override_requested": False,
+            "requested_overrides": [], "forced_assignments": [],
+            "clarification": AgentClarification(),
+        })
+    if reference and not deterministic.mutation_requested:
+        route.intent = AgentIntent.EXPLAIN
+        route.mutation_requested = False
+    if reference and deterministic.mutation_requested:
+        route.intent = deterministic.intent
+        route.mutation_requested = True
+    if route.intent in {AgentIntent.ASK, AgentIntent.EXPLAIN, AgentIntent.ADVICE, AgentIntent.VALIDATE} and not route.changes:
+        route.read_query = plan
+        route.employees = plan.employee_ids
+        route.target_week = None
+        route.target_iso_year = None
+        route.target_iso_week = None
+        if plan.clarification:
+            route.intent = AgentIntent.CLARIFICATION
+            route.mutation_requested = False
+            route.clarification = AgentClarification(required=True, question=plan.clarification)
+    elif route.intent in {AgentIntent.GENERATE, AgentIntent.REPLAN, AgentIntent.WHAT_IF}:
+        route.read_query = None
+    return route
 
 
 class UnknownAgentEmployeeError(ValueError):
@@ -63,6 +107,7 @@ class AgentRoute(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     intent: AgentIntent
+    read_query: ReadQueryPlan | None = None
     mutation_requested: bool = False
     target_week: date | None = None
     target_iso_year: int | None = Field(default=None, ge=0, le=9999)
@@ -114,6 +159,23 @@ class AgentRouter:
 
     @traced("agent_route")
     def route(
+        self, content: str, *, employees: list[Employee], recent_messages: list[dict[str, Any]],
+        conversation_summary: str | None = None, trusted_action: TrustedAgentAction | None = None,
+    ) -> AgentRoute:
+        try:
+            route = self._route(content, employees=employees, recent_messages=recent_messages,
+                                conversation_summary=conversation_summary, trusted_action=trusted_action)
+        except (AIUnavailableError, UnknownAgentEmployeeError):
+            fallback = self._deterministic_route(content, employees)
+            if not is_counterfactual(content) and (fallback.mutation_requested or (
+                normalize_plan(content, employees).question_type == "general_question"
+                and not explicit_reference(content)
+            )):
+                raise
+            route = fallback
+        return calibrate_read_route(route, content, employees) if trusted_action is None else route
+
+    def _route(
         self,
         content: str,
         *,
@@ -151,6 +213,16 @@ class AgentRouter:
         payload = self.llm.complete_json(
             system=(
                 "Route a scheduling assistant message into the supplied JSON schema. "
+                "For read-only ASK/EXPLAIN/ADVICE populate read_query with question_type and "
+                "requested_facts. A question about removing an assignment is a read-only "
+                "counterfactual, not replan or what_if. Only explicitly referenced suggestions "
+                "may set reference; concrete schedule questions never inherit a suggestion. "
+                "The backend supplies the workbench week when unspecified: do not ask which "
+                "week merely because history mentions other weeks. Skill eligibility of assigned "
+                "people and rule validation are coverage_analysis. Employee why/absence and "
+                "employee removal questions are assignment_explanation. Counts are staffing_explanation; "
+                "only inability to produce a schedule is feasibility_explanation. Explicit suggestion "
+                "explanations use general_question with reference_mode suggestion. "
                 "Separate analysis from mutation: advice about leave is read only unless the "
                 "user explicitly asks to generate or replan. Never treat confirmation words as "
                 "permission to confirm a schedule; confirmation remains a UI-only action. Use "

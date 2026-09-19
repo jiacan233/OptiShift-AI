@@ -13,6 +13,8 @@ const TOOL_LABELS: Record<string, string> = {
   list_rules: '已读取排班规则',
   validate_schedule: '已调用排班校验器',
   analyze_schedule: '已分析当前排班',
+  analyze_staffing: '已计算人数、技能覆盖和排班事实',
+  analyze_counterfactual: '已只读验证移除和替代方案，未修改排班',
   generate_schedule: '已调用确定性排班求解器',
   replan_schedule: '已调用确定性重排求解器',
 }

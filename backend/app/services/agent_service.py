@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import date, timedelta
 from threading import Event, Thread
 from typing import Any, NoReturn
@@ -27,10 +28,13 @@ from .agent_router import (
     AgentRouter,
     TrustedAgentAction,
     UnknownAgentEmployeeError,
+    calibrate_read_route,
 )
 from .agent_tools import AgentTools
 from .llm_client import AgentLLMClient, AIUnavailableError
 from .request_validator import validate_changes
+from .read_query import normalize_plan, tool_for_plan
+from .read_response import compose_read_answer, READ_ONLY_NOTICE
 
 _INFEASIBLE_RULE_NAMES = {
     "R01": "店长覆盖不足",
@@ -663,6 +667,13 @@ class AgentService:
         if route.reference.type == "none":
             return None
         suggestion_id = route.reference.suggestion_id
+        ordinal = re.fullmatch(r"suggestion_(\d+)", suggestion_id or "")
+        if ordinal:
+            for message in reversed(messages):
+                candidates = (message.get("metadata") or {}).get("suggestions")
+                if isinstance(candidates, list) and candidates:
+                    index = int(ordinal.group(1)) - 1
+                    return candidates[index] if 0 <= index < len(candidates) else None
         if route.reference.type == "previous_message" and suggestion_id is None:
             for message in reversed(messages):
                 metadata = message.get("metadata") or {}
@@ -676,7 +687,7 @@ class AgentService:
                         return candidate
             return None
         for suggestion in cls._suggestions(messages):
-            if suggestion.get("id") == suggestion_id:
+            if (suggestion.get("id") or suggestion.get("suggestion_id")) == suggestion_id:
                 return suggestion
         return None
 
@@ -808,7 +819,7 @@ class AgentService:
             content=content,
             route=route,
             current_week_start=current_week_start,
-            recent_messages=messages,
+            recent_messages=[] if route.read_query and current_week_start and route.reference.type == "none" else messages,
             referenced_week=referenced_week,
             trusted_week=trusted_week,
         )
@@ -938,7 +949,7 @@ class AgentService:
             return (
                 f"“{suggestion.get('title', '该建议')}”基于排班 v"
                 f"{suggestion.get('based_on_version')} 的真实指标提出。"
-                f"{suggestion.get('description', '')} 只有重新求解并校验后，才能确认具体改动可行。"
+                f"{suggestion.get('description', '')} 只有重新求解并校验后，才能确认具体改动可行。{READ_ONLY_NOTICE}"
             )
         display_validation = ((tool_output or {}).get("display") or {}).get("validation") or {}
         if display_validation.get("compliance_status") == "authorized_violations":
@@ -1244,6 +1255,9 @@ class AgentService:
                 conversation_summary=(conversation or {}).get("summary"),
                 trusted_action=trusted_action,
             )
+            if trusted_action is None:
+                # Enforce the boundary even for a custom/injected router.
+                route = calibrate_read_route(route, content, employees)
         except UnknownAgentEmployeeError as exc:
             self._complete_failure(
                 conversation_id=conversation_id,
@@ -1331,9 +1345,10 @@ class AgentService:
                         "changes": scenario_changes,
                         "employees": [str(scenario_patch["employee_id"])],
                         "mutation_requested": True,
+                        "operations": [],
+                        "operation": str(scenario_patch.get("operation", "remove")),
                     }
                 )
-                suggestion = None
             else:
                 suggestion_action = suggestion.get("action", "replan")
                 if suggestion_action == "generate":
@@ -1398,6 +1413,12 @@ class AgentService:
                 recent_messages=prior_messages,
             )
 
+        if route.read_query is not None and route.intent is not AgentIntent.CLARIFICATION:
+            route.read_query = normalize_plan(content, employees, target_week=target.week_start, proposal=route.read_query)
+            if route.read_query.clarification:
+                route.intent = AgentIntent.CLARIFICATION
+                route.clarification = AgentClarification(required=True, question=route.read_query.clarification)
+
         annotate = getattr(self.conversations, "annotate_user_message", None)
         if annotate is not None:
             annotate(
@@ -1438,12 +1459,18 @@ class AgentService:
                 message_id=user_message["message_id"],
                 owner_token=owner_token,
                 tool_name="get_current_schedule",
-                inputs={"target_week": target.week_start},
+                inputs={"target_week": target.week_start, **({"version": route.read_query.version} if route.read_query and route.read_query.version else {})},
                 trace=trace,
             )
             schedule_result = None
             tool_output: dict[str, Any] | None = current
             metadata: dict[str, Any] = {}
+            read_plan = route.read_query if (
+                route.read_query and route.intent in {AgentIntent.ASK, AgentIntent.EXPLAIN, AgentIntent.ADVICE, AgentIntent.VALIDATE}
+                and suggestion is None and route.read_query.question_type != "general_question"
+            ) else None
+            if route.read_query:
+                metadata["query_plan"] = route.read_query.model_dump(mode="json")
             save_scenario_requested = any(
                 token in content.lower()
                 for token in ("保存当前方案", "采用当前方案", "生成正式草稿")
@@ -1454,7 +1481,24 @@ class AgentService:
                 and not route.clarification.required
                 and bool(route.operations or route.changes or route.operation == "clear")
             )
-            if scenario_requested:
+            if read_plan:
+                tool_output = self._run_tool(
+                    conversation_id=conversation_id, browser_workspace_id=browser_workspace_id,
+                    message_id=user_message["message_id"], owner_token=owner_token,
+                    tool_name=tool_for_plan(read_plan),
+                    inputs={"target_week": target.week_start, "plan": read_plan.model_dump(mode="json"),
+                            "snapshot": current.get("display"), "conversation_id": conversation_id}, trace=trace,
+                )
+            elif scenario_requested:
+                if suggestion is not None:
+                    if suggestion.get("target_week") != target.week_start.isoformat():
+                        raise StaleSuggestionError("该建议目标周已变化，请重新获取建议。")
+                    state = self.tools.scenarios.get(conversation_id, target.week_start)
+                    if suggestion.get("based_on_scenario_revision") != (state.revision if state else 0):
+                        raise StaleSuggestionError("场景条件已变化，请重新获取建议。")
+                    display = current.get("display") or {}
+                    if (suggestion.get("based_on_schedule_id"), suggestion.get("based_on_version")) != (display.get("schedule_id"), display.get("version")):
+                        raise StaleSuggestionError("该建议所依据的排班版本已变化，请重新获取建议。")
                 schedule_result = self._run_tool(
                     conversation_id=conversation_id,
                     browser_workspace_id=browser_workspace_id,
@@ -1468,6 +1512,7 @@ class AgentService:
                         "operations": [item.model_dump(mode="json") for item in route.operations],
                         "employee_ids": list(route.employees),
                         "operation": route.operation,
+                        "expected_revision": suggestion.get("based_on_scenario_revision") if suggestion else None,
                     },
                     trace=trace,
                 )
@@ -1480,7 +1525,9 @@ class AgentService:
             write_allowed = (
                 route.intent in self.WRITE_INTENTS and route.mutation_requested
             )
-            if save_scenario_requested:
+            if read_plan:
+                pass  # Read dispatch above is complete; never fall through to legacy tools.
+            elif save_scenario_requested:
                 if current.get("draft") is not None:
                     pending = current["draft"]
                     raise DraftPendingError(target.week_start, pending["schedule_id"], pending["version"])
@@ -1685,7 +1732,13 @@ class AgentService:
                     trace=trace,
                 )
 
-            if schedule_result and schedule_result.get("status") == "scenario_preview":
+            if read_plan:
+                response_content, composition = compose_read_answer(
+                    self.llm, question=content, plan=read_plan, facts=tool_output,
+                )
+                metadata["read_analysis"] = tool_output
+                metadata["read_composition"] = composition
+            elif schedule_result and schedule_result.get("status") == "scenario_preview":
                 revision = schedule_result.get("scenario_revision", 0)
                 if schedule_result.get("strict_feasible"):
                     response_content = f"场景试排可行（场景版本 {revision}），结果仅供预览，未创建正式草稿。"

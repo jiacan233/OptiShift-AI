@@ -34,6 +34,8 @@ LABELS = {
     "save_draft": "保存排班草稿",
     "explanation": "生成排班说明",
     "response_compose": "生成回复",
+    "read_analysis": "分析人数和排班事实",
+    "counterfactual": "只读验证移除和替代方案",
     "intent_parse": "解析排班调整",
     "tool": "执行排班操作",
     "turn_completed": "排班处理完成",

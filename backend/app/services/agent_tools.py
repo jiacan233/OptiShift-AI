@@ -15,6 +15,9 @@ from ..models import (
 )
 from ..repository import EmployeeRepository, ScenarioRepository, ScheduleRepository
 from .rules import public_rules
+from .read_query import ReadQueryPlan
+from .read_analysis import analyze_snapshot, counterfactual_snapshot, validate_snapshot
+from .diff_service import build_diff
 from .scheduling_service import SchedulingService
 
 
@@ -44,15 +47,79 @@ class AgentTools:
         self.scenarios = scenarios
 
     @traced("load_schedule")
-    def get_current_schedule(self, *, target_week: date) -> dict[str, Any]:
+    def get_current_schedule(self, *, target_week: date, version: int | None = None) -> dict[str, Any]:
         confirmed, draft = self.schedules.current_records_for_week(target_week)
         display = draft or confirmed
+        if version is not None:
+            selected = next((r for r in self.schedules.versions_for_week(target_week) if r["version"] == version), None)
+            display = self.schedules.get_record(selected["schedule_id"]) if selected else None
         return {
             "target_week": target_week.isoformat(),
             "confirmed": _serialize_record(confirmed),
             "draft": _serialize_record(draft),
             "display": _serialize_record(display),
         }
+
+    def _read_snapshot(self, *, target_week: date, snapshot: dict | None):
+        schedule = Schedule.model_validate(snapshot["schedule"]) if snapshot else None
+        if schedule and schedule.week_start != target_week:
+            raise ValueError("Snapshot does not belong to the target week")
+        metadata = (snapshot or {}).get("metadata") or {}
+        context = self.scheduling.context_builder.build(
+            target_week, base_schedule=schedule,
+            changes=[ScheduleChange.model_validate(c) for c in metadata.get("requested_changes", [])],
+            allow_history_bootstrap=False, allow_ephemeral_known_empty=True,
+            # Read facts and the independent validator share the current RuleConfig.
+            rule_config=self.scheduling.context_builder.rules.model_dump(mode="json"),
+        )
+        return schedule, context
+
+    @traced("read_analysis")
+    def analyze_staffing(self, *, target_week: date, plan: dict, snapshot: dict | None,
+                         conversation_id: str | None = None) -> dict[str, Any]:
+        query = ReadQueryPlan.model_validate(plan)
+        schedule, context = self._read_snapshot(target_week=target_week, snapshot=snapshot)
+        result = analyze_snapshot(schedule, context, query) if schedule else {
+            "status": "no_schedule", "target_week": target_week.isoformat(), "schedule_id": None,
+            "version": query.version, "schedule_status": None, "slots": [], "read_only": True,
+            "source": "explicit_version" if query.version else "display_schedule",
+            "rules": context.rules.model_dump(mode="json"),
+        }
+        if query.question_type == "schedule_difference" and schedule:
+            previous = sorted((r for r in self.schedules.versions_for_week(target_week)
+                               if r["version"] < schedule.version), key=lambda r: r["version"], reverse=True)
+            base = self.schedules.get(previous[0]["schedule_id"], include_cancelled=True) if previous else None
+            result["comparison_version"] = base.version if base else None
+            result["difference"] = build_diff(base, schedule)[0] if base else None
+        if query.question_type == "feasibility_explanation":
+            from ..core import HistoryUnavailableError
+            from ..solver.primary_solver import PrimarySolver
+            if conversation_id:
+                state = self.scenarios.get(conversation_id, target_week)
+                if state:
+                    context.requested_changes = [ScheduleChange(employee_id=p.employee_id, type=p.change_type, day=d)
+                                                 for p in state.patches for d in p.days]
+                    result["scenario_revision"] = state.revision
+            try:
+                solved = PrimarySolver().solve(context, week_start=target_week)
+                result["feasibility"] = {
+                    "status": solved.status.value,
+                    "validation": validate_snapshot(solved.schedule, context) if solved.schedule else None,
+                    "diagnosis": solved.diagnosis.model_dump(mode="json") if solved.diagnosis else None,
+                    "scope": "current_rules_employees_and_scenario",
+                }
+            except HistoryUnavailableError:
+                result["feasibility"] = {"status": "history_unavailable", "diagnosis": None}
+        return result
+
+    @traced("counterfactual")
+    def analyze_counterfactual(self, *, target_week: date, plan: dict, snapshot: dict | None,
+                               conversation_id: str | None = None) -> dict[str, Any]:
+        query = ReadQueryPlan.model_validate(plan)
+        schedule, context = self._read_snapshot(target_week=target_week, snapshot=snapshot)
+        if schedule is None:
+            return {"status": "no_schedule", "target_week": target_week.isoformat(), "read_only": True}
+        return counterfactual_snapshot(schedule, context, query)
 
     def get_scenario(self, *, conversation_id: str, target_week: date) -> dict[str, Any]:
         state = self.scenarios.get(conversation_id, target_week)
@@ -133,6 +200,9 @@ class AgentTools:
         result["scenario_patches"] = [item.model_dump(mode="json") for item in patches]
         for suggestion in result.get("suggestions", []):
             suggestion["based_on_scenario_revision"] = result["scenario_revision"]
+            suggestion["target_week"] = target_week.isoformat()
+            suggestion["based_on_schedule_id"] = (base or {}).get("schedule_id")
+            suggestion["based_on_version"] = (base or {}).get("version")
         self.scenarios.save_results(
             conversation_id,
             target_week,
@@ -442,6 +512,8 @@ class AgentTools:
             "get_rules": self.get_rules,
             "validate_schedule": self.validate_schedule,
             "analyze_schedule": self.analyze_schedule,
+            "analyze_staffing": self.analyze_staffing,
+            "analyze_counterfactual": self.analyze_counterfactual,
             "generate_schedule": self.generate_schedule,
             "force_generate_schedule": self.force_generate_schedule,
             "replan_schedule": self.replan_schedule,

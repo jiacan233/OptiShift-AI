@@ -1,0 +1,933 @@
+[
+  {
+    "name": "sun_staffing_after_previous_suggestion",
+    "messages": [
+      "E01 周一请假了，要咋排？",
+      "周日为什么 7 个人，6 个人不是够了吗？"
+    ],
+    "initial_schedule_state": "fixed_read_fixture_v2",
+    "previous_conversation_state": [
+      {
+        "role": "assistant",
+        "content": "恢复 E01 Mon 可用",
+        "target_week": "2026-09-28",
+        "metadata": {
+          "suggestions": [
+            {
+              "id": "suggestion_1",
+              "title": "恢复 E01 Mon 可用",
+              "description": "请假限制影响覆盖",
+              "target_week": "2026-09-28",
+              "based_on_version": 1
+            },
+            {
+              "id": "suggestion_2",
+              "title": "检查员工可用日期",
+              "description": "先核对可用日期再求解",
+              "target_week": "2026-10-05",
+              "based_on_version": 2
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "question_type": "staffing_explanation",
+      "target_week": "2026-10-05",
+      "day": "Sun",
+      "shift": null,
+      "employee_ids": [],
+      "reference_mode": "none",
+      "shifts": [
+        "morning",
+        "evening"
+      ],
+      "tools": [
+        "get_current_schedule",
+        "analyze_staffing"
+      ]
+    },
+    "allowed_tools": [
+      "get_current_schedule",
+      "analyze_staffing"
+    ],
+    "forbidden_tools": [
+      "apply_suggestion",
+      "generate_schedule",
+      "replan_schedule",
+      "force_generate_schedule",
+      "preview_scenario",
+      "save_scenario",
+      "confirm"
+    ],
+    "answer_rubric": {
+      "must_contain": [
+        "实际 7 人",
+        "实际 6 人",
+        "最低 6 人",
+        "超出最低人数 1 人"
+      ]
+    }
+  },
+  {
+    "name": "sun_assignments",
+    "messages": [
+      "E01 周一请假了，要咋排？",
+      "周日谁上班？"
+    ],
+    "initial_schedule_state": "fixed_read_fixture_v2",
+    "previous_conversation_state": [
+      {
+        "role": "assistant",
+        "content": "恢复 E01 Mon 可用",
+        "target_week": "2026-09-28",
+        "metadata": {
+          "suggestions": [
+            {
+              "id": "suggestion_1",
+              "title": "恢复 E01 Mon 可用",
+              "description": "请假限制影响覆盖",
+              "target_week": "2026-09-28",
+              "based_on_version": 1
+            },
+            {
+              "id": "suggestion_2",
+              "title": "检查员工可用日期",
+              "description": "先核对可用日期再求解",
+              "target_week": "2026-10-05",
+              "based_on_version": 2
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "question_type": "schedule_overview",
+      "target_week": "2026-10-05",
+      "day": "Sun",
+      "shift": null,
+      "employee_ids": [],
+      "reference_mode": "none",
+      "shifts": [
+        "morning",
+        "evening"
+      ],
+      "tools": [
+        "get_current_schedule",
+        "analyze_staffing"
+      ]
+    },
+    "allowed_tools": [
+      "get_current_schedule",
+      "analyze_staffing"
+    ],
+    "forbidden_tools": [
+      "apply_suggestion",
+      "generate_schedule",
+      "replan_schedule",
+      "force_generate_schedule",
+      "preview_scenario",
+      "save_scenario",
+      "confirm"
+    ],
+    "answer_rubric": {
+      "must_contain": [
+        "上班员工"
+      ]
+    }
+  },
+  {
+    "name": "sun_evening_beverage",
+    "messages": [
+      "E01 周一请假了，要咋排？",
+      "周日晚班谁会做饮品？"
+    ],
+    "initial_schedule_state": "fixed_read_fixture_v2",
+    "previous_conversation_state": [
+      {
+        "role": "assistant",
+        "content": "恢复 E01 Mon 可用",
+        "target_week": "2026-09-28",
+        "metadata": {
+          "suggestions": [
+            {
+              "id": "suggestion_1",
+              "title": "恢复 E01 Mon 可用",
+              "description": "请假限制影响覆盖",
+              "target_week": "2026-09-28",
+              "based_on_version": 1
+            },
+            {
+              "id": "suggestion_2",
+              "title": "检查员工可用日期",
+              "description": "先核对可用日期再求解",
+              "target_week": "2026-10-05",
+              "based_on_version": 2
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "question_type": "coverage_analysis",
+      "target_week": "2026-10-05",
+      "day": "Sun",
+      "shift": "evening",
+      "employee_ids": [],
+      "reference_mode": "none",
+      "shifts": [
+        "evening"
+      ],
+      "tools": [
+        "get_current_schedule",
+        "analyze_staffing"
+      ]
+    },
+    "allowed_tools": [
+      "get_current_schedule",
+      "analyze_staffing"
+    ],
+    "forbidden_tools": [
+      "apply_suggestion",
+      "generate_schedule",
+      "replan_schedule",
+      "force_generate_schedule",
+      "preview_scenario",
+      "save_scenario",
+      "confirm"
+    ],
+    "answer_rubric": {
+      "must_contain": [
+        "具备饮品技能"
+      ]
+    }
+  },
+  {
+    "name": "e01_monday_absence",
+    "messages": [
+      "E01 周一请假了，要咋排？",
+      "为什么 E01 周一没排？"
+    ],
+    "initial_schedule_state": "fixed_read_fixture_v2",
+    "previous_conversation_state": [
+      {
+        "role": "assistant",
+        "content": "恢复 E01 Mon 可用",
+        "target_week": "2026-09-28",
+        "metadata": {
+          "suggestions": [
+            {
+              "id": "suggestion_1",
+              "title": "恢复 E01 Mon 可用",
+              "description": "请假限制影响覆盖",
+              "target_week": "2026-09-28",
+              "based_on_version": 1
+            },
+            {
+              "id": "suggestion_2",
+              "title": "检查员工可用日期",
+              "description": "先核对可用日期再求解",
+              "target_week": "2026-10-05",
+              "based_on_version": 2
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "question_type": "assignment_explanation",
+      "target_week": "2026-10-05",
+      "day": "Mon",
+      "shift": null,
+      "employee_ids": [
+        "E01"
+      ],
+      "reference_mode": "none",
+      "shifts": [
+        "morning",
+        "evening"
+      ],
+      "tools": [
+        "get_current_schedule",
+        "analyze_staffing"
+      ]
+    },
+    "allowed_tools": [
+      "get_current_schedule",
+      "analyze_staffing"
+    ],
+    "forbidden_tools": [
+      "apply_suggestion",
+      "generate_schedule",
+      "replan_schedule",
+      "force_generate_schedule",
+      "preview_scenario",
+      "save_scenario",
+      "confirm"
+    ],
+    "answer_rubric": {
+      "must_contain": [
+        "E01",
+        "没有排班"
+      ]
+    }
+  },
+  {
+    "name": "e03_wednesday_absence",
+    "messages": [
+      "E01 周一请假了，要咋排？",
+      "为什么 E03 周三不上班？"
+    ],
+    "initial_schedule_state": "fixed_read_fixture_v2",
+    "previous_conversation_state": [
+      {
+        "role": "assistant",
+        "content": "恢复 E01 Mon 可用",
+        "target_week": "2026-09-28",
+        "metadata": {
+          "suggestions": [
+            {
+              "id": "suggestion_1",
+              "title": "恢复 E01 Mon 可用",
+              "description": "请假限制影响覆盖",
+              "target_week": "2026-09-28",
+              "based_on_version": 1
+            },
+            {
+              "id": "suggestion_2",
+              "title": "检查员工可用日期",
+              "description": "先核对可用日期再求解",
+              "target_week": "2026-10-05",
+              "based_on_version": 2
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "question_type": "assignment_explanation",
+      "target_week": "2026-10-05",
+      "day": "Wed",
+      "shift": null,
+      "employee_ids": [
+        "E03"
+      ],
+      "reference_mode": "none",
+      "shifts": [
+        "morning",
+        "evening"
+      ],
+      "tools": [
+        "get_current_schedule",
+        "analyze_staffing"
+      ]
+    },
+    "allowed_tools": [
+      "get_current_schedule",
+      "analyze_staffing"
+    ],
+    "forbidden_tools": [
+      "apply_suggestion",
+      "generate_schedule",
+      "replan_schedule",
+      "force_generate_schedule",
+      "preview_scenario",
+      "save_scenario",
+      "confirm"
+    ],
+    "answer_rubric": {
+      "must_contain": [
+        "E03",
+        "没有排班"
+      ]
+    }
+  },
+  {
+    "name": "explicit_second_suggestion",
+    "messages": [
+      "E01 周一请假了，要咋排？",
+      "刚才第二条建议为什么？"
+    ],
+    "initial_schedule_state": "fixed_read_fixture_v2",
+    "previous_conversation_state": [
+      {
+        "role": "assistant",
+        "content": "恢复 E01 Mon 可用",
+        "target_week": "2026-09-28",
+        "metadata": {
+          "suggestions": [
+            {
+              "id": "suggestion_1",
+              "title": "恢复 E01 Mon 可用",
+              "description": "请假限制影响覆盖",
+              "target_week": "2026-09-28",
+              "based_on_version": 1
+            },
+            {
+              "id": "suggestion_2",
+              "title": "检查员工可用日期",
+              "description": "先核对可用日期再求解",
+              "target_week": "2026-10-05",
+              "based_on_version": 2
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "question_type": "general_question",
+      "target_week": "2026-10-05",
+      "day": null,
+      "shift": null,
+      "employee_ids": [],
+      "reference_mode": "suggestion",
+      "shifts": [],
+      "tools": [
+        "get_current_schedule"
+      ]
+    },
+    "allowed_tools": [
+      "get_current_schedule"
+    ],
+    "forbidden_tools": [
+      "apply_suggestion",
+      "generate_schedule",
+      "replan_schedule",
+      "force_generate_schedule",
+      "preview_scenario",
+      "save_scenario",
+      "confirm"
+    ],
+    "answer_rubric": {
+      "must_contain": [
+        "检查员工可用日期"
+      ]
+    }
+  },
+  {
+    "name": "remove_e07_evening",
+    "messages": [
+      "E01 周一请假了，要咋排？",
+      "如果去掉 E07 周日晚班可以吗？"
+    ],
+    "initial_schedule_state": "fixed_read_fixture_v2",
+    "previous_conversation_state": [
+      {
+        "role": "assistant",
+        "content": "恢复 E01 Mon 可用",
+        "target_week": "2026-09-28",
+        "metadata": {
+          "suggestions": [
+            {
+              "id": "suggestion_1",
+              "title": "恢复 E01 Mon 可用",
+              "description": "请假限制影响覆盖",
+              "target_week": "2026-09-28",
+              "based_on_version": 1
+            },
+            {
+              "id": "suggestion_2",
+              "title": "检查员工可用日期",
+              "description": "先核对可用日期再求解",
+              "target_week": "2026-10-05",
+              "based_on_version": 2
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "question_type": "assignment_explanation",
+      "target_week": "2026-10-05",
+      "day": "Sun",
+      "shift": "evening",
+      "employee_ids": [
+        "E07"
+      ],
+      "reference_mode": "none",
+      "shifts": [
+        "evening"
+      ],
+      "tools": [
+        "get_current_schedule",
+        "analyze_counterfactual"
+      ]
+    },
+    "allowed_tools": [
+      "get_current_schedule",
+      "analyze_counterfactual"
+    ],
+    "forbidden_tools": [
+      "apply_suggestion",
+      "generate_schedule",
+      "replan_schedule",
+      "force_generate_schedule",
+      "preview_scenario",
+      "save_scenario",
+      "confirm"
+    ],
+    "answer_rubric": {
+      "must_contain": [
+        "R04",
+        "E13",
+        "E14"
+      ]
+    }
+  },
+  {
+    "name": "e15_sunday_assignment",
+    "messages": [
+      "E01 周一请假了，要咋排？",
+      "E15 为什么要排周日早班？"
+    ],
+    "initial_schedule_state": "fixed_read_fixture_v2",
+    "previous_conversation_state": [
+      {
+        "role": "assistant",
+        "content": "恢复 E01 Mon 可用",
+        "target_week": "2026-09-28",
+        "metadata": {
+          "suggestions": [
+            {
+              "id": "suggestion_1",
+              "title": "恢复 E01 Mon 可用",
+              "description": "请假限制影响覆盖",
+              "target_week": "2026-09-28",
+              "based_on_version": 1
+            },
+            {
+              "id": "suggestion_2",
+              "title": "检查员工可用日期",
+              "description": "先核对可用日期再求解",
+              "target_week": "2026-10-05",
+              "based_on_version": 2
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "question_type": "assignment_explanation",
+      "target_week": "2026-10-05",
+      "day": "Sun",
+      "shift": "morning",
+      "employee_ids": [
+        "E15"
+      ],
+      "reference_mode": "none",
+      "shifts": [
+        "morning"
+      ],
+      "tools": [
+        "get_current_schedule",
+        "analyze_staffing"
+      ]
+    },
+    "allowed_tools": [
+      "get_current_schedule",
+      "analyze_staffing"
+    ],
+    "forbidden_tools": [
+      "apply_suggestion",
+      "generate_schedule",
+      "replan_schedule",
+      "force_generate_schedule",
+      "preview_scenario",
+      "save_scenario",
+      "confirm"
+    ],
+    "answer_rubric": {
+      "must_contain": [
+        "E15",
+        "不构成唯一原因证明"
+      ]
+    }
+  },
+  {
+    "name": "busiest_employee",
+    "messages": [
+      "E01 周一请假了，要咋排？",
+      "谁这周最忙？"
+    ],
+    "initial_schedule_state": "fixed_read_fixture_v2",
+    "previous_conversation_state": [
+      {
+        "role": "assistant",
+        "content": "恢复 E01 Mon 可用",
+        "target_week": "2026-09-28",
+        "metadata": {
+          "suggestions": [
+            {
+              "id": "suggestion_1",
+              "title": "恢复 E01 Mon 可用",
+              "description": "请假限制影响覆盖",
+              "target_week": "2026-09-28",
+              "based_on_version": 1
+            },
+            {
+              "id": "suggestion_2",
+              "title": "检查员工可用日期",
+              "description": "先核对可用日期再求解",
+              "target_week": "2026-10-05",
+              "based_on_version": 2
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "question_type": "employee_workload",
+      "target_week": "2026-10-05",
+      "day": null,
+      "shift": null,
+      "employee_ids": [],
+      "reference_mode": "none",
+      "shifts": [],
+      "tools": [
+        "get_current_schedule",
+        "analyze_staffing"
+      ]
+    },
+    "allowed_tools": [
+      "get_current_schedule",
+      "analyze_staffing"
+    ],
+    "forbidden_tools": [
+      "apply_suggestion",
+      "generate_schedule",
+      "replan_schedule",
+      "force_generate_schedule",
+      "preview_scenario",
+      "save_scenario",
+      "confirm"
+    ],
+    "answer_rubric": {
+      "must_contain": [
+        "最多 5 个班次"
+      ]
+    }
+  },
+  {
+    "name": "current_rule_violations",
+    "messages": [
+      "E01 周一请假了，要咋排？",
+      "当前排班有没有违反规则？"
+    ],
+    "initial_schedule_state": "fixed_read_fixture_v2",
+    "previous_conversation_state": [
+      {
+        "role": "assistant",
+        "content": "恢复 E01 Mon 可用",
+        "target_week": "2026-09-28",
+        "metadata": {
+          "suggestions": [
+            {
+              "id": "suggestion_1",
+              "title": "恢复 E01 Mon 可用",
+              "description": "请假限制影响覆盖",
+              "target_week": "2026-09-28",
+              "based_on_version": 1
+            },
+            {
+              "id": "suggestion_2",
+              "title": "检查员工可用日期",
+              "description": "先核对可用日期再求解",
+              "target_week": "2026-10-05",
+              "based_on_version": 2
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "question_type": "coverage_analysis",
+      "target_week": "2026-10-05",
+      "day": null,
+      "shift": null,
+      "employee_ids": [],
+      "reference_mode": "none",
+      "shifts": [],
+      "tools": [
+        "get_current_schedule",
+        "analyze_staffing"
+      ]
+    },
+    "allowed_tools": [
+      "get_current_schedule",
+      "analyze_staffing"
+    ],
+    "forbidden_tools": [
+      "apply_suggestion",
+      "generate_schedule",
+      "replan_schedule",
+      "force_generate_schedule",
+      "preview_scenario",
+      "save_scenario",
+      "confirm"
+    ],
+    "answer_rubric": {
+      "must_contain": [
+        "未发现违规"
+      ]
+    }
+  },
+  {
+    "name": "previous_version_diff",
+    "messages": [
+      "E01 周一请假了，要咋排？",
+      "这个版本和上一个版本改了什么？"
+    ],
+    "initial_schedule_state": "fixed_read_fixture_v2",
+    "previous_conversation_state": [
+      {
+        "role": "assistant",
+        "content": "恢复 E01 Mon 可用",
+        "target_week": "2026-09-28",
+        "metadata": {
+          "suggestions": [
+            {
+              "id": "suggestion_1",
+              "title": "恢复 E01 Mon 可用",
+              "description": "请假限制影响覆盖",
+              "target_week": "2026-09-28",
+              "based_on_version": 1
+            },
+            {
+              "id": "suggestion_2",
+              "title": "检查员工可用日期",
+              "description": "先核对可用日期再求解",
+              "target_week": "2026-10-05",
+              "based_on_version": 2
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "question_type": "schedule_difference",
+      "target_week": "2026-10-05",
+      "day": null,
+      "shift": null,
+      "employee_ids": [],
+      "reference_mode": "none",
+      "shifts": [],
+      "tools": [
+        "get_current_schedule",
+        "analyze_staffing"
+      ]
+    },
+    "allowed_tools": [
+      "get_current_schedule",
+      "analyze_staffing"
+    ],
+    "forbidden_tools": [
+      "apply_suggestion",
+      "generate_schedule",
+      "replan_schedule",
+      "force_generate_schedule",
+      "preview_scenario",
+      "save_scenario",
+      "confirm"
+    ],
+    "answer_rubric": {
+      "must_contain": [
+        "新增 1 个 assignment",
+        "E15"
+      ]
+    }
+  },
+  {
+    "name": "why_infeasible",
+    "messages": [
+      "E01 周一请假了，要咋排？",
+      "为什么这周排不了？"
+    ],
+    "initial_schedule_state": "fixed_read_fixture_v2",
+    "previous_conversation_state": [
+      {
+        "role": "assistant",
+        "content": "恢复 E01 Mon 可用",
+        "target_week": "2026-09-28",
+        "metadata": {
+          "suggestions": [
+            {
+              "id": "suggestion_1",
+              "title": "恢复 E01 Mon 可用",
+              "description": "请假限制影响覆盖",
+              "target_week": "2026-09-28",
+              "based_on_version": 1
+            },
+            {
+              "id": "suggestion_2",
+              "title": "检查员工可用日期",
+              "description": "先核对可用日期再求解",
+              "target_week": "2026-10-05",
+              "based_on_version": 2
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "question_type": "feasibility_explanation",
+      "target_week": "2026-10-05",
+      "day": null,
+      "shift": null,
+      "employee_ids": [],
+      "reference_mode": "none",
+      "shifts": [],
+      "tools": [
+        "get_current_schedule",
+        "analyze_staffing"
+      ]
+    },
+    "allowed_tools": [
+      "get_current_schedule",
+      "analyze_staffing"
+    ],
+    "forbidden_tools": [
+      "apply_suggestion",
+      "generate_schedule",
+      "replan_schedule",
+      "force_generate_schedule",
+      "preview_scenario",
+      "save_scenario",
+      "confirm"
+    ],
+    "answer_rubric": {
+      "must_contain": [
+        "可行排班"
+      ]
+    }
+  },
+  {
+    "name": "one_fewer_sunday_morning",
+    "messages": [
+      "E01 周一请假了，要咋排？",
+      "周日早班少一个人行不行？"
+    ],
+    "initial_schedule_state": "fixed_read_fixture_v2",
+    "previous_conversation_state": [
+      {
+        "role": "assistant",
+        "content": "恢复 E01 Mon 可用",
+        "target_week": "2026-09-28",
+        "metadata": {
+          "suggestions": [
+            {
+              "id": "suggestion_1",
+              "title": "恢复 E01 Mon 可用",
+              "description": "请假限制影响覆盖",
+              "target_week": "2026-09-28",
+              "based_on_version": 1
+            },
+            {
+              "id": "suggestion_2",
+              "title": "检查员工可用日期",
+              "description": "先核对可用日期再求解",
+              "target_week": "2026-10-05",
+              "based_on_version": 2
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "question_type": "staffing_explanation",
+      "target_week": "2026-10-05",
+      "day": "Sun",
+      "shift": "morning",
+      "employee_ids": [],
+      "reference_mode": "none",
+      "shifts": [
+        "morning"
+      ],
+      "tools": [
+        "get_current_schedule",
+        "analyze_counterfactual"
+      ]
+    },
+    "allowed_tools": [
+      "get_current_schedule",
+      "analyze_counterfactual"
+    ],
+    "forbidden_tools": [
+      "apply_suggestion",
+      "generate_schedule",
+      "replan_schedule",
+      "force_generate_schedule",
+      "preview_scenario",
+      "save_scenario",
+      "confirm"
+    ],
+    "answer_rubric": {
+      "must_contain": [
+        "全周校验通过"
+      ]
+    }
+  },
+  {
+    "name": "explicit_history_optout",
+    "messages": [
+      "E01 周一请假了，要咋排？",
+      "我只想问当前排班，不要引用刚才的建议。"
+    ],
+    "initial_schedule_state": "fixed_read_fixture_v2",
+    "previous_conversation_state": [
+      {
+        "role": "assistant",
+        "content": "恢复 E01 Mon 可用",
+        "target_week": "2026-09-28",
+        "metadata": {
+          "suggestions": [
+            {
+              "id": "suggestion_1",
+              "title": "恢复 E01 Mon 可用",
+              "description": "请假限制影响覆盖",
+              "target_week": "2026-09-28",
+              "based_on_version": 1
+            },
+            {
+              "id": "suggestion_2",
+              "title": "检查员工可用日期",
+              "description": "先核对可用日期再求解",
+              "target_week": "2026-10-05",
+              "based_on_version": 2
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "question_type": "schedule_overview",
+      "target_week": "2026-10-05",
+      "day": null,
+      "shift": null,
+      "employee_ids": [],
+      "reference_mode": "none",
+      "shifts": [],
+      "tools": [
+        "get_current_schedule",
+        "analyze_staffing"
+      ]
+    },
+    "allowed_tools": [
+      "get_current_schedule",
+      "analyze_staffing"
+    ],
+    "forbidden_tools": [
+      "apply_suggestion",
+      "generate_schedule",
+      "replan_schedule",
+      "force_generate_schedule",
+      "preview_scenario",
+      "save_scenario",
+      "confirm"
+    ],
+    "answer_rubric": {
+      "must_contain": [
+        "实际"
+      ]
+    }
+  }
+]

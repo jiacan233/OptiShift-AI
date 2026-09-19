@@ -5,6 +5,9 @@ description = "Deterministic AI-assisted workforce scheduling with CP-SAT valida
 requires-python = ">=3.11"
 dynamic = ["dependencies"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [tool.ruff]
 target-version = "py311"
 line-length = 100
@@ -15,4 +18,3 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.pyright]
 pythonVersion = "3.11"
 include = ["backend"]
-

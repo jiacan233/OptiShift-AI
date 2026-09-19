@@ -680,9 +680,11 @@ class ScheduleRepository:
         allow_ephemeral_known_empty: bool = False,
     ) -> tuple[Schedule | None, HistoryStatus]:
         previous_week = week_start - timedelta(days=7)
-        with self.database.transaction(immediate=True) as session:
+        # Pure reads must also work on read-only connections. Only bootstrap
+        # can insert the history anchor and needs a write reservation/row lock.
+        with self.database.transaction(immediate=allow_bootstrap) as session:
             previous = self._current_confirmed_record(
-                session, previous_week, lock=True
+                session, previous_week, lock=allow_bootstrap
             )
             if previous is not None:
                 return (

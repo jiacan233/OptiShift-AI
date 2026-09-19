@@ -37,3 +37,4 @@ Thumbs.db
 
 # Superpowers execution artifacts
 .superpowers/
+/artifacts/agent-evals/
