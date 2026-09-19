@@ -178,17 +178,17 @@ class IntentParser:
             )
 
         deterministic = ParsedIntent(intent, changes, minimize)
-        if os.getenv("LLM_ENABLED", "").lower() not in {"1", "true", "yes"}:
+        llm_enabled = (
+            self.llm.enabled
+            if self.llm is not None
+            else (os.getenv("LLM_ENABLED", "").strip().lower() in {"1", "true", "yes"})
+        )
+        if not llm_enabled:
             return deterministic
         llm_result = self._parse_with_llm(text, employees, default_intent)
         if llm_result is not None:
             return llm_result
-        return ParsedIntent(
-            intent=default_intent,
-            changes=[],
-            minimize_changes=False,
-            resolution={"status": "ai_unavailable"},
-        )
+        return deterministic
 
     @traced("intent_parse")
     def _parse_with_llm(

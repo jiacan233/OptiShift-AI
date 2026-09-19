@@ -18,6 +18,7 @@ import { DayCoverage, ShiftCoverage, Employee } from '../../types/schedule'
 import { DayCoverageCard } from './DayCoverageCard'
 import { AssignedEmployeeChip } from './AssignedEmployeeChip'
 import { EmployeeDetailDrawer } from '../employees/EmployeeDetailDrawer'
+import { useAppStore } from '@/store/AppStore'
 
 interface DateCoverageViewProps {
   dayCoverages: DayCoverage[]
@@ -44,6 +45,8 @@ export const DateCoverageView: React.FC<DateCoverageViewProps> = ({
 }) => {
   // Selected employee for detail drawer
   const [selectedEmployeeForDrawer, setSelectedEmployeeForDrawer] = useState<Employee | null>(null)
+  const store = useAppStore()
+  const authViolations = store.result?.validation?.authorized_violations ?? []
 
   if (!dayCoverages || dayCoverages.length === 0) {
     return (
@@ -279,13 +282,19 @@ export const DateCoverageView: React.FC<DateCoverageViewProps> = ({
                 排班员工 ({morningEmployees.length})
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                {morningEmployees.map((emp) => (
-                  <AssignedEmployeeChip
-                    key={emp.id}
-                    employee={emp}
-                    onClick={handleEmployeeClick}
-                  />
-                ))}
+                {morningEmployees.map((emp) => {
+                  const match = authViolations.find(
+                    (v) => v.employee_id === emp.id && v.day === activeDay.day && (!v.shift || v.shift === 'morning')
+                  )
+                  return (
+                    <AssignedEmployeeChip
+                      key={emp.id}
+                      employee={emp}
+                      warning={match ? `⚠ ${match.rule_id} 强制安排` : undefined}
+                      onClick={handleEmployeeClick}
+                    />
+                  )
+                })}
                 {morningEmployees.length === 0 && (
                   <span className="text-xs text-slate-400 font-medium py-1">
                     暂无排班员工
@@ -443,13 +452,19 @@ export const DateCoverageView: React.FC<DateCoverageViewProps> = ({
                 排班员工 ({eveningEmployees.length})
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                {eveningEmployees.map((emp) => (
-                  <AssignedEmployeeChip
-                    key={emp.id}
-                    employee={emp}
-                    onClick={handleEmployeeClick}
-                  />
-                ))}
+                {eveningEmployees.map((emp) => {
+                  const match = authViolations.find(
+                    (v) => v.employee_id === emp.id && v.day === activeDay.day && (!v.shift || v.shift === 'evening')
+                  )
+                  return (
+                    <AssignedEmployeeChip
+                      key={emp.id}
+                      employee={emp}
+                      warning={match ? `⚠ ${match.rule_id} 强制安排` : undefined}
+                      onClick={handleEmployeeClick}
+                    />
+                  )
+                })}
                 {eveningEmployees.length === 0 && (
                   <span className="text-xs text-slate-400 font-medium py-1">
                     暂无排班员工

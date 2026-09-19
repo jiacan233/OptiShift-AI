@@ -289,6 +289,8 @@ class AgentRouter:
         return any(term in content.lower() for term in (
             "强制", "我授权", "允许", "即使", "还是让", "就是让", "仍然安排", "仍要安排",
             "没有店长也先", "规则先不", "限制先不", "force", "authorize", "override",
+            "我知道有冲突", "有冲突也", "即使违反", "照这样排", "照样排", "照这样安排",
+            "我知道", "明知",
         )) and not any(term in content.lower() for term in (
             "不要强制", "别强制", "不能强制", "不授权", "不允许", "不强制",
             "do not override", "don't override", "do not force", "don't force",
@@ -479,6 +481,7 @@ class AgentRouter:
         clarification = AgentClarification()
         explicit_force = any(term in normalized for term in (
             "强制生成", "强制排", "强制安排", "force generate", "authorized override", "即使违反规则", "我授权", "没有店长也先排", "没有店长也先生成",
+            "即使违反", "强制", "我知道有冲突", "有冲突也", "照这样排", "照样排", "照这样安排",
         )) or (leave and any(term in normalized for term in ("还是让", "就是让", "仍然安排", "仍要安排")))
         explicit_force = explicit_force and cls._explicit_authorization(text)
         shifts = [value for value, tokens in (
@@ -486,7 +489,8 @@ class AgentRouter:
             (Shift.EVENING, ("晚班", "evening")),
         ) if any(token in normalized for token in tokens)]
         shift = shifts[0] if len(shifts) == 1 else None
-        if explicit_force and (leave or employee_ids) and (
+        is_r08 = leave or "r08" in normalized or "请假" in normalized or "不可工作" in normalized
+        if explicit_force and (is_r08 or employee_ids) and (
             len(employee_ids) != 1 or len(days) != 1 or shift is None
         ):
             return AgentRoute(intent=AgentIntent.CLARIFICATION, clarification=AgentClarification(
@@ -495,11 +499,11 @@ class AgentRouter:
         requested_overrides: list[OverrideScope] = []
         forced_assignments: list[Assignment] = []
         if explicit_force and len(employee_ids) == 1 and len(days) == 1 and shift is not None:
-            if leave:
+            if is_r08:
                 requested_overrides.append(OverrideScope(
                     rule_id="R08", employee_id=employee_ids[0], day=day, shift=shift
                 ))
-            if any(term in normalized for term in ("上班", "安排", "让", "排到")):
+            if any(term in normalized for term in ("上班", "安排", "让", "排到", "强制", "排班", "生成")):
                 forced_assignments.append(Assignment(
                     employee_id=employee_ids[0], day=day, shift=shift
                 ))

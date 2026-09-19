@@ -201,6 +201,11 @@ export function useWorkspace() {
           const isLeave = employee.leave_days.includes(day.day)
           const isAvailable = employee.available_days.includes(day.day)
 
+          const authViolations = result?.validation?.authorized_violations ?? []
+          const violation = authViolations.find(
+            (v) => v.employee_id === employee.id && v.day === day.day
+          )
+
           if (assigned.length > 1) {
             return {
               id: `${employee.id}-${day.fullDate}`,
@@ -208,6 +213,7 @@ export function useWorkspace() {
               date: day.date,
               shiftType: assigned[0].shift,
               timeRange: '09:00 - 21:00\n双班·例外',
+              violationWarning: violation ? `⚠ ${violation.rule_id} 强制安排` : undefined,
             }
           }
 
@@ -224,6 +230,9 @@ export function useWorkspace() {
               displayRole === '值班主管'
             const qualStr = hasManager ? '·值守' : ''
             const shiftLabel = `${SHIFT_LABELS[shift]}${qualStr}`
+            const matchViolation = authViolations.find(
+              (v) => v.employee_id === employee.id && v.day === day.day && (!v.shift || v.shift === shift)
+            )
 
             return {
               id: `${employee.id}-${day.fullDate}`,
@@ -231,6 +240,7 @@ export function useWorkspace() {
               date: day.date,
               shiftType: shift,
               timeRange: `${timeStr}\n${shiftLabel}`,
+              violationWarning: matchViolation ? `⚠ ${matchViolation.rule_id} 强制安排` : undefined,
             }
           }
 
@@ -256,5 +266,5 @@ export function useWorkspace() {
     })
 
     return { days, rows, employees: rows.map((row) => row.employee) }
-  }, [employees, activeSchedule, activeWeekStart, effectiveRules])
+  }, [employees, activeSchedule, activeWeekStart, effectiveRules, result])
 }

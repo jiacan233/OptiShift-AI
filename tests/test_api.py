@@ -95,7 +95,7 @@ def test_health_employees_and_rules(client):
     assert health.status_code == 200
     assert health.json() == {"status": "ok", "app": "optishift-ai", "database": True}
     assert employees.status_code == 200
-    assert len(employees.json()["employees"]) == 16
+    assert len(employees.json()["employees"]) == 20
     rule_ids = {item["rule_id"] for item in rules.json()["rules"]}
     assert rule_ids == {"H01", *{f"R{index:02d}" for index in range(1, 10)}, "S01", "S02", "S03"}
 
@@ -202,7 +202,7 @@ def test_clarification_must_be_resolved_with_real_employee(client):
         "/api/schedule/generate",
         json={
             "week_start": "2026-09-21",
-            "prompt": "那个兼职周五请假，其他员工尽量少调整",
+            "prompt": "那个兼职周日请假，其他员工尽量少调整",
         },
     )
     assert response.status_code == 200
@@ -224,7 +224,7 @@ def test_clarification_must_be_resolved_with_real_employee(client):
     assert resolved.status_code == 200, resolved.text
     assert resolved.json()["status"] == "feasible"
     assert not any(
-        item["employee_id"] == selected and item["day"] == "Fri"
+        item["employee_id"] == selected and item["day"] == "Sun"
         for item in resolved.json()["schedule"]["assignments"]
     )
 

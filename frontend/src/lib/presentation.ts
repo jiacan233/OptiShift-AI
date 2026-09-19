@@ -29,12 +29,16 @@ export const STATUS_LABELS: Record<ScheduleStatus, string> = {
 
 const ROLE_LABELS: Record<string, string> = {
   manager: '店长',
+  vice_manager: '副店长',
+  shift_leader: '值班主管',
+  senior_clerk: '高级店员',
+  clerk: '店员',
+  part_time: '兼职',
   full_time: '全职员工',
-  part_time: '兼职员工',
 }
 
 const SKILL_LABELS: Record<string, string> = {
-  manager: '店长值班',
+  manager: '店长值守',
   beverage: '饮品制作',
   cashier: '收银',
   inventory: '库存管理',
@@ -47,15 +51,15 @@ export interface RulePresentation {
 
 export const RULE_PRESENTATION: Record<string, RulePresentation> = {
   H01: { name: '每日最多一个班次', description: '每名员工每天最多安排一个班次，重复排班也会被拦截。' },
-  R01: { name: '店长覆盖', description: '每个班次至少需要 1 名具备店长值班技能的员工。' },
-  R02: { name: '饮品制作覆盖', description: '每个班次至少需要 2 名具备饮品制作技能的员工。' },
-  R03: { name: '收银覆盖', description: '每个班次至少需要 1 名具备收银技能的员工。' },
-  R04: { name: '最低在岗人数', description: '工作日每班至少 4 人，周末每班至少 6 人。' },
-  R05: { name: '每周班次数上限', description: '每名员工每周最多安排 5 个班次。' },
-  R06: { name: '连续工作天数上限', description: '连同上周边界计算，每名员工最多连续工作 5 天。' },
-  R07: { name: '晚班后休息保障', description: '晚班后不能紧接次日早班，跨周衔接同样适用。' },
-  R08: { name: '可用时间与请假', description: '排班必须遵守员工可工作日期、请假和本次临时调整。' },
-  R09: { name: '技能来源校验', description: '岗位覆盖只采用员工主数据中已经登记的技能。' },
+  R01: { name: '店长值守', description: '每个班次至少 1 名具备店长值守资格的员工。' },
+  R02: { name: '饮品制作', description: '每个班次至少 2 名具备饮品制作技能的员工。' },
+  R03: { name: '收银', description: '每个班次至少 1 名具备收银技能的员工。' },
+  R04: { name: '最低人数', description: '周一至周五每班至少 4 人；周六、周日每班至少 6 人。' },
+  R05: { name: '每周最多 5 班 / 40 小时', description: '每人每周最多 40 小时，即最多 5 个班。' },
+  R06: { name: '连续工作最多 5 天', description: '不得连续工作超过 5 天。' },
+  R07: { name: '晚班后不可次日早班', description: '上一天晚班后不得安排次日早班。' },
+  R08: { name: '请假/不可工作日期', description: '请假和不可工作日期绝对不得排班。' },
+  R09: { name: '技能来自员工数据', description: '技能必须来自员工数据，Agent 不得自行补技能。' },
   S01: { name: '班次偏好匹配', description: '安排到员工偏好的班次时获得 5 分奖励。' },
   S02: { name: '工作量均衡', description: '员工最大班次差每增加 1 班扣 2 分。' },
   S03: { name: '减少重排影响', description: '临时重排时，每改变一条排班记录扣 8 分。' },
@@ -69,7 +73,7 @@ const MESSAGE_LABELS: Record<string, string> = {
   'Assignment references an employee outside master data.': '排班引用了员工主数据中不存在的人员。',
   'Employee has more than one assignment on the same day.': '同一名员工在同一天被安排了多个班次。',
   'Duplicate assignment record is not allowed.': '同一排班记录不能重复。',
-  'Manager coverage is below the required minimum.': '店长覆盖人数低于最低要求。',
+  'Manager coverage is below the required minimum.': '店长值守人数低于最低要求。',
   'Beverage coverage is below the required minimum.': '饮品制作人员低于最低要求。',
   'Cashier coverage is below the required minimum.': '收银人员低于最低要求。',
   'Total staffing is below the required minimum.': '当班总人数低于最低要求。',
@@ -103,7 +107,7 @@ export function rulePresentation(ruleId: string, fallback?: Partial<RulePresenta
   }
   if (!config) return copy
   const descriptions: Record<string, string> = {
-    R01: `每个班次至少需要 ${config.manager_per_shift} 名具备店长值班技能的员工。`,
+    R01: `每个班次至少需要 ${config.manager_per_shift} 名具备店长值守资格的员工。`,
     R02: `每个班次至少需要 ${config.beverage_per_shift} 名具备饮品制作技能的员工。`,
     R03: `每个班次至少需要 ${config.cashier_per_shift} 名具备收银技能的员工。`,
     R04: `工作日每班至少 ${config.weekday_min_staff} 人，周末每班至少 ${config.weekend_min_staff} 人。`,

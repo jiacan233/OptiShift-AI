@@ -69,6 +69,8 @@ export function ScheduleWorkbench() {
 
   const active = store.activeSchedule
   const exceptionCount = store.result?.validation.authorized_violations?.length ?? 0
+  const isForceCompliance = store.result?.compliance_status === 'authorized_violations' || exceptionCount > 0
+  const authorizedViolations = store.result?.validation.authorized_violations ?? []
 
   const quickAction = (content: string, trustedAction?: TrustedAgentAction) => {
     void agent.openWithPrompt(
@@ -126,11 +128,13 @@ export function ScheduleWorkbench() {
                 <span
                   className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
                     active.status === 'confirmed'
-                      ? 'bg-emerald-100 text-emerald-700'
+                      ? (isForceCompliance ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-100 text-emerald-700')
                       : 'bg-amber-100 text-amber-700'
                   }`}
                 >
-                  {STATUS_LABELS[active.status]}
+                  {active.status === 'confirmed' && isForceCompliance
+                    ? `已确认 · 强制方案 · 存在 ${exceptionCount} 项已授权规则冲突`
+                    : STATUS_LABELS[active.status]}
                 </span>
               </h2>
             ) : null}
@@ -178,6 +182,39 @@ export function ScheduleWorkbench() {
       {/* Active Schedule Section */}
       {!store.isLoadingWeek && active ? (
         <>
+          {/* Force Schedule Warning Banner */}
+          {isForceCompliance && (
+            <div className="rounded-2xl border border-amber-300 bg-amber-50/90 p-4 shadow-2xs space-y-2.5">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-200 text-amber-900 font-bold text-xs shrink-0">
+                  ⚠
+                </span>
+                <h3 className="text-sm font-extrabold text-amber-900">
+                  强制排班方案 · 存在规则冲突
+                </h3>
+              </div>
+              <p className="text-xs text-amber-800 leading-relaxed">
+                当前排班按照用户明确授权强制生成，未完全满足标准排班规则，不属于正常合规方案。当前存在 {authorizedViolations.length || exceptionCount} 项已授权规则冲突。
+              </p>
+              {authorizedViolations.length > 0 && (
+                <div className="bg-amber-100/70 rounded-xl p-3 border border-amber-200/80 text-xs text-amber-900 space-y-1">
+                  <p className="font-bold text-[11px] text-amber-800 mb-1">已授权违规明细：</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    {authorizedViolations.map((v, idx) => (
+                      <li key={idx} className="text-xs">
+                        <span className="font-bold">[{v.rule_id}] {v.rule_name || ''}</span>：
+                        {v.employee_id ? `员工 ${v.employee_id} ` : ''}
+                        {v.day ? `${v.day} ` : ''}
+                        {v.shift ? `${v.shift} ` : ''}
+                        {v.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* View Mode Toggle: [ 👤 员工视图 ] [ 📅 日期视图 ] */}
           <ScheduleViewToggle
             viewMode={view}
@@ -575,18 +612,19 @@ function DraftConfirmBanner({
   onConfirm(): void
   onCancel(): void
 }) {
+  const isForce = result?.compliance_status === 'authorized_violations' || exceptionCount > 0
   const isConfirmable = result?.validation.confirmable ?? result?.validation.passed ?? false
   return (
     <section className="flex flex-col gap-3 rounded-2xl border border-amber-300 bg-amber-50/90 p-4 sm:flex-row sm:items-center shadow-xs">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-extrabold text-amber-900">
-          草稿版本 {draft.version} 等待确认
+          {isForce ? '非合规强制排班草稿等待确认' : `草稿版本 ${draft.version} 等待确认`}
         </p>
         <p className="mt-0.5 text-xs text-amber-700">
           {result?.validation.employee_data_stale || result?.validation.rules_data_stale
             ? '员工资料或标准规则已变更，请取消此草稿后重新生成。'
-            : exceptionCount
-            ? `存在 ${exceptionCount} 项已授权规则例外。确认后，该版本将携带这些例外正式生效。`
+            : isForce
+            ? `当前为强制生成的非标准合规排班，存在 ${exceptionCount} 项已授权规则冲突。确认后这些违规仍会保留，并作为该版本的一部分生效。`
             : isConfirmable
             ? '确认后该排班版本正式生效。'
             : '存在未授权规则冲突，不能确认。'}
@@ -606,10 +644,11 @@ function DraftConfirmBanner({
           type="button"
           onClick={onConfirm}
           disabled={busy || !isConfirmable}
+          aria-label={isForce ? '确认含例外的排班' : '确认变更'}
           className="btn-primary"
         >
           <Check className="h-4 w-4" />
-          {exceptionCount ? '确认含例外的排班' : '确认变更'}
+          {isForce ? '确认非合规强制方案' : '确认变更'}
         </button>
       </div>
     </section>

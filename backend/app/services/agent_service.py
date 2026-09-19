@@ -54,6 +54,37 @@ _INFEASIBLE_DAY_NAMES = {
 _INFEASIBLE_SHIFT_NAMES = {"morning": "早班", "evening": "晚班"}
 
 
+def _format_force_violations_message(
+    schedule_result: dict[str, Any], iso_year: int, iso_week: int, version: int
+) -> str:
+    raw_violations = schedule_result.get("authorized_violations")
+    if not raw_violations and isinstance(schedule_result.get("validation"), dict):
+        raw_violations = schedule_result["validation"].get("authorized_violations")
+    violations = (
+        [v for v in raw_violations if isinstance(v, dict)]
+        if isinstance(raw_violations, list)
+        else []
+    )
+    count = len(violations)
+    lines = [
+        f"强制生成{iso_year}年第{iso_week}周排班草稿 v{version}。",
+        f"注意：这是用户明确授权强制生成的非标准合规方案，目前存在 {count} 项已授权规则冲突：",
+    ]
+    for v in violations:
+        rule_id = str(v.get("rule_id") or "规则冲突")
+        rule_name = str(v.get("rule_name") or "")
+        msg = str(v.get("message") or "")
+        if not msg:
+            emp = str(v.get("employee_id") or "")
+            day = str(v.get("day") or "")
+            shift = str(v.get("shift") or "")
+            detail = f"{emp} {day} {shift}".strip()
+            msg = f"{detail} 违反 {rule_id} {rule_name}".strip()
+        lines.append(f"• {rule_id}：{msg}")
+    lines.append("工作台已将该违规标记出来。确认后，该规则冲突仍会随版本保留。请在工作台检查后手动确认。")
+    return "\n".join(lines)
+
+
 class AgentTurnError(RuntimeError):
     def __init__(
         self,
@@ -459,7 +490,14 @@ class AgentService:
             else "not_created"
         )
         if schedule_created:
-            if recovered_schedule_status == "confirmed":
+            auth_violations = schedule_result.get("authorized_violations")
+            if not auth_violations and isinstance(schedule_result.get("validation"), dict):
+                auth_violations = schedule_result["validation"].get("authorized_violations")
+            if auth_violations or schedule_result.get("compliance_status") == "authorized_violations":
+                response_content = _format_force_violations_message(
+                    schedule_result, iso.year, iso.week, schedule_result["version"]
+                )
+            elif recovered_schedule_status == "confirmed":
                 response_content = (
                     f"原请求已生成{iso.year}年第{iso.week}周排班草稿 "
                     f"v{schedule_result['version']}；该版本目前已确认。"
@@ -1745,12 +1783,23 @@ class AgentService:
                 else:
                     response_content = f"场景试排仍不可行（场景版本 {revision}）。我已返回最接近可行的试排结果和覆盖缺口，正式排班未改变。"
             elif schedule_result and schedule_result.get("status") == "feasible":
-                exceptions = len(schedule_result.get("authorized_violations", []))
-                response_content = (
-                    f"已生成{target.iso_year}年第{target.iso_week}周排班草稿 "
-                    f"v{schedule_result['version']}。"
-                    + (f"其中有 {exceptions} 项已授权规则例外，请在工作台检查后手动确认。" if exceptions else "请在工作台检查后手动确认。")
+                auth_violations = schedule_result.get("authorized_violations")
+                if not auth_violations and isinstance(schedule_result.get("validation"), dict):
+                    auth_violations = schedule_result["validation"].get("authorized_violations")
+                is_force = (
+                    route.force_generate
+                    or schedule_result.get("compliance_status") == "authorized_violations"
+                    or bool(auth_violations)
                 )
+                if is_force and auth_violations:
+                    response_content = _format_force_violations_message(
+                        schedule_result, target.iso_year, target.iso_week, schedule_result["version"]
+                    )
+                else:
+                    response_content = (
+                        f"已生成{target.iso_year}年第{target.iso_week}周排班草稿 "
+                        f"v{schedule_result['version']}。请在工作台检查后手动确认。"
+                    )
             elif schedule_result and schedule_result.get("status") == "infeasible":
                 response_content = self._compose_infeasible_response(
                     schedule_result, target_week=target.week_start
@@ -1939,6 +1988,27 @@ class AgentService:
         previous_summary = (conversation or {}).get("summary")
         if previous_summary:
             summary_items.insert(0, f"既有摘要：{str(previous_summary)[-600:]}")
+        if schedule_result and (
+            schedule_result.get("compliance_status") == "authorized_violations"
+            or schedule_result.get("authorized_violations")
+        ):
+            if "这是用户明确授权强制生成的非标准合规方案" not in response_content:
+                raw_auth = schedule_result.get("authorized_violations")
+                if not raw_auth and isinstance(schedule_result.get("validation"), dict):
+                    raw_auth = schedule_result["validation"].get("authorized_violations")
+                auth_list = [v for v in raw_auth if isinstance(v, dict)] if isinstance(raw_auth, list) else []
+                count = len(auth_list)
+                safety_lines = [
+                    "",
+                    f"注意：这是用户明确授权强制生成的非标准合规方案，目前存在 {count} 项已授权规则冲突：",
+                ]
+                for v in auth_list:
+                    rule_id = str(v.get("rule_id") or "规则冲突")
+                    msg = str(v.get("message") or "")
+                    safety_lines.append(f"• {rule_id}：{msg}")
+                safety_lines.append("工作台已将该违规标记出来。确认后，该规则冲突仍会随版本保留。")
+                response_content = response_content.rstrip() + "\n" + "\n".join(safety_lines)
+
         summary = "；".join(summary_items)[-1400:]
         result = self.conversations.finalize_turn(
             conversation_id,

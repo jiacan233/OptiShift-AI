@@ -5,11 +5,13 @@ import { getCleanName } from '../employees/employeeUtils'
 interface AssignedEmployeeChipProps {
   employee: Employee
   onClick: (employee: Employee) => void
+  warning?: string
 }
 
 export const AssignedEmployeeChip: React.FC<AssignedEmployeeChipProps> = ({
   employee,
   onClick,
+  warning,
 }) => {
   const cleanName = getCleanName(employee.name)
 
@@ -17,9 +19,19 @@ export const AssignedEmployeeChip: React.FC<AssignedEmployeeChipProps> = ({
     <button
       type="button"
       onClick={() => onClick(employee)}
-      className="group inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-white hover:bg-blue-50/80 border border-slate-200/90 hover:border-blue-300 shadow-2xs hover:shadow-xs transition-all cursor-pointer select-none text-left"
-      title={`点击查看 ${cleanName} (${employee.role}) 的详细档案`}
+      className={`group relative inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-white hover:bg-blue-50/80 border ${
+        warning ? 'border-amber-400 bg-amber-50/50' : 'border-slate-200/90'
+      } hover:border-blue-300 shadow-2xs hover:shadow-xs transition-all cursor-pointer select-none text-left`}
+      title={warning ? `${cleanName} (${employee.role}) - ${warning}` : `点击查看 ${cleanName} (${employee.role}) 的详细档案`}
     >
+      {warning && (
+        <span
+          className="absolute -top-1 -right-1 bg-amber-500 text-white text-[8px] font-black px-1 rounded-full shadow-xs"
+          title={warning}
+        >
+          ⚠
+        </span>
+      )}
       <img
         src={employee.avatar}
         alt={cleanName}

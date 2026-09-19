@@ -12,6 +12,7 @@ export interface ShiftItem {
   timeRange: string
   isDragging?: boolean
   isGhost?: boolean
+  violationWarning?: string
 }
 
 export interface Employee {

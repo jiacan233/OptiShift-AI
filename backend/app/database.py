@@ -223,56 +223,244 @@ class Database:
         self._session_factory = None
 
 
+CANONICAL_EMPLOYEE_FIXTURE_VERSION = 2
+DEMO_EMPLOYEE_FIXTURE_VERSION = 2
+
 DEMO_EMPLOYEES = [
-    ("E01", "manager", ["manager", "beverage", "cashier", "inventory"], "morning", []),
-    ("E02", "manager", ["manager", "cashier", "inventory"], "evening", ["Mon", "Tue", "Wed", "Thu", "Sat", "Sun"]),
-    ("E03", "manager", ["manager", "beverage", "cashier"], "morning", ["Tue"]),
-    ("E04", "manager", ["manager", "beverage", "inventory"], "evening", ["Wed", "Fri"]),
-    ("E05", "full_time", ["beverage", "cashier"], "morning", ["Mon"]),
-    ("E06", "full_time", ["beverage", "cashier"], "evening", ["Tue"]),
-    ("E07", "full_time", ["beverage", "cashier"], "morning", ["Wed"]),
-    ("E08", "full_time", ["beverage", "cashier"], "evening", ["Thu"]),
-    ("E09", "full_time", ["beverage", "cashier"], "morning", ["Fri"]),
-    ("E10", "full_time", ["beverage", "cashier"], "evening", ["Sat"]),
-    ("E11", "part_time", ["beverage", "cashier"], "morning", ["Sun"]),
-    ("E12", "part_time", ["beverage", "cashier"], "evening", ["Mon"]),
-    ("E13", "part_time", ["beverage", "cashier"], "morning", []),
-    ("E14", "part_time", ["beverage", "cashier"], "evening", ["Thu"]),
-    ("E15", "part_time", ["beverage", "cashier"], "morning", []),
-    ("E16", "part_time", ["beverage", "cashier"], "evening", ["Fri"]),
+    {
+        "id": "E01",
+        "role": "manager",
+        "skills": ["manager", "beverage", "cashier", "inventory"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": ["Wed"],
+        "preferred_shift": "morning",
+    },
+    {
+        "id": "E02",
+        "role": "vice_manager",
+        "skills": ["manager", "beverage", "cashier"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": "evening",
+    },
+    {
+        "id": "E03",
+        "role": "shift_leader",
+        "skills": ["manager", "beverage", "cashier"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+        "leave_days": [],
+        "preferred_shift": None,
+    },
+    {
+        "id": "E04",
+        "role": "shift_leader",
+        "skills": ["manager", "beverage", "inventory"],
+        "available_days": ["Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": "morning",
+    },
+    {
+        "id": "E05",
+        "role": "senior_clerk",
+        "skills": ["manager", "beverage", "cashier"],
+        "available_days": ["Fri", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": "evening",
+    },
+    {
+        "id": "E06",
+        "role": "clerk",
+        "skills": ["beverage", "cashier"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": ["Tue"],
+        "preferred_shift": "morning",
+    },
+    {
+        "id": "E07",
+        "role": "clerk",
+        "skills": ["beverage", "cashier"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": "evening",
+    },
+    {
+        "id": "E08",
+        "role": "clerk",
+        "skills": ["beverage", "cashier", "inventory"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        "leave_days": [],
+        "preferred_shift": None,
+    },
+    {
+        "id": "E09",
+        "role": "clerk",
+        "skills": ["beverage"],
+        "available_days": ["Mon", "Wed", "Fri", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": "morning",
+    },
+    {
+        "id": "E10",
+        "role": "clerk",
+        "skills": ["beverage", "cashier"],
+        "available_days": ["Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": None,
+    },
+    {
+        "id": "E11",
+        "role": "clerk",
+        "skills": ["cashier", "inventory"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": "evening",
+    },
+    {
+        "id": "E12",
+        "role": "clerk",
+        "skills": ["beverage", "cashier"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+        "leave_days": [],
+        "preferred_shift": "morning",
+    },
+    {
+        "id": "E13",
+        "role": "part_time",
+        "skills": ["beverage"],
+        "available_days": ["Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": "morning",
+    },
+    {
+        "id": "E14",
+        "role": "part_time",
+        "skills": ["beverage", "cashier"],
+        "available_days": ["Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": "evening",
+    },
+    {
+        "id": "E15",
+        "role": "part_time",
+        "skills": ["cashier"],
+        "available_days": ["Fri", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": None,
+    },
+    {
+        "id": "E16",
+        "role": "part_time",
+        "skills": ["beverage"],
+        "available_days": ["Wed", "Thu", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": None,
+    },
+    {
+        "id": "E17",
+        "role": "clerk",
+        "skills": ["beverage", "cashier", "inventory"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": ["Mon"],
+        "preferred_shift": None,
+    },
+    {
+        "id": "E18",
+        "role": "clerk",
+        "skills": ["beverage", "cashier"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+        "leave_days": [],
+        "preferred_shift": "evening",
+    },
+    {
+        "id": "E19",
+        "role": "part_time",
+        "skills": ["beverage", "cashier"],
+        "available_days": ["Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": None,
+    },
+    {
+        "id": "E20",
+        "role": "clerk",
+        "skills": ["beverage", "inventory"],
+        "available_days": ["Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": ["Thu"],
+        "preferred_shift": "morning",
+    },
 ]
 
 
 def seed_demo_employees(database: Database) -> int:
-    """Insert missing demo employees without overwriting existing master data."""
-    days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    """Sync demo employees using versioned master data migration."""
     timestamp = utc_now()
-    created = 0
     with database.transaction(immediate=True) as session:
-        existing_ids = set(session.scalars(select(EmployeeRecord.id)).all())
-        for employee_id, role, skills, preferred_shift, unavailable in DEMO_EMPLOYEES:
-            if employee_id in existing_ids:
-                continue
+        fixture_record = session.get(SystemMetadataRecord, "demo_employee_fixture_version")
+        current_version = (
+            int(fixture_record.value)
+            if fixture_record is not None and fixture_record.value.isdigit()
+            else 0
+        )
+        if current_version >= DEMO_EMPLOYEE_FIXTURE_VERSION:
+            return 0
+
+        existing = {
+            emp.id: emp for emp in session.scalars(select(EmployeeRecord)).all()
+        }
+        mutated = False
+        count = 0
+        for item in DEMO_EMPLOYEES:
+            emp_id = item["id"]
+            if emp_id in existing:
+                rec = existing[emp_id]
+                if (
+                    rec.role != item["role"]
+                    or rec.skills != item["skills"]
+                    or rec.available_days != item["available_days"]
+                    or rec.leave_days != item["leave_days"]
+                    or rec.preferred_shift != item["preferred_shift"]
+                ):
+                    rec.role = item["role"]
+                    rec.skills = list(item["skills"])
+                    rec.available_days = list(item["available_days"])
+                    rec.leave_days = list(item["leave_days"])
+                    rec.preferred_shift = item["preferred_shift"]
+                    rec.updated_at = timestamp
+                    mutated = True
+                    count += 1
+            else:
+                session.add(
+                    EmployeeRecord(
+                        id=emp_id,
+                        role=item["role"],
+                        skills=list(item["skills"]),
+                        available_days=list(item["available_days"]),
+                        leave_days=list(item["leave_days"]),
+                        preferred_shift=item["preferred_shift"],
+                        created_at=timestamp,
+                        updated_at=timestamp,
+                    )
+                )
+                mutated = True
+                count += 1
+
+        if fixture_record is None:
             session.add(
-                EmployeeRecord(
-                    id=employee_id,
-                    role=role,
-                    skills=skills,
-                    available_days=[day for day in days if day not in unavailable],
-                    leave_days=[],
-                    preferred_shift=preferred_shift,
-                    created_at=timestamp,
-                    updated_at=timestamp,
+                SystemMetadataRecord(
+                    key="demo_employee_fixture_version",
+                    value=str(DEMO_EMPLOYEE_FIXTURE_VERSION),
                 )
             )
-            created += 1
-        if created:
+        else:
+            fixture_record.value = str(DEMO_EMPLOYEE_FIXTURE_VERSION)
+
+        if mutated:
             revision = session.get(SystemMetadataRecord, "employee_revision")
             if revision is None:
                 session.add(SystemMetadataRecord(key="employee_revision", value="1"))
             else:
                 revision.value = str(int(revision.value) + 1)
-    return created
+
+        return count
 
 
 database = Database()

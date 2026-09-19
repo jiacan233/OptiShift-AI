@@ -86,8 +86,19 @@ export const ShiftCard: React.FC<ShiftCardProps> = ({ shift, onClick }) => {
       ) : (
         <div
           onClick={onClick}
-          className={`h-12 w-full rounded-2xl px-2 py-1 flex flex-col justify-center items-center text-center font-semibold text-[11px] leading-[14px] transition-all hover:scale-[1.02] hover:shadow-sm cursor-pointer select-none ${currentStyle}`}
+          className={`relative h-12 w-full rounded-2xl px-2 py-1 flex flex-col justify-center items-center text-center font-semibold text-[11px] leading-[14px] transition-all hover:scale-[1.02] hover:shadow-sm cursor-pointer select-none ${currentStyle} ${
+            shift.violationWarning ? 'ring-2 ring-amber-500/80 bg-amber-50/80' : ''
+          }`}
+          title={shift.violationWarning}
         >
+          {shift.violationWarning && (
+            <span
+              className="absolute -top-1.5 -right-1 bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full shadow-sm z-20"
+              title={shift.violationWarning}
+            >
+              {shift.violationWarning}
+            </span>
+          )}
           <span className="font-bold text-slate-800">{shift.timeRange.split('\n')[0]}</span>
           <span className="text-[10px] opacity-90">{shift.timeRange.split('\n')[1]}</span>
         </div>
