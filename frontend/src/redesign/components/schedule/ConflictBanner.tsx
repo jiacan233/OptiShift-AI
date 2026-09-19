@@ -132,7 +132,7 @@ export const ConflictBanner: React.FC<ConflictBannerProps> = ({
       <div className="flex items-center justify-between pt-1 text-xs">
         <div className="text-slate-500 flex items-center gap-1 text-[11px]">
           <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
-          <span>建议：可调整兼职可用时间，或通过 AI 推荐放宽连续工作限制后再次重排。</span>
+          <span>建议：可调整员工可用时间、请假安排或补充技能后再次重排。</span>
         </div>
         <button
           type="button"

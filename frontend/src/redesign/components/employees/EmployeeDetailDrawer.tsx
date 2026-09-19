@@ -275,7 +275,7 @@ export const EmployeeDetailDrawer: React.FC<EmployeeDetailDrawerProps> = ({
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800">
                 <div className="font-bold flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-rose-500" />
-                  已批准休假：周
+                  已批准休假：
                   {employee.leaveDays.map((d) => DAYS_CN_MAP[d] || d).join('、')}
                 </div>
                 <p className="text-[11px] text-rose-600/90 mt-1">

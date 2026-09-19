@@ -42,6 +42,21 @@ import { useAppStore } from '@/store/AppStore'
 import type { Day, FeasibleResult, Schedule, ShiftType, TrustedAgentAction } from '@/types'
 import type { DayCoverage } from '@/redesign/types/schedule'
 
+const DAY_CN_MAP: Record<string, string> = {
+  Mon: '周一',
+  Tue: '周二',
+  Wed: '周三',
+  Thu: '周四',
+  Fri: '周五',
+  Sat: '周六',
+  Sun: '周日',
+}
+
+const SHIFT_CN_MAP: Record<string, string> = {
+  morning: '早班',
+  evening: '晚班',
+}
+
 export function ScheduleWorkbench() {
   const store = useAppStore()
   const agent = useAgentStore()
@@ -144,7 +159,7 @@ export function ScheduleWorkbench() {
             </span>
             {exceptionCount > 0 && (
               <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-700 border border-amber-200">
-                存在 {exceptionCount} 项已授权规则例外
+                强制方案 · 存在 {exceptionCount} 项已授权规则冲突
               </span>
             )}
           </div>
@@ -184,32 +199,55 @@ export function ScheduleWorkbench() {
         <>
           {/* Force Schedule Warning Banner */}
           {isForceCompliance && (
-            <div className="rounded-2xl border border-amber-300 bg-amber-50/90 p-4 shadow-2xs space-y-2.5">
+            <div className="rounded-2xl border border-amber-300 bg-amber-50/90 p-4 shadow-2xs space-y-3">
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-200 text-amber-900 font-bold text-xs shrink-0">
                   ⚠
                 </span>
                 <h3 className="text-sm font-extrabold text-amber-900">
-                  强制排班方案 · 存在规则冲突
+                  强制排班方案 · 非标准合规
                 </h3>
+                <span className="rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-extrabold text-amber-900">
+                  存在 {authorizedViolations.length || exceptionCount} 项已授权规则冲突
+                </span>
               </div>
               <p className="text-xs text-amber-800 leading-relaxed">
-                当前排班按照用户明确授权强制生成，未完全满足标准排班规则，不属于正常合规方案。当前存在 {authorizedViolations.length || exceptionCount} 项已授权规则冲突。
+                当前排班按照用户明确授权强制生成，未完全满足标准排班规则，属于非标准合规方案。确认后这些违规仍会保留并作为该版本的一部分生效。当前存在 {authorizedViolations.length || exceptionCount} 项已授权规则冲突。
               </p>
               {authorizedViolations.length > 0 && (
-                <div className="bg-amber-100/70 rounded-xl p-3 border border-amber-200/80 text-xs text-amber-900 space-y-1">
-                  <p className="font-bold text-[11px] text-amber-800 mb-1">已授权违规明细：</p>
-                  <ul className="list-disc list-inside space-y-1">
-                    {authorizedViolations.map((v, idx) => (
-                      <li key={idx} className="text-xs">
-                        <span className="font-bold">[{v.rule_id}] {v.rule_name || ''}</span>：
-                        {v.employee_id ? `员工 ${v.employee_id} ` : ''}
-                        {v.day ? `${v.day} ` : ''}
-                        {v.shift ? `${v.shift} ` : ''}
-                        {v.message}
-                      </li>
-                    ))}
-                  </ul>
+                <div className="space-y-2">
+                  <p className="font-bold text-xs text-amber-900">已授权违规明细：</p>
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    {authorizedViolations.map((v, idx) => {
+                      const dayLabel = (v.day && DAY_CN_MAP[v.day]) || v.day || '未指定'
+                      const shiftLabel = (v.shift && SHIFT_CN_MAP[v.shift]) || v.shift || '未指定'
+                      return (
+                        <div
+                          key={v.violation_id || idx}
+                          className="rounded-xl border border-amber-200 bg-white/80 p-3 shadow-2xs text-xs text-slate-700 space-y-1.5"
+                        >
+                          <div className="flex items-center justify-between font-bold text-amber-900">
+                            <span>[{v.rule_id}] {v.rule_name || ''}</span>
+                            <span className="text-[10px] rounded bg-amber-100 px-1.5 py-0.5 text-amber-800">已明确授权</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[11px] text-slate-600 pt-1">
+                            {v.employee_id && <div>员工：<span className="font-semibold text-slate-800">{v.employee_id}</span></div>}
+                            <div>日期：<span className="font-semibold text-slate-800">{dayLabel}</span></div>
+                            <div>班次：<span className="font-semibold text-slate-800">{shiftLabel}</span></div>
+                            {v.expected != null && <div>要求：<span className="font-semibold text-slate-800">{String(v.expected)}</span></div>}
+                            {v.actual != null && <div>实际：<span className="font-semibold text-slate-800">{String(v.actual)}</span></div>}
+                            {v.shortage != null && <div>缺口：<span className="font-semibold text-rose-600">{v.shortage} 人</span></div>}
+                          </div>
+                          <p className="text-[11px] text-amber-800 pt-1 font-medium border-t border-amber-100">
+                            {v.message}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            该违规由用户明确授权。
+                          </p>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -644,7 +682,7 @@ function DraftConfirmBanner({
           type="button"
           onClick={onConfirm}
           disabled={busy || !isConfirmable}
-          aria-label={isForce ? '确认含例外的排班' : '确认变更'}
+          aria-label={isForce ? '确认非合规强制方案' : '确认变更'}
           className="btn-primary"
         >
           <Check className="h-4 w-4" />

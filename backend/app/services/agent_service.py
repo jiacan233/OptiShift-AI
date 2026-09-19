@@ -54,6 +54,46 @@ _INFEASIBLE_DAY_NAMES = {
 _INFEASIBLE_SHIFT_NAMES = {"morning": "早班", "evening": "晚班"}
 
 
+_DAY_CN = {
+    "Mon": "周一",
+    "Tue": "周二",
+    "Wed": "周三",
+    "Thu": "周四",
+    "Fri": "周五",
+    "Sat": "周六",
+    "Sun": "周日",
+}
+_SHIFT_CN = {"morning": "早班", "evening": "晚班"}
+
+
+def _format_violation_line(v: dict[str, Any]) -> str:
+    rule_id = str(v.get("rule_id") or "规则冲突")
+    rule_name = str(v.get("rule_name") or "")
+    emp = str(v.get("employee_id") or "")
+    raw_day = str(v.get("day") or "")
+    raw_shift = str(v.get("shift") or "")
+    day = _DAY_CN.get(raw_day, raw_day)
+    shift = _SHIFT_CN.get(raw_shift, raw_shift)
+
+    if rule_id == "R08":
+        if emp and day and shift:
+            detail = f"{emp} {day}处于请假状态，但被安排{shift}上班"
+        elif emp and day:
+            detail = f"{emp} {day}处于请假状态，但被安排上班"
+        else:
+            detail = "员工处于请假或不可工作状态，但被安排班次"
+    elif rule_id in {"R01", "R02", "R03", "R04"}:
+        shortage = v.get("shortage")
+        shortage_str = f"，缺口 {shortage} 人" if shortage else ""
+        detail = f"{day} {shift}{rule_name or rule_id}在岗人数不足{shortage_str}"
+    else:
+        msg = str(v.get("message") or "")
+        parts = [p for p in (emp, day, shift) if p]
+        prefix = f"{' '.join(parts)} " if parts else ""
+        detail = f"{prefix}{msg or '存在规则冲突'}"
+    return f"• {rule_id}：{detail}"
+
+
 def _format_force_violations_message(
     schedule_result: dict[str, Any], iso_year: int, iso_week: int, version: int
 ) -> str:
@@ -67,20 +107,11 @@ def _format_force_violations_message(
     )
     count = len(violations)
     lines = [
-        f"强制生成{iso_year}年第{iso_week}周排班草稿 v{version}。",
+        f"已按要求强制生成{iso_year}年第{iso_week}周排班草稿 v{version}。",
         f"注意：这是用户明确授权强制生成的非标准合规方案，目前存在 {count} 项已授权规则冲突：",
     ]
     for v in violations:
-        rule_id = str(v.get("rule_id") or "规则冲突")
-        rule_name = str(v.get("rule_name") or "")
-        msg = str(v.get("message") or "")
-        if not msg:
-            emp = str(v.get("employee_id") or "")
-            day = str(v.get("day") or "")
-            shift = str(v.get("shift") or "")
-            detail = f"{emp} {day} {shift}".strip()
-            msg = f"{detail} 违反 {rule_id} {rule_name}".strip()
-        lines.append(f"• {rule_id}：{msg}")
+        lines.append(_format_violation_line(v))
     lines.append("工作台已将该违规标记出来。确认后，该规则冲突仍会随版本保留。请在工作台检查后手动确认。")
     return "\n".join(lines)
 
@@ -2003,10 +2034,8 @@ class AgentService:
                     f"注意：这是用户明确授权强制生成的非标准合规方案，目前存在 {count} 项已授权规则冲突：",
                 ]
                 for v in auth_list:
-                    rule_id = str(v.get("rule_id") or "规则冲突")
-                    msg = str(v.get("message") or "")
-                    safety_lines.append(f"• {rule_id}：{msg}")
-                safety_lines.append("工作台已将该违规标记出来。确认后，该规则冲突仍会随版本保留。")
+                    safety_lines.append(_format_violation_line(v))
+                safety_lines.append("工作台已将该违规标记出来。确认后，该规则冲突仍会随版本保留。请在工作台检查后手动确认。")
                 response_content = response_content.rstrip() + "\n" + "\n".join(safety_lines)
 
         summary = "；".join(summary_items)[-1400:]

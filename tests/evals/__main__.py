@@ -13,7 +13,9 @@ def main():
         if key.startswith("LLM_") and value is not None:
             os.environ.setdefault(key, value)
     os.environ.setdefault("LIVE_AGENT_EVAL", "true")
-    return pytest.main(["tests/evals/test_live_agent_eval.py", "-v", "-rs", "--tb=short", *sys.argv[1:]])
+    return pytest.main(
+        ["tests/evals/test_live_agent_eval.py", "tests/evals/test_force_eval.py", "-v", "-rs", "--tb=short", *sys.argv[1:]]
+    )
 
 
 if __name__ == "__main__":

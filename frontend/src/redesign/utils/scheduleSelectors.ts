@@ -123,14 +123,14 @@ export function calculateDayCoverage(
         const ruleId = violation.rule_id.replace(/^R(\d+)$/, 'R-$1')
         const existing = ruleIssues.find((issue) => issue.ruleId === ruleId)
         if (existing) {
-          existing.message = `${violation.authorized ? '已授权例外：' : ''}${violation.message}`
+          existing.message = `${violation.authorized ? '已授权违规：' : ''}${violation.message}`
           continue
         }
         ruleIssues.push({
           ruleId,
           ruleName: violation.rule_name,
           severity: 'error',
-          message: `${violation.authorized ? '已授权例外：' : ''}${violation.message}`,
+          message: `${violation.authorized ? '已授权违规：' : ''}${violation.message}`,
           current: typeof violation.actual === 'number' ? violation.actual : 0,
           required: typeof violation.expected === 'number' ? violation.expected : 0,
         })

@@ -25,9 +25,153 @@ from backend.app.models import (
     Shift,
     SolverStatus,
 )
+from backend.app.services.agent_router import AgentRouter
 from backend.app.solver import PrimarySolver
 from backend.app.validator import RuleValidator
 from backend.app.validator.authorization import classify_validation
+
+CANONICAL_SPEC: dict[str, dict] = {
+    "E01": {
+        "role": "manager",
+        "skills": ["manager", "beverage", "cashier", "inventory"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": ["Wed"],
+        "preferred_shift": "morning",
+    },
+    "E02": {
+        "role": "vice_manager",
+        "skills": ["manager", "beverage", "cashier"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": "evening",
+    },
+    "E03": {
+        "role": "shift_leader",
+        "skills": ["manager", "beverage", "cashier"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+        "leave_days": [],
+        "preferred_shift": None,
+    },
+    "E04": {
+        "role": "shift_leader",
+        "skills": ["manager", "beverage", "inventory"],
+        "available_days": ["Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": "morning",
+    },
+    "E05": {
+        "role": "senior_clerk",
+        "skills": ["manager", "beverage", "cashier"],
+        "available_days": ["Fri", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": "evening",
+    },
+    "E06": {
+        "role": "clerk",
+        "skills": ["beverage", "cashier"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": ["Tue"],
+        "preferred_shift": "morning",
+    },
+    "E07": {
+        "role": "clerk",
+        "skills": ["beverage", "cashier"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": "evening",
+    },
+    "E08": {
+        "role": "clerk",
+        "skills": ["beverage", "cashier", "inventory"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        "leave_days": [],
+        "preferred_shift": None,
+    },
+    "E09": {
+        "role": "clerk",
+        "skills": ["beverage"],
+        "available_days": ["Mon", "Wed", "Fri", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": "morning",
+    },
+    "E10": {
+        "role": "clerk",
+        "skills": ["beverage", "cashier"],
+        "available_days": ["Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": None,
+    },
+    "E11": {
+        "role": "clerk",
+        "skills": ["cashier", "inventory"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": "evening",
+    },
+    "E12": {
+        "role": "clerk",
+        "skills": ["beverage", "cashier"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+        "leave_days": [],
+        "preferred_shift": "morning",
+    },
+    "E13": {
+        "role": "part_time",
+        "skills": ["beverage"],
+        "available_days": ["Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": "morning",
+    },
+    "E14": {
+        "role": "part_time",
+        "skills": ["beverage", "cashier"],
+        "available_days": ["Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": "evening",
+    },
+    "E15": {
+        "role": "part_time",
+        "skills": ["cashier"],
+        "available_days": ["Fri", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": None,
+    },
+    "E16": {
+        "role": "part_time",
+        "skills": ["beverage"],
+        "available_days": ["Wed", "Thu", "Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": None,
+    },
+    "E17": {
+        "role": "clerk",
+        "skills": ["beverage", "cashier", "inventory"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": ["Mon"],
+        "preferred_shift": None,
+    },
+    "E18": {
+        "role": "clerk",
+        "skills": ["beverage", "cashier"],
+        "available_days": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+        "leave_days": [],
+        "preferred_shift": "evening",
+    },
+    "E19": {
+        "role": "part_time",
+        "skills": ["beverage", "cashier"],
+        "available_days": ["Sat", "Sun"],
+        "leave_days": [],
+        "preferred_shift": None,
+    },
+    "E20": {
+        "role": "clerk",
+        "skills": ["beverage", "inventory"],
+        "available_days": ["Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "leave_days": ["Thu"],
+        "preferred_shift": "morning",
+    },
+}
 
 
 @pytest.fixture
@@ -50,30 +194,29 @@ def test_canonical_20_employees_master_data(client):
     assert len(employees) == 20
     assert set(employees.keys()) == {f"E{i:02d}" for i in range(1, 21)}
 
-    # Check key employees
-    e01 = employees["E01"]
-    assert e01["role"] == "manager"
-    assert set(e01["skills"]) == {"manager", "beverage", "cashier", "inventory"}
-    assert e01["leave_days"] == ["Wed"]
-    assert e01["preferred_shift"] == "morning"
+    # Field-by-field verification for all 20 employees against canonical spec
+    for emp_id, spec in CANONICAL_SPEC.items():
+        assert emp_id in employees, f"Missing employee {emp_id}"
+        emp = employees[emp_id]
+        assert emp["role"] == spec["role"], f"{emp_id} role mismatch"
+        assert set(emp["skills"]) == set(spec["skills"]), f"{emp_id} skills mismatch"
+        assert emp["available_days"] == spec["available_days"], f"{emp_id} available_days mismatch"
+        assert emp["leave_days"] == spec["leave_days"], f"{emp_id} leave_days mismatch"
+        assert emp["preferred_shift"] == spec["preferred_shift"], f"{emp_id} preferred_shift mismatch"
 
-    e02 = employees["E02"]
-    assert e02["role"] == "vice_manager"
-    assert e02["leave_days"] == []
-    assert e02["preferred_shift"] == "evening"
+    # Explicit verification of mandatory exam checkpoints
+    assert employees["E01"]["leave_days"] == ["Wed"]
+    assert employees["E06"]["leave_days"] == ["Tue"]
+    assert employees["E17"]["leave_days"] == ["Mon"]
+    assert employees["E20"]["leave_days"] == ["Thu"]
 
-    e06 = employees["E06"]
-    assert e06["role"] == "clerk"
-    assert e06["leave_days"] == ["Tue"]
-
-    e17 = employees["E17"]
-    assert e17["role"] == "clerk"
-    assert e17["leave_days"] == ["Mon"]
-
-    e20 = employees["E20"]
-    assert e20["role"] == "clerk"
-    assert e20["leave_days"] == ["Thu"]
-    assert e20["preferred_shift"] == "morning"
+    # Explicit skill checkpoints
+    assert set(employees["E02"]["skills"]) == {"manager", "beverage", "cashier"}
+    assert "manager" in employees["E05"]["skills"]
+    assert "beverage" not in employees["E11"]["skills"] and set(employees["E11"]["skills"]) == {"cashier", "inventory"}
+    assert set(employees["E15"]["skills"]) == {"cashier"}
+    assert set(employees["E16"]["skills"]) == {"beverage"}
+    assert "cashier" not in employees["E20"]["skills"] and set(employees["E20"]["skills"]) == {"beverage", "inventory"}
 
 
 def test_versioned_demo_sync_idempotence_and_upgrade(tmp_path):
@@ -134,6 +277,19 @@ def test_versioned_demo_sync_idempotence_and_upgrade(tmp_path):
         rev_subsequent = int(session.get(SystemMetadataRecord, "employee_revision").value)
         assert rev_subsequent == 6  # Revision not incremented on idempotent rerun
 
+    # Test that subsequent sync does NOT overwrite user-modified fields once fixture_version == 2
+    with db.transaction() as session:
+        e01_rec = session.get(EmployeeRecord, "E01")
+        e01_rec.preferred_shift = "evening"
+        e01_rec.updated_at = now
+
+    third_run = seed_demo_employees(db)
+    assert third_run == 0
+
+    with db.session() as session:
+        e01_persisted = session.get(EmployeeRecord, "E01")
+        assert e01_persisted.preferred_shift == "evening"  # User modification preserved!
+
 
 def test_canonical_dataset_strict_feasible_schedule(client):
     response = client.post(
@@ -151,6 +307,13 @@ def test_canonical_dataset_strict_feasible_schedule(client):
     assert payload["validation"]["passed"] is True
     assert payload["validation"]["passed_count"] == 10
     assert not payload["validation"]["violations"]
+
+    assignments = payload["schedule"]["assignments"]
+    # Verify leave days strictly respected in compliant mode
+    assert not any(a["employee_id"] == "E01" and a["day"] == "Wed" for a in assignments), "E01 scheduled on Wed leave"
+    assert not any(a["employee_id"] == "E06" and a["day"] == "Tue" for a in assignments), "E06 scheduled on Tue leave"
+    assert not any(a["employee_id"] == "E17" and a["day"] == "Mon" for a in assignments), "E17 scheduled on Mon leave"
+    assert not any(a["employee_id"] == "E20" and a["day"] == "Thu" for a in assignments), "E20 scheduled on Thu leave"
 
 
 def test_canonical_force_r08_e01_wednesday_morning(client):

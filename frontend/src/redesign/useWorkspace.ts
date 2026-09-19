@@ -77,7 +77,7 @@ export const EMPLOYEE_ROSTER: Record<string, EmployeeRosterEntry> = {
     name: '刘畅 (E10)',
     role: '店员',
     avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
-    preferredShift: 'evening',
+    preferredShift: 'none',
   },
   E11: {
     name: '钱佳 (E11)',
@@ -220,14 +220,7 @@ export function useWorkspace() {
           if (assigned.length === 1) {
             const shift = assigned[0].shift
             const timeStr = shift === 'morning' ? '09:00 - 17:00' : '13:00 - 21:00'
-            const hasManager =
-              employee.skills.includes('manager') ||
-              employee.role === 'manager' ||
-              employee.role === 'vice_manager' ||
-              employee.role === 'shift_leader' ||
-              displayRole === '店长' ||
-              displayRole === '副店长' ||
-              displayRole === '值班主管'
+            const hasManager = employee.skills.includes('manager')
             const qualStr = hasManager ? '·值守' : ''
             const shiftLabel = `${SHIFT_LABELS[shift]}${qualStr}`
             const matchViolation = authViolations.find(
