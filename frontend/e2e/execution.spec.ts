@@ -21,11 +21,11 @@ test('执行进度在最终结果前更新，支持分片和心跳并显示路�
       emit('heartbeat', {})
       Object.assign(window, {
         failExecution: () => {
-          emit('execution', { ...event, event_id: 'failed', status: 'failed', duration_ms: 50021,
-            details: { error_type: 'read_timeout', latency_ms: 50021 } })
+          emit('execution', { ...event, event_id: 'failed', status: 'failed', duration_ms: 120021,
+            details: { error_type: 'read_timeout', latency_ms: 120021 } })
           emit('error', { code: 'ai_unavailable', status: 503,
             message: 'AI Provider 等待响应超过 120 秒。',
-            details: { stage: 'agent_route', error_type: 'read_timeout', latency_ms: 50021 } })
+            details: { stage: 'agent_route', error_type: 'read_timeout', latency_ms: 120021 } })
           controller.close()
         },
       })

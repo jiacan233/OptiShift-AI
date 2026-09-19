@@ -213,7 +213,7 @@ def test_router_failure_has_timeline_before_any_tool(execution_client, monkeypat
                 "AI Provider 等待响应超过 120 秒。",
                 error_type="read_timeout",
                 stage="agent_route",
-                latency_ms=50021,
+                latency_ms=120021,
             )
 
     monkeypatch.setattr(dependencies.agent_service.router, "route", fail)
@@ -224,7 +224,7 @@ def test_router_failure_has_timeline_before_any_tool(execution_client, monkeypat
     assert stream[-1][0] == "error"
     details = stream[-1][1]["details"]
     assert details["stage"] == "agent_route"
-    assert details["latency_ms"] == 50021
+    assert details["latency_ms"] == 120021
     assert details["error_type"] == "read_timeout"
     assert details["tool_calls"] == []
     assert [(e["stage"], e["status"]) for e in details["execution_events"]][-3:] == [

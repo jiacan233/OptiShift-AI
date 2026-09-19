@@ -40,6 +40,8 @@ def _response(content: str, status_code: int = 200) -> httpx.Response:
 def _client(monkeypatch: pytest.MonkeyPatch) -> AgentLLMClient:
     monkeypatch.setenv("LLM_ENABLED", "true")
     monkeypatch.setenv("LLM_API_KEY", "sk-test-secret")
+    monkeypatch.delenv("LLM_READ_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("LLM_HEALTH_READ_TIMEOUT_SECONDS", raising=False)
     return AgentLLMClient()
 
 

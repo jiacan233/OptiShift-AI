@@ -8,7 +8,7 @@ PowerShell, using the project's virtual environment:
 ```powershell
 $env:LIVE_AGENT_EVAL = 'true'
 $env:LLM_EVAL_MODEL = 'your-configured-model'
-# Per-provider HTTP timeout (connect/read/write/pool); default is 120 seconds.
+# Per-provider read timeout; default is 120 seconds. Other transport limits are unchanged.
 $env:LLM_EVAL_TIMEOUT_SECONDS = '120'
 # Complete AgentService turn budget; default is 300 seconds.
 $env:LLM_EVAL_TURN_TIMEOUT_SECONDS = '300'

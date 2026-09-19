@@ -37,7 +37,12 @@ class RecordingLLM(AgentLLMClient):
         # Provider calls get their own bounded transport budget. The complete
         # AgentService turn has a separate, longer budget configured below.
         timeout = positive_seconds("LLM_EVAL_TIMEOUT_SECONDS", 120)
-        self.timeout = httpx.Timeout(timeout, connect=min(8, timeout))
+        self.timeout = httpx.Timeout(
+            connect=self.timeout.connect,
+            read=timeout,
+            write=self.timeout.write,
+            pool=self.timeout.pool,
+        )
 
     def _post(self, payload, *, stage=None, read_timeout_seconds=None):
         response, latency, status = super()._post(
