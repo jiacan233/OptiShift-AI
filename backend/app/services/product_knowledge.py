@@ -24,7 +24,7 @@ CATALOG: tuple[ProductKnowledgeEntry, ...] = (
     ProductKnowledgeEntry("assistant.identity", "OptiShift AI", ("你是谁", "你叫什么"), "我是 OptiShift AI 排班助手。", "我可以基于当前员工、规则和排班数据回答问题并提出排班草稿。", "不会仅因聊天修改正式排班。"),
     ProductKnowledgeEntry("assistant.capabilities", "助手能力", ("你能干嘛", "你能做什么", "你可以做什么", "支持什么", "你的能力"), "我可以查询排班和员工安排、解释规则、分析人数与技能覆盖、工作量和可行性，提供建议、生成草稿并按明确条件重新排班；强制生成需要精确授权。", "排班操作经过求解和独立校验。", "不能通过聊天确认正式排班、修改员工主数据、编造员工日期规则或静默忽略硬规则。"),
     ProductKnowledgeEntry("workflow.draft", "排班草稿", ("草稿", "draft", "候选方案"), "草稿是 Solver 生成、等待人工检查的候选排班版本。", "草稿会显示在工作台供检查。", "会产生待确认版本，但不会改变正式确认版本。", chat_executable=False, requires_manual_action=True),
-    ProductKnowledgeEntry("workflow.confirm", "确认生效", ("确认生效", "确认按钮", "确认这个版本", "应用版本"), "确认生效会把当前有效草稿设为正式排班版本。", "正式排班版本发生改变。", "聊天不能直接确认；请在工作台检查草稿后手动确认。", "必须存在有效草稿。", False, True),
+    ProductKnowledgeEntry("workflow.confirm", "确认生效", ("确认生效", "确认按钮", "确认这个版本", "应用版本"), "确认生效会把当前有效草稿设为正式排班版本。", "正式排班版本发生改变。", "聊天不能直接确认排班，请在工作台检查草稿后手动确认。", "必须存在有效草稿。", False, True),
     ProductKnowledgeEntry("workflow.cancel_draft", "取消草稿", ("取消草稿", "撤销草稿"), "取消草稿会放弃当前待确认的候选版本。", "待确认草稿不再作为候选版本。", "不会修改已确认的正式排班。", "必须存在有效草稿。", False, True),
     ProductKnowledgeEntry("workflow.replan", "重新排班", ("重新排班", "重新排", "重排", "replan"), "可以根据明确条件重新求解当前正式排班，并尽量减少改动。", "成功后创建新的待确认草稿，不会自动发布。", "仍受当前规则、独立校验、待确认草稿和版本保护约束。", "目标周须有正式排班，且没有待确认草稿。", True, limitations="能力询问本身不会执行重排。"),
     ProductKnowledgeEntry("workflow.force_generate", "强制生成", ("强制生成", "force generate"), "强制生成是在明确授权范围内生成带有授权冲突标记的草稿。", "生成结果会保留授权冲突并要求人工检查。", "不会绕过未授权规则，也不会直接确认正式版本。", "覆盖缺口需要规则、日期、班次和缺口上限；请假或不可用例外需要员工、日期和班次。", True, limitations="仅支持现有授权范围；工时、连续工作、晚转早及员工技能来源不能由 Force 覆盖。询问能力不构成授权。"),

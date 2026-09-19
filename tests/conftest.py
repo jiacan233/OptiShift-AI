@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 from datetime import date
 
 import pytest
+
+# Tests must never inherit a production dotenv/shell setting.  This runs before
+# importing application modules, whose global Database instance reads APP_ENV.
+os.environ["APP_ENV"] = "test"
 
 from backend.app.database import Database, seed_demo_employees
 from backend.app.models import (
@@ -21,6 +26,12 @@ from backend.app.services.scheduling_service import SchedulingService
 
 
 EmployeeFactory = Callable[..., Employee]
+
+
+@pytest.fixture(autouse=True)
+def isolate_test_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep every test on the local SQLite-safe environment."""
+    monkeypatch.setenv("APP_ENV", "test")
 
 
 @pytest.fixture
@@ -88,4 +99,3 @@ def repositories(database: Database) -> tuple[EmployeeRepository, ScheduleReposi
 def demo_service(database: Database) -> SchedulingService:
     seed_demo_employees(database)
     return SchedulingService(EmployeeRepository(database), ScheduleRepository(database))
-

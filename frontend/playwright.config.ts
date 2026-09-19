@@ -31,6 +31,7 @@ export default defineConfig({
       cwd: repositoryDirectory,
       env: {
         ...env,
+        APP_ENV: 'test',
         DATABASE_URL: databasePath,
         CORS_ORIGINS: webUrl,
         LLM_ENABLED: 'false',
