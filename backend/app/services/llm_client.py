@@ -218,7 +218,7 @@ class AgentLLMClient:
         self.base_url = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1").rstrip("/")
         self.timeout = httpx.Timeout(
             connect=positive_seconds("LLM_CONNECT_TIMEOUT_SECONDS", 8),
-            read=positive_seconds("LLM_READ_TIMEOUT_SECONDS", 50),
+            read=positive_seconds("LLM_READ_TIMEOUT_SECONDS", 120),
             write=positive_seconds("LLM_WRITE_TIMEOUT_SECONDS", 50),
             pool=positive_seconds("LLM_POOL_TIMEOUT_SECONDS", 8),
         )
@@ -353,6 +353,7 @@ class AgentLLMClient:
         payload: dict[str, Any],
         *,
         stage: str | None = None,
+        read_timeout_seconds: float | None = None,
     ) -> tuple[dict[str, Any], int, int]:
         started = time.perf_counter()
         if not self.enabled:
@@ -371,16 +372,16 @@ class AgentLLMClient:
             )
         trace = current_execution.get()
         remaining = trace.remaining(stage or "provider") if trace else None
-        timeout = (
-            self.timeout
-            if remaining is None
-            else httpx.Timeout(
-                **{
-                    key: min(value, remaining) if value is not None else remaining
-                    for key, value in self.timeout.as_dict().items()
-                }
-            )
-        )
+        # Copy per request: health probes must not change the shared client's limits.
+        timeout_values = self.timeout.as_dict()
+        if read_timeout_seconds is not None:
+            timeout_values["read"] = read_timeout_seconds
+        if remaining is not None:
+            timeout_values = {
+                key: min(value, remaining) if value is not None else remaining
+                for key, value in timeout_values.items()
+            }
+        timeout = httpx.Timeout(**timeout_values)
 
         try:
             response = self.client.post(
@@ -406,7 +407,7 @@ class AgentLLMClient:
                 else "timeout"
             )
             message = (
-                f"AI Provider 等待响应超过 {self.timeout.read:g} 秒。"
+                f"AI Provider 等待响应超过 {timeout.read:g} 秒。"
                 if kind == "read_timeout"
                 else "连接 AI Provider 超时。"
                 if kind == "connect_timeout"
@@ -519,6 +520,7 @@ class AgentLLMClient:
 
     def health_check(self) -> dict[str, Any]:
         checks: dict[str, dict[str, Any]] = {}
+        read_timeout = positive_seconds("LLM_HEALTH_READ_TIMEOUT_SECONDS", 30)
         try:
             response, latency_ms, provider_status = self._post(
                 {
@@ -529,6 +531,7 @@ class AgentLLMClient:
                     "temperature": 0,
                 },
                 stage="basic_chat",
+                read_timeout_seconds=read_timeout,
             )
             reply = self._content(response, latency_ms, provider_status, stage="basic_chat")
             checks["basic_chat"] = {"status": "ok", "latency_ms": latency_ms, "reply": reply}
@@ -558,6 +561,7 @@ class AgentLLMClient:
                     "required": ["ok"],
                 },
                 stage="structured_output_health",
+                read_timeout_seconds=read_timeout,
             )
             if structured.get("ok") is not True:
                 raise AIUnavailableError(
@@ -596,6 +600,7 @@ class AgentLLMClient:
         schema_name: str,
         schema: dict[str, Any],
         stage: str = "structured_output",
+        read_timeout_seconds: float | None = None,
     ) -> dict[str, Any]:
         validate_strict_json_schema(schema)
         response, latency_ms, provider_status = self._post(
@@ -619,6 +624,7 @@ class AgentLLMClient:
                 },
             },
             stage=stage,
+            read_timeout_seconds=read_timeout_seconds,
         )
         started = time.perf_counter() - (latency_ms / 1000)
         try:

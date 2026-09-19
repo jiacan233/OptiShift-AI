@@ -23,11 +23,12 @@ from backend.app.services.llm_client import AgentLLMClient, AIUnavailableError
     "name,default",
     [
         ("LLM_CONNECT_TIMEOUT_SECONDS", 8),
-        ("LLM_READ_TIMEOUT_SECONDS", 50),
+        ("LLM_READ_TIMEOUT_SECONDS", 120),
         ("LLM_WRITE_TIMEOUT_SECONDS", 50),
         ("LLM_POOL_TIMEOUT_SECONDS", 8),
-        ("AGENT_TURN_TIMEOUT_SECONDS", 90),
-        ("AGENT_TURN_LEASE_SECONDS", 180),
+        ("AGENT_TURN_TIMEOUT_SECONDS", 300),
+        ("AGENT_TURN_LEASE_SECONDS", 360),
+        ("LLM_HEALTH_READ_TIMEOUT_SECONDS", 30),
         ("SOLVER_MAX_TIME_SECONDS", 10),
     ],
 )
@@ -39,7 +40,7 @@ def test_invalid_timeout_falls_back(monkeypatch, name, default, value):
 def test_split_timeouts_and_legacy_ignored(monkeypatch):
     monkeypatch.setenv("LLM_TIMEOUT_SECONDS", "5")
     with AgentLLMClient() as client:
-        assert client.timeout.as_dict() == {"connect": 8, "read": 50, "write": 50, "pool": 8}
+        assert client.timeout.as_dict() == {"connect": 8, "read": 120, "write": 50, "pool": 8}
     monkeypatch.setenv("LLM_READ_TIMEOUT_SECONDS", "61")
     with AgentLLMClient() as client:
         assert client.timeout.read == 61
@@ -56,7 +57,7 @@ def test_transport_timeout_classification(monkeypatch, exception, kind):
 
     def handler(request):
         assert request.extensions["timeout"]["connect"] == 8
-        assert request.extensions["timeout"]["read"] == 50
+        assert request.extensions["timeout"]["read"] == 120
         raise exception("private transport error")
 
     with httpx.Client(transport=httpx.MockTransport(handler)) as transport:
@@ -209,7 +210,7 @@ def test_router_failure_has_timeline_before_any_tool(execution_client, monkeypat
     def fail(*args, **kwargs):
         with execution_stage("agent_route"):
             raise AIUnavailableError(
-                "AI Provider 等待响应超过 50 秒。",
+                "AI Provider 等待响应超过 120 秒。",
                 error_type="read_timeout",
                 stage="agent_route",
                 latency_ms=50021,
@@ -262,7 +263,7 @@ def test_budget_after_committed_draft_recovers_same_result(execution_client, mon
         result = original(name, **kwargs)
         if name == "generate_schedule":
             trace = current_execution.get()
-            trace.started -= 100
+            trace.started -= trace.budget + 1
             trace.remaining("response_compose")
         return result
 
@@ -410,7 +411,7 @@ def test_week41_replan_with_provider_schema_and_no_reasoning(execution_client, m
         transport.close()
 
 
-@pytest.mark.parametrize("delay,read_timeout,success", [(8, 50, True), (51, 50, False)])
+@pytest.mark.parametrize("delay,read_timeout,success", [(1, 2, True), (3, 2, False)])
 def test_real_http_read_timeout(monkeypatch, delay, read_timeout, success):
     """Real socket exercises HTTPX timers; no billable Provider requests."""
 
@@ -445,7 +446,7 @@ def test_real_http_read_timeout(monkeypatch, delay, read_timeout, success):
                 with pytest.raises(AIUnavailableError) as error:
                     client.complete_text(system="test", user={}, stage="agent_route")
                 assert error.value.error_type == "read_timeout"
-                assert 49000 <= error.value.latency_ms <= 53000
+                assert 1000 <= error.value.latency_ms <= 5000
                 assert error.value.stage == "agent_route"
     finally:
         server.shutdown()

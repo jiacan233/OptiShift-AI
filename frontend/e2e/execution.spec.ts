@@ -24,7 +24,7 @@ test('执行进度在最终结果前更新，支持分片和心跳并显示路�
           emit('execution', { ...event, event_id: 'failed', status: 'failed', duration_ms: 50021,
             details: { error_type: 'read_timeout', latency_ms: 50021 } })
           emit('error', { code: 'ai_unavailable', status: 503,
-            message: 'AI Provider 等待响应超过 50 秒。',
+            message: 'AI Provider 等待响应超过 120 秒。',
             details: { stage: 'agent_route', error_type: 'read_timeout', latency_ms: 50021 } })
           controller.close()
         },
@@ -46,7 +46,7 @@ test('执行进度在最终结果前更新，支持分片和心跳并显示路�
   await expect(timeline.getByRole('listitem')).toHaveCount(1)
   await page.evaluate(() => (window as unknown as { failExecution(): void }).failExecution())
   await expect(timeline).toContainText('理解排班请求失败')
-  await expect(timeline).toContainText('50.0 秒')
+  await expect(timeline).toContainText('120.0 秒')
   await expect(panel).toContainText('类型：read_timeout')
   await expect(panel).toContainText('阶段：理解排班请求')
   await expect(panel.getByRole('button', { name: '新对话' })).toBeEnabled()

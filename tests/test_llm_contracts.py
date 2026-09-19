@@ -85,10 +85,12 @@ def test_complete_json_sends_strict_json_schema(monkeypatch: pytest.MonkeyPatch)
 def test_health_check_requires_basic_and_structured(monkeypatch: pytest.MonkeyPatch) -> None:
     client = _client(monkeypatch)
     requests: list[dict[str, object]] = []
+    timeouts: list[httpx.Timeout] = []
 
     def fake_post(_url: str, **kwargs: object) -> httpx.Response:
         payload = kwargs["json"]
         requests.append(payload)
+        timeouts.append(kwargs["timeout"])
         if "response_format" in payload:
             return _response('{"ok": true}')
         return _response("OK")
@@ -102,6 +104,23 @@ def test_health_check_requires_basic_and_structured(monkeypatch: pytest.MonkeyPa
     assert result["checks"]["basic_chat"]["status"] == "ok"
     assert result["checks"]["structured_output"]["status"] == "ok"
     assert len(requests) == 2
+    assert [timeout.read for timeout in timeouts] == [30, 30]
+    assert client.timeout.read == 120
+
+
+def test_health_timeout_override_uses_effective_timeout_in_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _client(monkeypatch)
+
+    def fail_post(_self, *_args, **_kwargs):
+        raise httpx.ReadTimeout("probe")
+
+    monkeypatch.setattr(httpx.Client, "post", fail_post)
+    result = client.health_check()
+    assert result["checks"]["basic_chat"]["error_type"] == "read_timeout"
+    assert "30" in result["checks"]["basic_chat"]["message"]
+    assert "120" not in result["checks"]["basic_chat"]["message"]
 
 
 def test_health_check_reports_degraded_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -138,7 +138,7 @@ class StaleSuggestionError(ValueError):
 
 class AgentService:
     WRITE_INTENTS = {AgentIntent.GENERATE, AgentIntent.REPLAN}
-    TURN_LEASE_TIMEOUT = timedelta(seconds=180)
+    TURN_LEASE_TIMEOUT = timedelta(seconds=360)
 
     def __init__(
         self,
@@ -152,8 +152,8 @@ class AgentService:
         llm: AgentLLMClient | None = None,
     ) -> None:
         self.TURN_LEASE_TIMEOUT = timedelta(seconds=max(
-            positive_seconds("AGENT_TURN_LEASE_SECONDS", 180),
-            positive_seconds("AGENT_TURN_TIMEOUT_SECONDS", 90) + 30,
+            positive_seconds("AGENT_TURN_LEASE_SECONDS", 360),
+            positive_seconds("AGENT_TURN_TIMEOUT_SECONDS", 300) + 30,
         ))
         self.conversations = conversations
         self.employees = employees

@@ -8,13 +8,20 @@ PowerShell, using the project's virtual environment:
 ```powershell
 $env:LIVE_AGENT_EVAL = 'true'
 $env:LLM_EVAL_MODEL = 'your-configured-model'
-$env:LLM_EVAL_TIMEOUT_SECONDS = '90'
+# Per-provider HTTP timeout (connect/read/write/pool); default is 120 seconds.
+$env:LLM_EVAL_TIMEOUT_SECONDS = '120'
+# Complete AgentService turn budget; default is 300 seconds.
+$env:LLM_EVAL_TURN_TIMEOUT_SECONDS = '300'
 $env:LLM_EVAL_OUTPUT_DIR = 'artifacts/agent-evals/live'
 .venv/Scripts/python.exe -m pytest tests/evals -v -rs
 ```
 
 Configure the existing `LLM_API_KEY`, `LLM_BASE_URL` and `LLM_MODEL` through the
 process environment. `LLM_EVAL_MODEL` optionally overrides `LLM_MODEL`.
+`LLM_EVAL_TIMEOUT_SECONDS` limits an individual provider request, while
+`LLM_EVAL_TURN_TIMEOUT_SECONDS` limits the complete AgentService turn (including
+route, read tools and response composition). Keep the turn budget longer than
+the provider budget when a case may require multiple model calls.
 `LLM_EVAL_CASE_FILE` optionally replaces `agent_cases.json`. Never put keys in case
 files or reports. The harness records visible provider content, normalized plans,
 parameters, tool outputs, grounded final responses, timeline, latency, model and

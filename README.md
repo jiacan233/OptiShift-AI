@@ -80,7 +80,8 @@ docker compose up --build
 | `LLM_API_KEY` | OpenAI-compatible provider key | empty |
 | `LLM_MODEL` | Router/composer model | `gpt-4.1-mini` |
 | `LLM_BASE_URL` | OpenAI-compatible endpoint | `https://api.openai.com/v1` |
-| `LLM_READ_TIMEOUT_SECONDS` | Provider read timeout | `50` |
+| `LLM_READ_TIMEOUT_SECONDS` | Provider read timeout | `120` |
+| `LLM_HEALTH_READ_TIMEOUT_SECONDS` | AI health probe read timeout | `30` |
 | `CORS_ORIGINS` | Local frontend origins | localhost Vite origins |
 | `SOLVER_MAX_TIME_SECONDS` | CP-SAT time limit | `10` |
 | `SOLVER_RANDOM_SEED` | Deterministic seed | `42` |
@@ -308,14 +309,19 @@ Provider 请求统一通过 `AgentLLMClient`，路由、旧版意图解析和说
 | 环境变量 | 默认秒数 | 作用 |
 | --- | ---: | --- |
 | `LLM_CONNECT_TIMEOUT_SECONDS` | 8 | DNS、连接、TLS |
-| `LLM_READ_TIMEOUT_SECONDS` | 50 | 等待 Provider 响应数据 |
+| `LLM_READ_TIMEOUT_SECONDS` | 120 | 等待 Provider 响应数据 |
 | `LLM_WRITE_TIMEOUT_SECONDS` | 50 | 发送请求 |
 | `LLM_POOL_TIMEOUT_SECONDS` | 8 | 等待连接池 |
+| `LLM_HEALTH_READ_TIMEOUT_SECONDS` | 30 | AI 健康探针等待响应数据 |
 | `SOLVER_MAX_TIME_SECONDS` | 10 | 每次 CP-SAT 求解上限 |
-| `AGENT_TURN_TIMEOUT_SECONDS` | 90 | 整轮合作式执行预算 |
-| `AGENT_TURN_LEASE_SECONDS` | 180 | 数据库 owner 的 stale lease |
+| `AGENT_TURN_TIMEOUT_SECONDS` | 300 | 整轮合作式执行预算 |
+| `AGENT_TURN_LEASE_SECONDS` | 360 | 数据库 owner 的 stale lease |
 
 所有秒数必须是有限正数，`0`、负数、文本、`NaN` 和 `inf` 均回退到上述默认值。旧 `LLM_TIMEOUT_SECONDS` 已废弃并被忽略，避免遗留的 5 秒配置继续影响聊天。生产配置由 CloudBase 控制台环境变量注入；不使用 `.env.cloudbase`。
+
+Provider read timeout 不等于 Agent turn timeout：单次正常请求默认允许等待 120 秒，整轮 300 秒预算供路由、数据读取和回复生成等多个阶段共用。健康检查的基础聊天与结构化探针各使用独立的 30 秒 read timeout；每个请求构造自己的 timeout，不修改共享客户端配置，也不自动重试 Provider。剩余整轮预算更短时仍按剩余时间截断。read timeout 限制等待数据的空闲时间，并非严格的 HTTP 总时限。Solver timeout 是 CP-SAT 求解预算，不是 LLM timeout，仍为 10 秒。
+
+`.env.example` 不代表生产运行时配置。发布前后须读取 CloudBase Run 服务 `optishift-ai` 当前版本的实际 `EnvParams`，核对上表八个变量。更新时先读取现有配置，仅合并这八个 timeout key，保留 `LLM_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`、`DATABASE_URL`、`APP_ENV` 及其他变量；不得打印或提交 secret。无权限读取或修改时，必须报告生产配置尚未确认，不能以代码默认值代替线上验证。
 
 执行预算在关键阶段和写入前检查，Provider/CP-SAT 按剩余预算缩短等待。不强杀线程或数据库事务；正在进行的网络阶段或事务收尾可能使实际耗时略超过预算。已持久化草稿优先恢复，不因回复失败重新求解。lease 实际值至少为执行预算加 30 秒，每隔最多 15 秒续租；lease 不是 HTTP 超时。
 

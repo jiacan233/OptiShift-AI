@@ -34,11 +34,15 @@ class RecordingLLM(AgentLLMClient):
         self.outputs = []
         self.enabled = True
         self.model = os.getenv("LLM_EVAL_MODEL") or self.model
-        timeout = positive_seconds("LLM_EVAL_TIMEOUT_SECONDS", 60)
+        # Provider calls get their own bounded transport budget. The complete
+        # AgentService turn has a separate, longer budget configured below.
+        timeout = positive_seconds("LLM_EVAL_TIMEOUT_SECONDS", 120)
         self.timeout = httpx.Timeout(timeout, connect=min(8, timeout))
 
-    def _post(self, payload, *, stage=None):
-        response, latency, status = super()._post(payload, stage=stage)
+    def _post(self, payload, *, stage=None, read_timeout_seconds=None):
+        response, latency, status = super()._post(
+            payload, stage=stage, read_timeout_seconds=read_timeout_seconds
+        )
         # Retain visible raw content even when JSON/schema validation fails later.
         # Do not persist provider hidden reasoning, headers or request prompts.
         message = (response.get("choices") or [{}])[0].get("message", {})
@@ -168,8 +172,8 @@ def test_live_read_agent(case, database, monkeypatch, evaluation_output_dir):
         reason = "LIVE_AGENT_EVAL is disabled" if os.getenv("LIVE_AGENT_EVAL", "false").lower() != "true" else "LLM_API_KEY is missing"
         output.write_text(json.dumps({"name": case["name"], "status": "skipped", "reason": reason}), encoding="utf-8")
         pytest.skip(reason)
-    timeout = positive_seconds("LLM_EVAL_TIMEOUT_SECONDS", 60)
-    monkeypatch.setenv("AGENT_TURN_TIMEOUT_SECONDS", str(timeout))
+    turn_timeout = positive_seconds("LLM_EVAL_TURN_TIMEOUT_SECONDS", 300)
+    monkeypatch.setenv("AGENT_TURN_TIMEOUT_SECONDS", str(turn_timeout))
     service = seed_read_fixture(database)
     llm = RecordingLLM()
     service.llm = llm

@@ -75,7 +75,7 @@ class ExecutionTrace:
         self.turn_id = f"{conversation_id}:{client_message_id}"
         self.sink = sink
         self.started = time.monotonic()
-        self.budget = positive_seconds("AGENT_TURN_TIMEOUT_SECONDS", 90)
+        self.budget = positive_seconds("AGENT_TURN_TIMEOUT_SECONDS", 300)
         self.events: list[dict[str, Any]] = []
         self.terminal_event: dict[str, Any] | None = None
         self.owner: tuple[dict, str] | None = None
