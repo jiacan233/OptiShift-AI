@@ -323,6 +323,11 @@ def test_live_sse_heartbeat_disconnect_and_concurrent_replay(execution_client, m
     thread.start()
     path = f"/api/agent/conversations/{cid}/messages"
     try:
+        # Starting the thread does not mean Uvicorn is already listening.
+        deadline = time.monotonic() + 5
+        while not server.started and thread.is_alive() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert server.started, "SSE test server did not become ready"
         with httpx.Client(
             base_url=f"http://127.0.0.1:{sock.getsockname()[1]}", timeout=15
         ) as client:
