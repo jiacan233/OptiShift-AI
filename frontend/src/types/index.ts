@@ -205,7 +205,12 @@ export interface FeasibleResult {
   impact?: ImpactRadius | null
   metrics: ScheduleMetrics
   warnings?: string[]
-  explanation?: string
+  explanation?: string | {
+    text: string
+    source: 'deterministic_template' | 'llm_polished'
+    llm_fallback: boolean
+    fallback_reason?: string
+  } | null
 }
 
 export interface InfeasibleResult {

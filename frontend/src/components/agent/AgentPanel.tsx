@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Activity, AlertCircle, Bot, CheckCircle2, History, LoaderCircle, MessageSquarePlus, Send, Sparkles, X } from 'lucide-react'
+import { BarChart3, CalendarPlus, ShieldCheck, Umbrella, Activity, AlertCircle, Bot, CheckCircle2, History, LoaderCircle, MessageSquarePlus, Send, Sparkles, X } from 'lucide-react'
+import { createPortal } from 'react-dom'
 import { AgentTrace } from '@/components/agent/AgentTrace'
 import { ConversationHistory } from '@/components/agent/ConversationHistory'
 import { MessageBubble } from '@/components/agent/MessageBubble'
@@ -10,11 +11,11 @@ import { useAgentStore } from '@/store/AgentStore'
 import { useAppStore } from '@/store/AppStore'
 import type { TrustedAgentAction } from '@/types'
 
-const QUICK_QUESTIONS: Array<{ label: string; action?: TrustedAgentAction }> = [
-  { label: '这周排班有什么可以优化的吗？', action: { intent: 'advice' } },
-  { label: '为什么 E03 本周班次比较多？' },
-  { label: '帮我检查当前排班有没有违反规则', action: { intent: 'validate' } },
-  { label: 'E02 周五请假会有什么影响？', action: { intent: 'advice' } },
+const QUICK_QUESTIONS: Array<{ label: string; prompt: string; icon: typeof CalendarPlus; color: string; action: TrustedAgentAction }> = [
+  { label: '生成当前周排班', prompt: '帮我生成当前周排班，尽量满足员工早晚班偏好。', icon: CalendarPlus, color: 'text-blue-600', action: { intent: 'generate' } },
+  { label: 'E02 周五临时请假', prompt: 'E02 周五临时请假，帮我重新排一下，其他员工尽量少调整。', icon: Umbrella, color: 'text-amber-600', action: { intent: 'replan', changes: [{ employee_id: 'E02', type: 'leave', day: 'Fri' }], minimize_changes: true } },
+  { label: '解释调度逻辑', prompt: '请解释当前周排班的调度逻辑，并分析可以优化的地方。', icon: BarChart3, color: 'text-indigo-600', action: { intent: 'advice' } },
+  { label: '运行合规校验', prompt: '帮我检查当前排班有没有违反规则。', icon: ShieldCheck, color: 'text-emerald-600', action: { intent: 'validate' } },
 ]
 
 export function AgentPanel() {
@@ -25,10 +26,19 @@ export function AgentPanel() {
   const [llmHealth, setLlmHealth] = useState<LlmHealthResult | null>(null)
   const [llmHealthError, setLlmHealthError] = useState<string | null>(null)
   const [isCheckingLlm, setCheckingLlm] = useState(false)
-  const endRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLElement>(null)
+  const { isChatOpen, closeChat } = agent
 
   useEffect(() => {
-    if (agent.isChatOpen && !agent.isHistoryOpen) endRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (!isChatOpen) return
+    const previous = document.activeElement as HTMLElement | null
+    panelRef.current?.focus({ preventScroll: true })
+    return () => { if (previous?.isConnected) previous.focus({ preventScroll: true }) }
+  }, [isChatOpen])
+
+  useEffect(() => {
+    if (agent.isChatOpen && !agent.isHistoryOpen) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [agent.isChatOpen, agent.isHistoryOpen, agent.isSending, agent.messages, agent.executionEvents])
 
   if (!agent.isChatOpen) return null
@@ -61,16 +71,17 @@ export function AgentPanel() {
     }
   }
 
-  return (
+  return createPortal(
     <>
-      <button type="button" className="fixed inset-0 z-40 bg-ink/35 backdrop-blur-sm lg:hidden" onClick={agent.closeChat} aria-label="关闭 AI 助手" />
-      <aside data-agent-panel="open" className="fixed inset-0 z-50 flex min-h-0 flex-col bg-slate-50 shadow-drawer lg:inset-y-0 lg:left-auto lg:right-0 lg:w-[380px] lg:border-l lg:border-slate-200 xl:w-[440px]" role="dialog" aria-modal="true" aria-label="OptiShift AI 智能排班助手">
-        <header className="border-b border-slate-200 bg-white px-4 pb-3 pt-4 sm:px-5">
+      <aside ref={panelRef} tabIndex={-1} data-agent-panel="open" className="copilot-overlay flex min-h-0 flex-col overflow-hidden border border-slate-200/80 bg-white outline-none" role="dialog" aria-label="OptiShift Copilot 智能排班助手" onKeyDown={event => {
+        if (event.key === 'Escape') { event.stopPropagation(); closeChat() }
+      }}>
+        <header className="max-h-[45%] shrink-0 overflow-y-auto border-b border-slate-100 bg-slate-50/50 p-4">
           <div className="flex items-start gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-teal-600 text-white"><Sparkles className="h-5 w-5" /></span>
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20"><Sparkles className="h-5 w-5" /></span>
             <div className="min-w-0 flex-1">
-              <h2 className="text-base font-black text-ink">OptiShift AI</h2>
-              <p className="text-xs text-slate-500">智能排班助手 · 当前上下文：{weekLabel(schedule.activeWeekStart)}</p>
+              <div className="flex flex-wrap items-center gap-2"><h2 className="text-sm font-extrabold text-slate-900">OptiShift Copilot</h2><span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600">AI + CP-SAT</span></div>
+              <p className="text-[11px] font-medium text-slate-400">当前上下文：{weekLabel(schedule.activeWeekStart)} · 排班工作台</p>
             </div>
             <button type="button" onClick={agent.closeChat} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="关闭 AI 助手"><X className="h-5 w-5" /></button>
           </div>
@@ -82,13 +93,13 @@ export function AgentPanel() {
               {isCheckingLlm ? '检测中' : '检测 AI'}
             </button>
           </div>
-          <div className="mt-2 flex items-center gap-1.5 text-[10px] font-semibold text-slate-400"><span className={`h-1.5 w-1.5 rounded-full ${agent.agentError ? 'bg-red-400' : agent.isSending ? 'bg-amber-400' : 'bg-emerald-500'}`} />{agent.isSending ? '正在保存' : agent.agentError ? '保存失败' : '服务端已保存'}</div>
+          <div className="mt-2 flex items-center gap-1.5 text-[10px] font-semibold text-slate-400"><span className={`h-1.5 w-1.5 rounded-full ${agent.agentError ? 'bg-red-400' : agent.isSending ? 'bg-amber-400' : 'bg-emerald-500'}`} />{agent.isSending ? '正在处理请求' : agent.agentError ? '请求未完成' : agent.conversationId ? '对话已同步' : '等待连接'}</div>
           {(isCheckingLlm || llmHealth || llmHealthError) && (
             <div aria-live="polite" className={`mt-2 rounded-lg border px-3 py-2 text-xs ${structuredReady ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : isCheckingLlm ? 'border-slate-200 bg-slate-50 text-slate-600' : 'border-red-200 bg-red-50 text-red-800'}`}>
               {isCheckingLlm ? (
                 <span className="flex items-center gap-2"><LoaderCircle className="h-3.5 w-3.5 animate-spin" />正在连接 AI Provider…</span>
               ) : structuredReady ? (
-                <div className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div><p className="font-black">AI 联通正常</p><p className="mt-0.5 text-[10px]">模型：{llmHealth?.model ?? ''}</p><p className="mt-0.5 text-[10px]">基础聊天：✓ {basicCheck?.latency_ms ?? 0} ms</p><p className="mt-0.5 text-[10px]">结构化输出：✓ {structuredCheck?.latency_ms ?? 0} ms</p></div></div>
+                <div className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div><p className="font-black">AI 联通正常</p><p className="mt-0.5 text-[10px]">模型：{llmHealth?.model ?? ''}</p><p className="mt-0.5 text-[10px]">基础聊天：✓ {basicCheck?.latency_ms != null ? `${basicCheck.latency_ms} ms` : '耗时未返回'}</p><p className="mt-0.5 text-[10px]">结构化输出：✓ {structuredCheck?.latency_ms != null ? `${structuredCheck.latency_ms} ms` : '耗时未返回'}</p></div></div>
               ) : llmHealth ? (
                 <div className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div>
                   <p className="font-black">{basicCheck?.status === 'ok' ? 'AI 基础连接正常' : 'AI 联通失败'}</p>
@@ -105,30 +116,44 @@ export function AgentPanel() {
           {!agent.isHistoryOpen && <p className="mt-3 truncate text-sm font-bold text-slate-700">{agent.conversationTitle || '新对话'}</p>}
         </header>
 
+            {agent.agentError && (
+              <div role="alert" className="mx-4 my-3 max-h-[30%] shrink-0 overflow-y-auto rounded-xl border border-red-200 bg-red-50 p-3 text-red-800 sm:mx-5">
+                <div className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><div><p className="text-xs font-black">{errorCodeLabel(agent.agentError.code)}</p><p className="mt-0.5 text-xs leading-5">{problemMessage(agent.agentError.code, agent.agentError.message)}</p>{errorDetail && <p className="mt-1 font-mono text-[10px] text-red-600">{errorDetail}</p>}</div><button type="button" onClick={agent.dismissError} className="ml-auto" aria-label="关闭 Agent 错误"><X className="h-3.5 w-3.5" /></button></div>
+                {agent.pendingMessage && <button type="button" onClick={() => void agent.retryPendingMessage()} disabled={busy} className="mt-2 text-xs font-black text-red-700 underline">使用同一请求标识重试</button>}
+              </div>
+            )}
+
         {agent.isHistoryOpen ? (
           <ConversationHistory conversations={agent.conversations} currentId={agent.conversationId} disabled={busy} onBack={agent.hideHistory} onSelect={(id) => void agent.loadConversation(id).catch(() => undefined)} />
         ) : (
           <>
-            <div className="soft-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
+            <div ref={scrollRef} className="soft-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#F8FAFC] p-4">
+              <div className="mb-4 rounded-xl border border-emerald-100/60 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-800">
+                <span className="flex items-center gap-2 font-semibold"><ShieldCheck className="h-3.5 w-3.5 shrink-0" />确定性求解引擎 · OR-Tools CP-SAT</span>
+                <p className="mt-1 text-[10px] text-emerald-700">{agent.isSending ? '正在处理请求 · 执行状态见下方进度' : schedule.result?.solver_status ? `最近求解状态：${schedule.result.solver_status}` : '执行状态将在实际请求后显示'}</p>
+              </div>
+              <div className="mb-4 rounded-2xl border border-slate-100 bg-white p-3">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">推荐操作（点击即发送）</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {QUICK_QUESTIONS.map(({ label, prompt, action, icon: Icon, color }) => {
+                    const disabled = busy || (action.intent === 'generate' && !!schedule.draftSchedule) || (action.intent === 'replan' && (!!schedule.draftSchedule || !schedule.confirmedSchedule || !schedule.employees.some(employee => employee.id === 'E02')))
+                    return <button key={label} type="button" disabled={disabled} onClick={() => void agent.sendMessage(prompt, { ...action, target_week: schedule.activeWeekStart })} className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 p-2 text-left text-[11px] font-semibold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50/50 disabled:opacity-40 disabled:cursor-not-allowed"><Icon className={`h-3.5 w-3.5 shrink-0 ${color}`} /><span className="truncate">{label}</span></button>
+                  })}
+                </div>
+              </div>
               {agent.isLoadingConversation ? (
-                <div className="grid min-h-full place-items-center text-sm text-slate-500"><LoaderCircle className="mb-2 h-6 w-6 animate-spin text-teal-600" />正在恢复对话…</div>
+                <div className="grid min-h-full place-items-center text-sm text-slate-500"><LoaderCircle className="mb-2 h-6 w-6 animate-spin text-blue-600" />正在恢复对话…</div>
               ) : agent.messages.length === 0 && !agent.pendingMessage && !agent.isSending ? (
-                <div className="flex min-h-full flex-col justify-center">
-                  <span className="grid h-12 w-12 place-items-center rounded-2xl bg-teal-100 text-teal-700"><Bot className="h-6 w-6" /></span>
+                <div className="flex flex-col py-4">
+                  <span className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-100 text-blue-700"><Bot className="h-6 w-6" /></span>
                   <h3 className="mt-4 text-lg font-black text-ink">你好，我是排班助手</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">我可以帮你分析、解释和调整当前排班。排班调整只会生成草稿，正式生效仍需你点击“确认变更”。</p>
-                  <div className="mt-5 space-y-2">
-                    {QUICK_QUESTIONS.map((item) => (
-                      <button key={item.label} type="button" disabled={busy} onClick={() => void agent.sendMessage(item.label, item.action && { ...item.action, target_week: schedule.activeWeekStart })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-xs font-semibold leading-5 text-slate-700 transition hover:border-teal-300 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-50">
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">我可以帮你分析、解释和调整当前排班。排班调整只会生成草稿，请在工作台“智能排班方案”中预览草稿并确认生效。</p>
+
                 </div>
               ) : (
                 <div className="space-y-4">
                   {agent.messages.map((message) => (
-                    <MessageBubble key={message.message_id} message={message} trace={agent.tracesByMessage[message.message_id] ?? []} suggestionsDisabled={busy} onApplySuggestion={(suggestion) => {
+                    <MessageBubble key={message.message_id} message={message} trace={agent.tracesByMessage[message.message_id] ?? []} suggestionsDisabled={busy || !!schedule.draftSchedule} onViewPlan={() => { schedule.setPage('schedule'); agent.closeChat(); requestAnimationFrame(() => { const plan = document.getElementById('schedule-plans'); plan?.scrollIntoView({ behavior: 'smooth', block: 'start' }); plan?.focus({ preventScroll: true }) }) }} onApplySuggestion={(suggestion) => {
                       if (suggestion.action === 'generate' || !suggestion.based_on_schedule_id) {
                         void agent.sendMessage(`按 ${suggestion.suggestion_id} 生成草稿。`, { intent: 'generate', target_week: suggestion.target_week ?? schedule.activeWeekStart })
                         return
@@ -139,28 +164,22 @@ export function AgentPanel() {
 
                 </div>
               )}
-              {agent.pendingMessage && !agent.messages.some((message) => message.client_message_id === agent.pendingMessage?.clientMessageId) && <div className="mt-4 rounded-2xl bg-teal-600 p-3 text-sm text-white">{agent.pendingMessage.content}</div>}
+              {agent.pendingMessage && !agent.messages.some((message) => message.client_message_id === agent.pendingMessage?.clientMessageId) && <div className="ml-auto mt-4 max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-tr-sm bg-blue-600 p-3 text-xs leading-relaxed text-white shadow-md shadow-blue-500/15">{agent.pendingMessage.content}</div>}
               <AgentTrace calls={[]} events={agent.executionEvents} running={agent.isSending} />
-              <div ref={endRef} />
             </div>
 
-            {agent.agentError && (
-              <div className="mx-4 mb-3 rounded-xl border border-red-200 bg-red-50 p-3 text-red-800 sm:mx-5">
-                <div className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><div><p className="text-xs font-black">{errorCodeLabel(agent.agentError.code)}</p><p className="mt-0.5 text-xs leading-5">{problemMessage(agent.agentError.code, agent.agentError.message)}</p>{errorDetail && <p className="mt-1 font-mono text-[10px] text-red-600">{errorDetail}</p>}</div><button type="button" onClick={agent.dismissError} className="ml-auto"><X className="h-3.5 w-3.5" /></button></div>
-                {agent.pendingMessage && <button type="button" onClick={() => void agent.retryPendingMessage()} disabled={busy} className="mt-2 text-xs font-black text-red-700 underline">使用同一请求标识重试</button>}
-              </div>
-            )}
 
-            <form onSubmit={submit} className="border-t border-slate-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4">
-              <div className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2 focus-within:border-teal-400 focus-within:ring-2 focus-within:ring-teal-100">
-                <textarea value={input} disabled={agent.isLoadingConversation} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} rows={2} placeholder="问排班、规则，或描述需要调整的内容…" className="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-5 text-slate-800 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed" />
-                <button type="submit" disabled={!input.trim() || busy} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-teal-600 text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40" aria-label="发送消息">{agent.isSending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</button>
+
+            <form onSubmit={submit} className="shrink-0 border-t border-slate-200/80 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4">
+              <div className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
+                <textarea value={input} disabled={agent.isLoadingConversation} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} rows={2} placeholder="问排班、规则，或描述需要调整的内容…" aria-label="排班消息" className="max-h-32 min-h-[44px] min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-5 text-slate-800 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed" />
+                <button type="submit" disabled={!input.trim() || busy} className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-blue-600 text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40" aria-label="发送消息">{agent.isSending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</button>
               </div>
               <p className="mt-2 text-center text-[10px] text-slate-400">Enter 发送 · Shift + Enter 换行</p>
             </form>
           </>
         )}
       </aside>
-    </>
+    </>, document.body
   )
 }

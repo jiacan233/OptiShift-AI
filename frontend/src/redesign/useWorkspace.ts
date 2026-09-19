@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useAppStore } from '@/store/AppStore'
 import { DAY_LABELS, roleLabel, SHIFT_LABELS } from '@/lib/presentation'
-import { DAYS } from '@/types'
+import { DAYS, type Schedule, type FeasibleResult, type Violation } from '@/types'
 import type { EmployeeRow, RoleType, SkillType } from './types/schedule'
 
 export const SKILLS: Record<string, SkillType> = {
@@ -158,9 +158,13 @@ export function createFallbackAvatar(name: string, id: string) {
   `.trim())}`
 }
 
-export function useWorkspace() {
-  const { employees, activeSchedule, activeWeekStart, ruleConfig, result } = useAppStore()
+export function useWorkspace(preview?: { schedule: Schedule | null; result: FeasibleResult | null; violations?: Violation[] }) {
+  const store = useAppStore()
+  const { employees, activeWeekStart, ruleConfig } = store
+  const activeSchedule = preview ? preview.schedule : store.activeSchedule
+  const result = preview ? preview.result : store.result
   const effectiveRules = result?.rule_config ?? ruleConfig
+  const authorizedViolations = preview?.violations ?? result?.validation.authorized_violations
 
   return useMemo(() => {
     const days = DAYS.map((day, index) => {
@@ -201,7 +205,7 @@ export function useWorkspace() {
           const isLeave = employee.leave_days.includes(day.day)
           const isAvailable = employee.available_days.includes(day.day)
 
-          const authViolations = result?.validation?.authorized_violations ?? []
+          const authViolations = authorizedViolations ?? []
           const violation = authViolations.find(
             (v) => v.employee_id === employee.id && v.day === day.day
           )
@@ -259,5 +263,5 @@ export function useWorkspace() {
     })
 
     return { days, rows, employees: rows.map((row) => row.employee) }
-  }, [employees, activeSchedule, activeWeekStart, effectiveRules, result])
+  }, [employees, activeSchedule, activeWeekStart, effectiveRules, authorizedViolations])
 }

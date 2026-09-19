@@ -44,7 +44,7 @@ test('明确请假授权生成草稿、刷新、确认并保留违规账本', as
 
   // 3. Open Agent and request explicit force override for E01 Wed morning (canonical leave day)
   await page.getByRole('button', { name: '问问 AI' }).click()
-  const panel = page.getByRole('dialog', { name: 'OptiShift AI 智能排班助手' })
+  const panel = page.getByRole('dialog', { name: 'OptiShift Copilot 智能排班助手' })
   await observeAgentStream(page)
   const responsePromise = page.waitForResponse((response) => response.url().endsWith('/messages/stream') && response.request().method() === 'POST')
   await panel.getByPlaceholder('问排班、规则，或描述需要调整的内容…').fill('我知道 E01 周三请假，但就是让 E01 周三早班上班。')

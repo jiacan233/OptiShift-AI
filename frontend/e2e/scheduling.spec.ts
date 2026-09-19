@@ -30,10 +30,10 @@ async function openWorkbench(page: Page, weekStart?: string, activeConversation 
 }
 
 async function openAgent(page: Page) {
-  if (!await page.getByRole('dialog', { name: 'OptiShift AI 智能排班助手' }).isVisible().catch(() => false)) {
+  if (!await page.getByRole('dialog', { name: 'OptiShift Copilot 智能排班助手' }).isVisible().catch(() => false)) {
     await page.getByRole('button', { name: '问问 AI' }).click()
   }
-  const panel = page.getByRole('dialog', { name: 'OptiShift AI 智能排班助手' })
+  const panel = page.getByRole('dialog', { name: 'OptiShift Copilot 智能排班助手' })
   await expect(panel).toBeVisible()
   await expect(panel.getByPlaceholder('问排班、规则，或描述需要调整的内容…')).toBeEnabled()
   return panel
@@ -89,6 +89,7 @@ test.describe.serial('持久化排班 Agent 验收', () => {
     await openAgent(page)
 
     await expect(page.getByRole('heading', { name: /2026年第40周 · v1/ })).toBeVisible()
+    await page.getByRole('button', { name: '展开排班深度分析与版本历史' }).click()
     await expect(page.getByRole('heading', { name: '当前周版本记录' })).toBeVisible()
     await expect(page.getByText('当前上下文：2026年第40周')).toBeVisible()
 
@@ -123,7 +124,7 @@ test.describe.serial('持久化排班 Agent 验收', () => {
 
     const panel = await openAgent(page)
 
-    await expect(panel.getByRole('heading', { name: 'OptiShift AI' })).toBeVisible()
+    await expect(panel.getByRole('heading', { name: 'OptiShift Copilot' })).toBeVisible()
     await expect(panel).toHaveAttribute('data-agent-panel', 'open')
   })
 
@@ -148,6 +149,7 @@ test.describe.serial('持久化排班 Agent 验收', () => {
 
     expect(payload.intent).toBe('advice')
     expect(payload.schedule_result).toBeNull()
+    await page.locator('[data-agent-panel] summary').filter({ hasText: '调整建议' }).last().click()
     await expect(page.getByText('suggestion_1')).toBeVisible()
     await expect(page.getByText('suggestion_2')).toBeVisible()
     const context = await (await request.get(`${API}/api/schedules/week-context?week_start=${WEEK_40}`)).json()
@@ -175,14 +177,15 @@ test.describe.serial('持久化排班 Agent 验收', () => {
     expect(payload.intent).toBe('replan')
     expect(payload.schedule_result.schedule_status).toBe('draft')
     expect(payload.assistant_message.metadata_json.version_guard).toBeTruthy()
-    await expect(page.getByText('草稿版本 2 等待确认')).toBeVisible()
+    await expect(page.getByText('已生成草稿 v2')).toBeVisible()
   })
 
   test('场景 9：工作台展示 Draft、Diff 和 Validation', async ({ page }) => {
     await openWorkbench(page, WEEK_40)
 
-    await expect(page.getByText('草稿版本 2 等待确认')).toBeVisible()
-    await expect(page.getByText('变更明细')).toBeVisible()
+    await expect(page.getByText('已生成草稿 v2')).toBeVisible()
+    await expect(page.getByRole('region', { name: '方案对比与优劣势分析' })).toBeVisible()
+    await page.getByRole('button', { name: '展开排班深度分析与版本历史' }).click()
     await expect(page.getByText('硬约束检查')).toBeVisible()
     await expect(page.getByText('10 / 10 项 全部通过')).toBeVisible()
     await expect(page.getByText('版本 2 · 待确认草稿')).toBeVisible()
@@ -196,7 +199,7 @@ test.describe.serial('持久化排班 Agent 验收', () => {
     expect(response.status()).toBe(409)
     expect((await response.json()).error.code).toBe('draft_pending')
     await expect(page.getByText('已有待确认草稿', { exact: true })).toBeVisible()
-    await expect(page.getByText('草稿版本 2 等待确认')).toBeVisible()
+    await expect(page.getByText('已生成草稿 v2')).toBeVisible()
   })
 
   test('场景 11：刷新页面恢复 Draft 与完整 Conversation', async ({ page }) => {
@@ -206,7 +209,7 @@ test.describe.serial('持久化排班 Agent 验收', () => {
 
     await page.reload()
 
-    await expect(page.getByText('草稿版本 2 等待确认')).toBeVisible()
+    await expect(page.getByText('已生成草稿 v2')).toBeVisible()
     await openAgent(page)
     await expect(page.getByText('你知道我们的项目怎么排班吗？', { exact: true }).last()).toBeVisible()
     await expect(page.getByText('按这个改。')).toBeVisible()
@@ -276,7 +279,7 @@ test.describe.serial('持久化排班 Agent 验收', () => {
     await panel.getByRole('button', { name: '发送消息' }).click()
     await expect(panel.getByText('网络连接异常')).toBeVisible()
     await panel.getByRole('button', { name: '使用同一请求标识重试' }).click()
-    await expect(page.getByText('草稿版本 1 等待确认')).toBeVisible()
+    await expect(page.getByText('已生成草稿 v1')).toBeVisible()
     await page.unroute('**/api/agent/conversations/*/messages/stream')
 
     const currentId = await rememberConversation(page)
@@ -288,7 +291,7 @@ test.describe.serial('持久化排班 Agent 验收', () => {
 
   test('场景 15：Generate 使用工作台当前 active week', async ({ page }) => {
     await openWorkbench(page, WEEK_41)
-    await page.getByRole('button', { name: '取消' }).click()
+    await page.getByRole('button', { name: '取消草稿' }).click()
     await expect(page.getByText('这一周还没有排班')).toBeVisible()
     let sentBody: Record<string, unknown> | null = null
     const requestPromise = page.waitForRequest((request) => {
@@ -299,7 +302,7 @@ test.describe.serial('持久化排班 Agent 验收', () => {
 
     await page.getByRole('button', { name: /生成新排班/ }).click()
     await requestPromise
-    await expect(page.getByText('草稿版本 1 等待确认')).toBeVisible()
+    await expect(page.getByText('已生成草稿 v1')).toBeVisible()
 
     expect(sentBody?.current_week_start).toBe(WEEK_41)
     expect((sentBody?.trusted_action as { target_week?: string }).target_week).toBe(WEEK_41)

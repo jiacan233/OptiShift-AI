@@ -34,7 +34,7 @@ export const MobilePreview: React.FC<MobilePreviewProps> = ({ isOpen, onClose })
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md overflow-y-auto">
+    <div className="fixed inset-0 overlay-modal flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md overflow-y-auto">
       <div className="relative max-w-5xl w-full my-8">
         {/* Close Button */}
         <div className="flex justify-between items-center mb-4 text-white">

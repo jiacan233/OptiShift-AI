@@ -14,7 +14,7 @@ test('历史建议之后按周日查询，并只读验证移除人员，保留�
   await expect(page.getByLabel('选择排班周次')).toBeEnabled()
   await page.getByLabel('选择排班周次').selectOption(week)
   await page.getByRole('button', { name: '问问 AI' }).click()
-  const panel = page.getByRole('dialog', { name: 'OptiShift AI 智能排班助手' })
+  const panel = page.getByRole('dialog', { name: 'OptiShift Copilot 智能排班助手' })
   await expect(panel.getByRole('button', { name: '新对话' })).toBeEnabled()
   await observeAgentStream(page)
   async function send(text: string) {

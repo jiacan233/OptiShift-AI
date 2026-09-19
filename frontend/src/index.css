@@ -8,6 +8,14 @@
   background: #f4f7fc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  /* Page/sticky content < popovers < Copilot < modal surfaces.
+     Native showModal() dialogs occupy the browser top layer above these. */
+  --layer-popover: 40;
+  --layer-copilot: 60;
+  --layer-modal-backdrop: 70;
+  --layer-modal: 80;
+  --layer-confirmation: 90;
+  --layer-critical-toast: 100;
 }
 
 * { box-sizing: border-box; }
@@ -31,7 +39,35 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .soft-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
 .soft-scrollbar::-webkit-scrollbar-thumb { border-radius: 999px; background: #cbd5e1; }
 
-@media (max-width: 1023px) {
+.overlay-popover { z-index: var(--layer-popover); }
+.overlay-modal-backdrop { z-index: var(--layer-modal-backdrop); }
+.overlay-modal { z-index: var(--layer-modal); }
+.overlay-confirmation { z-index: var(--layer-confirmation); }
+.overlay-critical-toast { z-index: var(--layer-critical-toast); }
+
+/* A body portal: no width, padding or margin changes to the workbench. */
+.copilot-overlay {
+  position: fixed;
+  z-index: var(--layer-copilot);
+  inset: 0;
+  height: 100dvh;
+  box-shadow: 0 24px 64px -16px rgb(15 23 42 / 24%), 0 8px 24px -8px rgb(15 23 42 / 12%);
+}
+
+@media (min-width: 768px) {
+  .copilot-overlay {
+    inset: 24px 24px 24px auto;
+    height: auto;
+    width: 420px;
+    border-radius: 24px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .copilot-overlay { width: 460px; }
+}
+
+@media (max-width: 767px) {
   body:has([data-agent-panel="open"]) { overflow: hidden; }
 }
 

@@ -3,7 +3,6 @@ import {
   BarChart3,
   CalendarDays,
   CalendarPlus,
-  Check,
   ChevronDown,
   ChevronUp,
   GitCompareArrows,
@@ -12,16 +11,18 @@ import {
   MessageCircleMore,
   ShieldCheck,
   Umbrella,
-  X,
 } from 'lucide-react'
 import { ConflictView } from '@/components/schedule/ConflictView'
-import { DiffView } from '@/components/schedule/DiffView'
 import { EntityClarifier } from '@/components/schedule/EntityClarifier'
 import { ImpactView } from '@/components/schedule/ImpactView'
 import { RuleChecklist } from '@/components/schedule/RuleChecklist'
 import { ShiftDrawer } from '@/components/schedule/ShiftDrawer'
 import { VersionHistory } from '@/components/schedule/VersionHistory'
 import { WeekSelector } from '@/components/schedule/WeekSelector'
+import { EmployeeDetailDrawer } from '@/redesign/components/employees/EmployeeDetailDrawer'
+import { CandidatePlanSelector } from '@/redesign/components/candidate/CandidatePlanSelector'
+import { CandidateComparisonBar } from '@/redesign/components/candidate/CandidateComparisonBar'
+import type { CandidatePlan } from '@/redesign/components/candidate/types'
 import { TopHeader } from '@/redesign/components/layout/TopHeader'
 import { ScheduleViewToggle } from '@/redesign/components/schedule/ScheduleViewToggle'
 import { ScheduleGrid } from '@/redesign/components/schedule/ScheduleGrid'
@@ -39,7 +40,7 @@ import { addWeeks, isoWeekParts, weekLabel, weekRangeLabel } from '@/lib/isoWeek
 import { STATUS_LABELS } from '@/lib/presentation'
 import { useAgentStore } from '@/store/AgentStore'
 import { useAppStore } from '@/store/AppStore'
-import type { Day, FeasibleResult, Schedule, ShiftType, TrustedAgentAction } from '@/types'
+import type { Day, ShiftType, TrustedAgentAction } from '@/types'
 import type { DayCoverage } from '@/redesign/types/schedule'
 
 const DAY_CN_MAP: Record<string, string> = {
@@ -66,9 +67,38 @@ export function ScheduleWorkbench() {
   const [selectedDay, setSelectedDay] = useState<Day>('Mon')
   const [adding, setAdding] = useState<{ day: Day; shift: ShiftType; employeeId?: string } | null>(null)
   const [mobilePreview, setMobilePreview] = useState(false)
-  const [isAnalysisExpanded, setIsAnalysisExpanded] = useState(true)
+  const [isAnalysisExpanded, setIsAnalysisExpanded] = useState(false)
+  const [previewEmployeeId, setPreviewEmployeeId] = useState<string | null>(null)
+  const [planSelection, setPlanSelection] = useState<{ context: string; id: string } | null>(null)
 
-  const { rows, days } = useWorkspace()
+  const selectionContext = `${store.activeWeekStart}:${store.draftSchedule?.schedule_id ?? ''}`
+  const plans: CandidatePlan[] = [
+    ...(store.confirmedSchedule ? [{
+      id: store.confirmedSchedule.schedule_id,
+      kind: 'current' as const,
+      name: '当前版',
+      tag: `v${store.confirmedSchedule.version}`,
+      subtitle: '当前正式生效的排班',
+      schedule: store.confirmedSchedule,
+      version: store.versions.find(version => version.schedule_id === store.confirmedSchedule?.schedule_id),
+      result: store.result?.schedule_id === store.confirmedSchedule.schedule_id ? store.result : null,
+    }] : []),
+    ...(store.draftSchedule ? [{
+      id: store.draftSchedule.schedule_id,
+      kind: 'draft' as const,
+      name: '草稿方案',
+      tag: '待确认',
+      subtitle: `v${store.draftSchedule.version} · 预览后确认生效`,
+      schedule: store.draftSchedule,
+      version: store.versions.find(version => version.schedule_id === store.draftSchedule?.schedule_id),
+      result: store.result?.schedule_id === store.draftSchedule.schedule_id ? store.result : null,
+    }] : []),
+  ]
+  const selectedPlan = (planSelection?.context === selectionContext ? plans.find(plan => plan.id === planSelection.id) : null) ?? plans.find(plan => plan.kind === 'draft') ?? plans[0] ?? null
+  const active = selectedPlan?.schedule ?? store.activeSchedule
+  const displayResult = selectedPlan ? selectedPlan.result : store.result
+  const authorizedViolations = displayResult?.validation.authorized_violations ?? selectedPlan?.version?.violations?.filter(violation => violation.authorized)
+  const { rows, days } = useWorkspace({ schedule: active, result: displayResult, violations: authorizedViolations })
   const busy =
     store.isRunning ||
     store.isLoadingWeek ||
@@ -82,10 +112,8 @@ export function ScheduleWorkbench() {
     setAdding({ day, shift, employeeId })
   }
 
-  const active = store.activeSchedule
-  const exceptionCount = store.result?.validation.authorized_violations?.length ?? 0
-  const isForceCompliance = store.result?.compliance_status === 'authorized_violations' || exceptionCount > 0
-  const authorizedViolations = store.result?.validation.authorized_violations ?? []
+  const exceptionCount = authorizedViolations?.length ?? selectedPlan?.version?.authorized_violation_count ?? 0
+  const isForceCompliance = displayResult?.validation.compliance_status === 'authorized_violations' || displayResult?.compliance_status === 'authorized_violations' || selectedPlan?.version?.compliance_status === 'authorized_violations' || exceptionCount > 0
 
   const quickAction = (content: string, trustedAction?: TrustedAgentAction) => {
     void agent.openWithPrompt(
@@ -95,10 +123,10 @@ export function ScheduleWorkbench() {
   }
 
   // Calculate day coverages and week metrics deterministically from real data
-  const effectiveRules = store.result?.rule_config ?? store.ruleConfig
+  const effectiveRules = displayResult?.rule_config ?? store.ruleConfig
   const dayCoverages = useMemo(
-    () => calculateDayCoverage(days, rows, effectiveRules, active?.assignments ?? [], store.result?.validation),
-    [days, rows, effectiveRules, active, store.result?.validation]
+    () => calculateDayCoverage(days, rows, effectiveRules, active?.assignments ?? [], displayResult?.validation),
+    [days, rows, effectiveRules, active, displayResult?.validation]
   )
 
   const activeSelectedDay = useMemo(() => {
@@ -129,7 +157,7 @@ export function ScheduleWorkbench() {
   }
 
   return (
-    <div className="max-w-[1600px] w-full mx-auto bg-white/95 rounded-[36px] p-5 md:p-7 shadow-soft border border-slate-200/70 flex flex-col gap-5">
+    <div data-schedule-workbench className="max-w-[1600px] w-full mx-auto bg-white/95 rounded-[36px] p-5 md:p-7 shadow-soft border border-slate-200/70 flex flex-col gap-5">
       {/* Top Header Bar */}
       <TopHeader
         activeTabTitle="排班工作台"
@@ -181,6 +209,17 @@ export function ScheduleWorkbench() {
         onOpenCopilot={() => agent.openChat()}
       />
 
+      <CandidatePlanSelector
+        plans={plans}
+        selectedPlan={selectedPlan}
+        onSelectPlan={id => { setPlanSelection({ context: selectionContext, id }); store.selectShift(null); setIsDayDrawerOpen(false); setPreviewEmployeeId(null) }}
+        busy={busy}
+        loading={store.isLoadingWeek}
+        onConfirm={() => void store.confirmDraft()}
+        onCancel={() => void store.cancelDraft()}
+        onViewAnalysis={() => { setIsAnalysisExpanded(true); requestAnimationFrame(() => document.getElementById('schedule-analysis')?.scrollIntoView({ behavior: 'smooth', block: 'start' })) }}
+      />
+
       {/* Infeasible Conflict Diagnostics View */}
       {store.infeasibleResult && (
         <ConflictView result={store.infeasibleResult} employees={store.employees} />
@@ -208,13 +247,13 @@ export function ScheduleWorkbench() {
                   强制排班方案 · 非标准合规
                 </h3>
                 <span className="rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-extrabold text-amber-900">
-                  存在 {authorizedViolations.length || exceptionCount} 项已授权规则冲突
+                  存在 {exceptionCount} 项已授权规则冲突
                 </span>
               </div>
               <p className="text-xs text-amber-800 leading-relaxed">
-                当前排班按照用户明确授权强制生成，未完全满足标准排班规则，属于非标准合规方案。确认后这些违规仍会保留并作为该版本的一部分生效。当前存在 {authorizedViolations.length || exceptionCount} 项已授权规则冲突。
+                当前排班按照用户明确授权强制生成，未完全满足标准排班规则，属于非标准合规方案。确认后这些违规仍会保留并作为该版本的一部分生效。当前存在 {exceptionCount} 项已授权规则冲突。
               </p>
-              {authorizedViolations.length > 0 && (
+              {!!authorizedViolations?.length && (
                 <div className="space-y-2">
                   <p className="font-bold text-xs text-amber-900">已授权违规明细：</p>
                   <div className="grid gap-2.5 sm:grid-cols-2">
@@ -263,10 +302,10 @@ export function ScheduleWorkbench() {
 
           {/* Main Content Area: Left Schedule View + Right Overview Panel */}
           <div className="flex flex-col xl:flex-row gap-6 items-start">
-            <div className="flex-1 min-w-0 w-full">
+            <div data-schedule-grid-container className="flex-1 min-w-0 w-full">
               {/* E2E Test Compatibility & Screen Reader Interaction Anchor */}
               <div
-                className="fixed bottom-2 left-24 z-40 flex flex-wrap opacity-[0.005] pointer-events-auto"
+                className="fixed bottom-2 left-24 overlay-popover flex flex-wrap opacity-[0.005] pointer-events-auto"
                 aria-hidden="false"
               >
                 {days.map((d) => (
@@ -277,7 +316,7 @@ export function ScheduleWorkbench() {
                 <ScheduleGrid
                   scheduleData={rows}
                   daysHeader={days}
-                  onSelectEmployee={(e) => { setIsDayDrawerOpen(false); store.selectEmployee(e.id) }}
+                  onSelectEmployee={(e) => { setIsDayDrawerOpen(false); setPreviewEmployeeId(e.id) }}
                   onShiftClick={(id, shift) => {
                     if (shift.shiftType === 'morning' || shift.shiftType === 'evening') {
                       store.selectShift({ day: shift.day as Day, shift: shift.shiftType })
@@ -310,7 +349,7 @@ export function ScheduleWorkbench() {
                       { intent: 'advice', target_week: store.activeWeekStart }
                     )
                   }}
-                  onSelectEmployee={(e) => { setIsDayDrawerOpen(false); store.selectEmployee(e.id) }}
+                  onSelectEmployee={(e) => { setIsDayDrawerOpen(false); setPreviewEmployeeId(e.id) }}
                 />
               )}
             </div>
@@ -339,17 +378,7 @@ export function ScheduleWorkbench() {
             <ActivityFeed versions={store.versions} />
           </div>
 
-          {/* Section 4: 次级业务支撑区 (放置于底部，兼顾 E2E 与历史追溯) */}
-          {store.draftSchedule && (
-            <DraftConfirmBanner
-              draft={store.draftSchedule}
-              result={store.result}
-              exceptionCount={exceptionCount}
-              busy={busy}
-              onConfirm={() => void store.confirmDraft()}
-              onCancel={() => void store.cancelDraft()}
-            />
-          )}
+          <CandidateComparisonBar plan={selectedPlan} baseline={plans.find(plan => plan.kind === 'current') ?? null} />
 
           {/* AI Quick Actions Bar */}
           <div className="rounded-2xl border border-slate-200/80 bg-slate-50/60 p-4">
@@ -419,7 +448,7 @@ export function ScheduleWorkbench() {
           </div>
 
           {/* Secondary Details: Metrics, Diff, Impact, Checklist & Version History (Collapsible Panel) */}
-          <div className="mt-2 border-t border-slate-150 pt-4">
+          <div id="schedule-analysis" className="mt-2 scroll-mt-6 border-t border-slate-150 pt-4">
             <button
               type="button"
               onClick={() => setIsAnalysisExpanded((prev) => !prev)}
@@ -428,8 +457,8 @@ export function ScheduleWorkbench() {
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-700">
                   {isAnalysisExpanded
-                    ? '收起排班深度分析与版本历史 (E2E/诊断)'
-                    : '展开排班深度分析与版本历史 (E2E/诊断)'}
+                    ? '收起排班深度分析与版本历史'
+                    : '展开排班深度分析与版本历史'}
                 </span>
                 <span className="text-[10px] font-semibold text-slate-400 bg-white border border-slate-200 px-1.5 py-0.5 rounded">
                   诊断与溯源
@@ -446,14 +475,11 @@ export function ScheduleWorkbench() {
               <div className="mt-4 space-y-6 animate-fade-in">
                 <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
                   <div className="space-y-6">
-                    <Metrics result={store.result} schedule={active} />
-                    {store.draftSchedule && store.confirmedSchedule && (
-                      <DiffView diff={store.result?.diff} />
-                    )}
-                    <ImpactView impact={store.result?.impact} />
+                    <Metrics result={displayResult} schedule={active} />
+                    <ImpactView impact={displayResult?.impact} />
                   </div>
                   <div className="space-y-6">
-                    <RuleChecklist validation={store.result?.validation ?? null} />
+                    <RuleChecklist validation={displayResult?.validation ?? null} />
                     <VersionHistory versions={store.versions} />
                   </div>
                 </div>
@@ -496,6 +522,12 @@ export function ScheduleWorkbench() {
       )}
 
       {/* Interactive Drawers & Dialogs */}
+      <EmployeeDetailDrawer
+        employee={rows.find(row => row.employee.id === previewEmployeeId)?.employee ?? null}
+        isOpen={!!previewEmployeeId && !store.isLoadingWeek}
+        onClose={() => setPreviewEmployeeId(null)}
+        daysHeader={days}
+      />
       <DayDetailDrawer
         addShiftDisabled={busy || !!store.draftSchedule}
         aiDisabled={busy}
@@ -516,7 +548,7 @@ export function ScheduleWorkbench() {
             { intent: 'advice', target_week: store.activeWeekStart }
           )
         }}
-        onSelectEmployee={(e) => { setIsDayDrawerOpen(false); store.selectEmployee(e.id) }}
+        onSelectEmployee={(e) => { setIsDayDrawerOpen(false); setPreviewEmployeeId(e.id) }}
         onViewConflicts={() => {
           setView('date')
           setIsDayDrawerOpen(false)
@@ -537,7 +569,7 @@ export function ScheduleWorkbench() {
         selection={store.selectedShift}
         schedule={active}
         employees={store.employees}
-        validation={store.result?.validation}
+        validation={displayResult?.validation}
         onClose={() => store.selectShift(null)}
       />
 
@@ -631,64 +663,6 @@ function Metrics({
           </div>
         </div>
       ))}
-    </section>
-  )
-}
-
-function DraftConfirmBanner({
-  draft,
-  result,
-  exceptionCount,
-  busy,
-  onConfirm,
-  onCancel,
-}: {
-  draft: Schedule
-  result: FeasibleResult | null
-  exceptionCount: number
-  busy: boolean
-  onConfirm(): void
-  onCancel(): void
-}) {
-  const isForce = result?.compliance_status === 'authorized_violations' || exceptionCount > 0
-  const isConfirmable = result?.validation.confirmable ?? result?.validation.passed ?? false
-  return (
-    <section className="flex flex-col gap-3 rounded-2xl border border-amber-300 bg-amber-50/90 p-4 sm:flex-row sm:items-center shadow-xs">
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-extrabold text-amber-900">
-          {isForce ? '非合规强制排班草稿等待确认' : `草稿版本 ${draft.version} 等待确认`}
-        </p>
-        <p className="mt-0.5 text-xs text-amber-700">
-          {result?.validation.employee_data_stale || result?.validation.rules_data_stale
-            ? '员工资料或标准规则已变更，请取消此草稿后重新生成。'
-            : isForce
-            ? `当前为强制生成的非标准合规排班，存在 ${exceptionCount} 项已授权规则冲突。确认后这些违规仍会保留，并作为该版本的一部分生效。`
-            : isConfirmable
-            ? '确认后该排班版本正式生效。'
-            : '存在未授权规则冲突，不能确认。'}
-        </p>
-      </div>
-      <div className="flex items-center gap-2.5">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={busy}
-          className="btn-secondary"
-        >
-          <X className="h-4 w-4" />
-          取消
-        </button>
-        <button
-          type="button"
-          onClick={onConfirm}
-          disabled={busy || !isConfirmable}
-          aria-label={isForce ? '确认非合规强制方案' : '确认变更'}
-          className="btn-primary"
-        >
-          <Check className="h-4 w-4" />
-          {isForce ? '确认非合规强制方案' : '确认变更'}
-        </button>
-      </div>
     </section>
   )
 }

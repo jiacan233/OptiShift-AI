@@ -1,66 +1,39 @@
-import { Bot, CircleCheck, CircleX, FileEdit } from 'lucide-react'
+import { ArrowUpRight } from 'lucide-react'
 import { InfeasibleSummary } from '@/components/agent/InfeasibleSummary'
 import { MarkdownMessage } from '@/components/agent/MarkdownMessage'
 import { AgentTrace } from '@/components/agent/AgentTrace'
 import { SuggestionCard } from '@/components/agent/SuggestionCard'
 import type { AgentMessage, AgentSuggestion, AgentToolCall } from '@/types'
 
-export function MessageBubble({
-  message,
-  trace,
-  suggestionsDisabled = false,
-  onApplySuggestion,
-}: {
+export function MessageBubble({ message, trace, suggestionsDisabled = false, onApplySuggestion, onViewPlan }: {
   message: AgentMessage
   trace: AgentToolCall[]
   suggestionsDisabled?: boolean
   onApplySuggestion(suggestion: AgentSuggestion): void
+  onViewPlan(): void
 }) {
-  if (message.role === 'user') {
-    return (
-      <div className="flex justify-end">
-        <div className="max-w-[86%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-teal-600 px-4 py-3 text-sm leading-6 text-white shadow-sm">
-          {message.content}
-        </div>
-      </div>
-    )
-  }
-
+  const isUser = message.role === 'user'
   const suggestions = message.metadata_json?.suggestions ?? []
   const draftVersion = message.metadata_json?.generated_draft_version
   const recoveredStatus = message.metadata_json?.recovered_schedule_status
-  const draftNotice = recoveredStatus === 'confirmed'
-    ? `排班 v${draftVersion} 已确认`
-    : recoveredStatus === 'cancelled'
-      ? `排班草稿 v${draftVersion} 已取消`
-      : `已生成待确认草稿 v${draftVersion}`
-  const DraftStatusIcon = recoveredStatus === 'confirmed'
-    ? CircleCheck
-    : recoveredStatus === 'cancelled'
-      ? CircleX
-      : FileEdit
-  const draftNoticeStyle = recoveredStatus === 'confirmed'
-    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-    : recoveredStatus === 'cancelled'
-      ? 'border-slate-200 bg-slate-100 text-slate-700'
-      : 'border-amber-200 bg-amber-50 text-amber-800'
   return (
-    <div className="flex items-start gap-2.5">
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-ink text-white"><Bot className="h-4 w-4" /></span>
-      <div className="min-w-0 max-w-[88%]">
-        <div className="rounded-2xl rounded-tl-md border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-700 shadow-sm">
+    <div className={`flex min-w-0 flex-col ${isUser ? 'items-end' : 'items-start'}`}>
+      <div className="mb-1 flex items-center gap-2 px-1">
+        <span className="text-[10px] font-medium text-slate-400">{new Date(message.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+        <span className="text-[11px] font-bold text-slate-600">{isUser ? '排班经理' : 'OptiShift AI'}</span>
+      </div>
+      {isUser ? <div className="max-w-[85%] whitespace-pre-wrap break-words bg-blue-600 text-white rounded-2xl rounded-tr-sm p-3 text-xs font-medium shadow-md shadow-blue-500/15 leading-relaxed">{message.content}</div> : (
+        <div className="min-w-0 max-w-[95%] break-words bg-white border border-slate-200/80 rounded-2xl rounded-tl-sm p-3.5 shadow-sm text-xs leading-relaxed text-slate-800">
           <MarkdownMessage content={message.content} />
           <InfeasibleSummary message={message} />
-          {draftVersion && (
-            <div className={`mt-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold ${draftNoticeStyle}`}>
-              <DraftStatusIcon className="h-4 w-4" /> {draftNotice}
-            </div>
-          )}
-          {suggestions.length > 0 && <div className="mt-3 space-y-2">{suggestions.map((suggestion) => <SuggestionCard key={suggestion.suggestion_id} suggestion={suggestion} disabled={suggestionsDisabled} onApply={onApplySuggestion} />)}</div>}
+          {draftVersion != null && <div className="mt-3 border-t border-slate-100 pt-2 text-[11px] text-slate-500">
+            <span>本轮排班版本 v{draftVersion}{recoveredStatus === 'confirmed' ? ' · 已确认' : recoveredStatus === 'cancelled' ? ' · 已取消' : ''}</span>
+            <button type="button" onClick={onViewPlan} className="mt-1 flex items-center gap-1 font-bold text-blue-600 hover:text-blue-700">查看工作台方案 <ArrowUpRight className="h-3 w-3" /></button>
+          </div>}
+          {suggestions.length > 0 && <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50/70"><summary className="cursor-pointer px-3 py-2 text-[11px] font-bold text-blue-700">调整建议 · {suggestions.length} 条</summary><div className="space-y-2 border-t border-slate-200/60 p-2">{suggestions.map(suggestion => <SuggestionCard key={suggestion.suggestion_id} suggestion={suggestion} disabled={suggestionsDisabled} onApply={onApplySuggestion} />)}</div></details>}
           <AgentTrace calls={trace} events={message.metadata_json?.execution_events ?? []} />
         </div>
-        <p className="mt-1 px-1 text-[10px] text-slate-400">{new Date(message.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</p>
-      </div>
+      )}
     </div>
   )
 }

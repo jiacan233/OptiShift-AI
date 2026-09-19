@@ -29,8 +29,8 @@ export function ShiftDrawer({
 
   return (
     <>
-      <button className="fixed inset-0 z-40 cursor-default bg-ink/30 backdrop-blur-sm" onClick={onClose} aria-label="关闭班次详情" />
-      <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-md overflow-y-auto bg-white p-5 shadow-drawer sm:p-7" aria-label="班次详情">
+      <button className="fixed inset-0 overlay-modal-backdrop cursor-default bg-ink/30 backdrop-blur-sm" onClick={onClose} aria-label="关闭班次详情" />
+      <aside className="fixed inset-y-0 right-0 overlay-modal w-full max-w-md overflow-y-auto bg-white p-5 shadow-drawer sm:p-7" aria-label="班次详情">
         <div className="mb-8 flex items-start justify-between">
           <div>
             <p className="eyebrow">班次详情</p>

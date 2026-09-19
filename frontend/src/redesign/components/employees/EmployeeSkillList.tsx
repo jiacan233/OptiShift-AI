@@ -45,7 +45,7 @@ export const EmployeeSkillList: React.FC<EmployeeSkillListProps> = ({
           </span>
 
           {/* Floating Hover Tooltip */}
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/skillOverflow:flex flex-col gap-1 z-40 p-2.5 bg-slate-900/95 text-white rounded-xl shadow-xl backdrop-blur-md text-[11px] whitespace-nowrap min-w-[120px] pointer-events-none animate-fade-in border border-slate-700">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/skillOverflow:flex flex-col gap-1 overlay-popover p-2.5 bg-slate-900/95 text-white rounded-xl shadow-xl backdrop-blur-md text-[11px] whitespace-nowrap min-w-[120px] pointer-events-none animate-fade-in border border-slate-700">
             <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider pb-1 border-b border-slate-800 flex items-center justify-between gap-2">
               <span>待查看技能</span>
               <span>{hiddenSkills.length} 项</span>

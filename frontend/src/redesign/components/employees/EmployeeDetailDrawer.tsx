@@ -67,7 +67,7 @@ export const EmployeeDetailDrawer: React.FC<EmployeeDetailDrawerProps> = ({
   const isHoursNear = !isHoursFull && employee.currentHours >= employee.maxHoursPerWeek - 8
 
   const drawerContent = (
-    <div className="fixed inset-0 z-50 pointer-events-none">
+    <div className="fixed inset-0 overlay-modal pointer-events-none">
       {/* Dim Backdrop */}
       <div
         onClick={onClose}
