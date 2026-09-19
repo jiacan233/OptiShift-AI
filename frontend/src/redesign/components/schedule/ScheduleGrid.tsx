@@ -2,12 +2,14 @@ import React, { useState, useMemo } from 'react'
 import { Search, RotateCcw, Users, CalendarX } from 'lucide-react'
 import { EmployeeRow, ShiftItem, RoleType, Employee } from '../../types/schedule'
 import { ShiftCard } from './ShiftCard'
+import { SwapBadge } from './SwapBadge'
 
 interface ScheduleGridProps {
   scheduleData: EmployeeRow[]
   onShiftClick: (employeeName: string, shift: ShiftItem) => void
   daysHeader: { day: string; dayCn: string; date: number; fullDate: string }[]
   onSelectEmployee?: (employee: Employee) => void
+  onSwapClick?: () => void
   renderDaySummary?: (day: string) => React.ReactNode
 }
 
@@ -16,6 +18,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   onShiftClick,
   daysHeader,
   onSelectEmployee,
+  onSwapClick,
   renderDaySummary,
 }) => {
   // Lightweight Filter States
@@ -25,7 +28,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   // Mandatory requirement: Default to TRUE (show all active employees including 0-shift)
   const [showZeroShift, setShowZeroShift] = useState<boolean>(true)
 
-  const rolesList: RoleType[] = [...new Set(scheduleData.map(row => row.employee.role))]
+  const rolesList: RoleType[] = ['店长', '副店长', '值班主管', '高级店员', '店员', '兼职']
 
   // Filtered rows
   const filteredRows = useMemo(() => {
@@ -193,7 +196,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
       ) : (
         /* Schedule Matrix Table Container with Sticky Name Column and Sticky Date Header */
         <div className="relative overflow-x-auto overflow-y-auto max-h-[640px] custom-scrollbar rounded-2xl border border-slate-150/80 bg-white">
-          <div className="min-w-[920px] lg:min-w-full">
+          <div className="min-w-[980px]">
             {/* Table Header (Sticky Top) */}
             <div className="sticky top-0 bg-white/95 backdrop-blur-md z-30 grid grid-cols-[210px_repeat(7,minmax(0,1fr))] items-center border-b border-slate-200/80 py-2.5 px-2 shadow-xs">
               {/* Sticky Left Corner Header */}
@@ -202,7 +205,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
               </div>
 
               {daysHeader.map((col) => (
-                <div key={col.day} className="text-center">
+                <div key={col.day} className="text-center relative">
                   <div className="text-[11px] font-semibold text-slate-400">
                     {col.day} ({col.dayCn})
                   </div>
@@ -233,7 +236,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
                     <button
                       type="button"
                       onClick={() => onSelectEmployee?.(row.employee)}
-                      className="sticky left-0 bg-white group-hover:bg-[#F8FAFC] hover:bg-blue-50/70 z-20 flex items-center gap-2.5 pl-2 pr-2 py-1 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)] cursor-pointer select-none transition-colors group/empCard"
+                      className="sticky left-0 bg-white group-hover:bg-[#F8FAFC] hover:bg-blue-50/70 z-20 flex items-center gap-2.5 pl-2 pr-2 py-1 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)] cursor-pointer select-none transition-colors group/empCard text-left"
                       title={`点击查看 ${row.employee.name} (${row.employee.role}) 的详细档案`}
                     >
                       <img
@@ -281,7 +284,15 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
               })}
             </div>
 
-
+            {/* Floating 'Swap requested' Popover (Positioned in grid) */}
+            <div className="absolute right-8 top-[180px] z-20 pointer-events-auto">
+              <SwapBadge
+                user1Avatar="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
+                user2Avatar="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80"
+                statusText="调班申请待确认"
+                onClick={onSwapClick}
+              />
+            </div>
           </div>
         </div>
       )}

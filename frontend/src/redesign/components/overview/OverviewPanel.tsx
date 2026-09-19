@@ -1,5 +1,6 @@
 import React from 'react'
 import { ChevronRight } from 'lucide-react'
+import { MiniBarChart, Sparkline } from './MiniCharts'
 import { WeekMetrics } from '../../utils/scheduleSelectors'
 
 interface OverviewPanelProps {
@@ -42,7 +43,7 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
       {/* Card 1: 人员与技能覆盖达标率 */}
       <div className="bg-white rounded-3xl p-4 border border-slate-150/70 shadow-sm flex items-center justify-between">
         <div>
-          <div className="text-xs font-semibold text-slate-400">人员与技能覆盖达标率</div>
+          <div className="text-xs font-semibold text-slate-400">班次达标率</div>
           <div className="text-xl font-bold text-blue-600 mt-0.5">
             {metrics.coverageRate}%
           </div>
@@ -50,6 +51,7 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
             达标 {metrics.compliantShifts} / {metrics.totalShifts} 班次
           </div>
         </div>
+        <MiniBarChart />
       </div>
 
       {/* Card 2: 人员缺口 */}
@@ -78,6 +80,7 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
             {metrics.totalGaps > 0 ? '存在班次底线缺口' : '全周班次底线满足'}
           </div>
         </div>
+        <Sparkline color={metrics.totalGaps > 0 ? '#F59E0B' : '#10B981'} />
       </div>
 
       {/* Card 3: 真实排班总工时 */}
@@ -96,6 +99,7 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
             {metrics.totalLeaveEmployees} 人在册请假
           </div>
         </div>
+        <Sparkline color="#3B82F6" />
       </div>
 
       {/* Card 4: 规则与排班预警 (Shift Alerts) */}
@@ -117,7 +121,7 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
               metrics.alerts.map((alert) => (
                 <div
                   key={alert.id}
-                  onClick={() => alert.day ? onSelectAlert?.(alert) : onViewAllRules?.()}
+                  onClick={() => (alert.day ? onSelectAlert?.(alert) : onViewAllRules?.())}
                   className="flex items-start justify-between group cursor-pointer hover:bg-slate-50/80 p-2 -mx-1.5 rounded-xl transition border border-transparent hover:border-slate-150"
                 >
                   <div className="flex items-start gap-2 min-w-0">

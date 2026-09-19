@@ -4,6 +4,8 @@ import {
   CalendarDays,
   CalendarPlus,
   Check,
+  ChevronDown,
+  ChevronUp,
   GitCompareArrows,
   ListChecks,
   LoaderCircle,
@@ -49,6 +51,7 @@ export function ScheduleWorkbench() {
   const [selectedDay, setSelectedDay] = useState<Day>('Mon')
   const [adding, setAdding] = useState<{ day: Day; shift: ShiftType; employeeId?: string } | null>(null)
   const [mobilePreview, setMobilePreview] = useState(false)
+  const [isAnalysisExpanded, setIsAnalysisExpanded] = useState(true)
 
   const { rows, days } = useWorkspace()
   const busy =
@@ -199,6 +202,12 @@ export function ScheduleWorkbench() {
                       addShift(shift.day as Day, 'morning', id)
                     }
                   }}
+                  onSwapClick={() => {
+                    void agent.openWithPrompt(
+                      '张宇 (E02) 与 孙静 (E05) 申请周五班次互换，请分析互换影响及规则合规性。',
+                      { intent: 'advice', target_week: store.activeWeekStart }
+                    )
+                  }}
                 />
               ) : (
                 <DateCoverageView
@@ -326,26 +335,47 @@ export function ScheduleWorkbench() {
             </div>
           </div>
 
-          {/* Secondary Details: Metrics, Diff, Impact, Checklist & Version History */}
-          <div className="mt-2 border-t border-slate-150 pt-5 space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-extrabold text-slate-700">
-                排班深度分析与规则校验
-              </h3>
-            </div>
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-              <div className="space-y-6">
-                <Metrics result={store.result} schedule={active} />
-                {store.draftSchedule && store.confirmedSchedule && (
-                  <DiffView diff={store.result?.diff} />
-                )}
-                <ImpactView impact={store.result?.impact} />
+          {/* Secondary Details: Metrics, Diff, Impact, Checklist & Version History (Collapsible Panel) */}
+          <div className="mt-2 border-t border-slate-150 pt-4">
+            <button
+              type="button"
+              onClick={() => setIsAnalysisExpanded((prev) => !prev)}
+              className="flex w-full items-center justify-between rounded-2xl bg-slate-50/80 px-4 py-3 border border-slate-200/80 hover:bg-slate-100/80 transition text-left"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-700">
+                  {isAnalysisExpanded
+                    ? '收起排班深度分析与版本历史 (E2E/诊断)'
+                    : '展开排班深度分析与版本历史 (E2E/诊断)'}
+                </span>
+                <span className="text-[10px] font-semibold text-slate-400 bg-white border border-slate-200 px-1.5 py-0.5 rounded">
+                  诊断与溯源
+                </span>
               </div>
-              <div className="space-y-6">
-                <RuleChecklist validation={store.result?.validation ?? null} />
-                <VersionHistory versions={store.versions} />
+              {isAnalysisExpanded ? (
+                <ChevronUp className="h-4 w-4 text-slate-400" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-slate-400" />
+              )}
+            </button>
+
+            {isAnalysisExpanded && (
+              <div className="mt-4 space-y-6 animate-fade-in">
+                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+                  <div className="space-y-6">
+                    <Metrics result={store.result} schedule={active} />
+                    {store.draftSchedule && store.confirmedSchedule && (
+                      <DiffView diff={store.result?.diff} />
+                    )}
+                    <ImpactView impact={store.result?.impact} />
+                  </div>
+                  <div className="space-y-6">
+                    <RuleChecklist validation={store.result?.validation ?? null} />
+                    <VersionHistory versions={store.versions} />
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </>
       ) : (

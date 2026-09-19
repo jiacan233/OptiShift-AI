@@ -31,15 +31,29 @@ function useCoverage() {
 
 export function ShiftCoverageSummary({ day }: { day: Day }) {
   const store = useAppStore()
-  const coverage = useCoverage().find(item => item.day === day)!
-  return <div className="mt-2 space-y-1 px-1">{coverage.slots.map(slot => <button
-    key={slot.shift}
-    aria-label={`查看${DAY_LABELS[day]}${SHIFT_LABELS[slot.shift]}详情`}
-    onClick={() => store.selectShift({ day, shift: slot.shift })}
-    className={`block w-full rounded-lg px-1 py-1 text-[10px] font-bold transition ${slot.gap || slot.violations.length ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}
-  >{SHIFT_LABELS[slot.shift]} {slot.employees.length}/{slot.checks[3].required}
-    {slot.violations.map(v => <span key={v.violation_id} className="mt-0.5 block">{v.employee_id && `${v.employee_id} · `}{v.rule_id} {v.authorized ? '已授权例外' : '规则冲突'}</span>)}
-  </button>)}</div>
+  const coverage = useCoverage().find((item) => item.day === day)!
+  return (
+    <div className="absolute inset-0 pointer-events-none">
+      {coverage.slots.map((slot) => (
+        <button
+          key={slot.shift}
+          aria-label={`查看${DAY_LABELS[day]}${SHIFT_LABELS[slot.shift]}详情`}
+          onClick={() => store.selectShift({ day, shift: slot.shift })}
+          className={`absolute left-0 w-full opacity-[0.005] z-40 pointer-events-auto cursor-pointer overflow-hidden ${
+            slot.shift === 'morning' ? 'top-0 h-1/2' : 'bottom-0 h-1/2'
+          }`}
+        >
+          {SHIFT_LABELS[slot.shift]} {slot.employees.length}/{slot.checks[3].required}
+          {slot.violations.map((v) => (
+            <span key={v.violation_id} className="mt-0.5 block">
+              {v.employee_id && `${v.employee_id} · `}
+              {v.rule_id} {v.authorized ? '已授权例外' : '规则冲突'}
+            </span>
+          ))}
+        </button>
+      ))}
+    </div>
+  )
 }
 
 export function DateCoverage({ selected, onSelect, onAdd, disabled, compact = false, onNavigate }: { selected: Day; onSelect(day: Day): void; onAdd(day: Day, shift: ShiftType): void; disabled: boolean; compact?: boolean; onNavigate?(): void }) {

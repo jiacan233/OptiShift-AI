@@ -7,8 +7,8 @@ import { defineConfig, devices } from '@playwright/test'
 
 const frontendDirectory = fileURLToPath(new URL('.', import.meta.url))
 const repositoryDirectory = fileURLToPath(new URL('..', import.meta.url))
-const apiPort = 8001
-const webPort = 4173
+const apiPort = Number(env.API_PORT ?? 8001)
+const webPort = Number(env.WEB_PORT ?? 4173)
 const apiUrl = `http://127.0.0.1:${apiPort}`
 const webUrl = `http://127.0.0.1:${webPort}`
 const databasePath = join(tmpdir(), `optishift-playwright-${randomUUID()}.db`)
