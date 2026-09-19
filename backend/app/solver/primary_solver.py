@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from ortools.sat.python import cp_model
 
+from ..execution import current_execution, traced
 from ..models import (
     Assignment,
     Schedule,
@@ -22,6 +23,7 @@ class PrimarySolver:
     def __init__(self, constraint_builder: ConstraintBuilder | None = None) -> None:
         self.constraint_builder = constraint_builder or ConstraintBuilder()
 
+    @traced("solver")
     def solve(
         self,
         context: SchedulingContext,
@@ -118,7 +120,9 @@ class PrimarySolver:
     @staticmethod
     def _configured_solver(context: SchedulingContext) -> cp_model.CpSolver:
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = context.rules.max_time_seconds
+        trace = current_execution.get()
+        remaining = trace.remaining("solver") if trace else context.rules.max_time_seconds
+        solver.parameters.max_time_in_seconds = min(context.rules.max_time_seconds, remaining)
         solver.parameters.random_seed = context.rules.random_seed
         solver.parameters.num_search_workers = context.rules.num_search_workers
         return solver

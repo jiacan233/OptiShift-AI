@@ -7,11 +7,12 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from ..execution import traced
 from ..models import Assignment, ChangeType, Day, Employee, OverrideScope, ScheduleChange, Shift
 from .intent_parser import DAY_TOKENS, IntentParser, _normalize_identifier_text
 from .llm_client import (
-    AIUnavailableError,
     AgentLLMClient,
+    AIUnavailableError,
     strict_json_schema,
 )
 
@@ -111,6 +112,7 @@ class AgentRouter:
     def __init__(self, llm: AgentLLMClient | None = None) -> None:
         self.llm = llm or AgentLLMClient()
 
+    @traced("agent_route")
     def route(
         self,
         content: str,
@@ -170,6 +172,7 @@ class AgentRouter:
                 "valid_employee_ids": [employee.id for employee in employees],
                 "recent_messages": recent_messages[-12:],
             },
+            stage="agent_route",
             schema_name="agent_route",
             schema=schema,
         )
@@ -178,8 +181,9 @@ class AgentRouter:
         except ValidationError as exc:
             raise AIUnavailableError(
                 "AI Provider 返回了无法识别的响应。",
-                error_type="invalid_provider_response",
-                stage="structured_output",
+                error_type="structured_output_error",
+                stage="agent_route",
+                latency_ms=self.llm._last_latency_ms,
             ) from exc
 
         known = {employee.id for employee in employees}

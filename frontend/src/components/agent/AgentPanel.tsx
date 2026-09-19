@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Activity, AlertCircle, Bot, CheckCircle2, History, LoaderCircle, MessageSquarePlus, Send, Sparkles, X } from 'lucide-react'
+import { AgentTrace } from '@/components/agent/AgentTrace'
 import { ConversationHistory } from '@/components/agent/ConversationHistory'
 import { MessageBubble } from '@/components/agent/MessageBubble'
 import { api, apiErrorMessage, type LlmHealthResult } from '@/api/client'
@@ -28,7 +29,7 @@ export function AgentPanel() {
 
   useEffect(() => {
     if (agent.isChatOpen && !agent.isHistoryOpen) endRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [agent.isChatOpen, agent.isHistoryOpen, agent.isSending, agent.messages])
+  }, [agent.isChatOpen, agent.isHistoryOpen, agent.isSending, agent.messages, agent.executionEvents])
 
   if (!agent.isChatOpen) return null
 
@@ -87,7 +88,7 @@ export function AgentPanel() {
               {isCheckingLlm ? (
                 <span className="flex items-center gap-2"><LoaderCircle className="h-3.5 w-3.5 animate-spin" />正在连接 AI Provider…</span>
               ) : structuredReady ? (
-                <div className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div><p className="font-black">AI 联通正常</p><p className="mt-0.5 text-[10px]">{llmHealth?.model ?? ''} · {Math.max(basicCheck?.latency_ms ?? 0, structuredCheck?.latency_ms ?? 0)} ms</p></div></div>
+                <div className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div><p className="font-black">AI 联通正常</p><p className="mt-0.5 text-[10px]">模型：{llmHealth?.model ?? ''}</p><p className="mt-0.5 text-[10px]">基础聊天：✓ {basicCheck?.latency_ms ?? 0} ms</p><p className="mt-0.5 text-[10px]">结构化输出：✓ {structuredCheck?.latency_ms ?? 0} ms</p></div></div>
               ) : llmHealth ? (
                 <div className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div>
                   <p className="font-black">{basicCheck?.status === 'ok' ? 'AI 基础连接正常' : 'AI 联通失败'}</p>
@@ -111,7 +112,7 @@ export function AgentPanel() {
             <div className="soft-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
               {agent.isLoadingConversation ? (
                 <div className="grid min-h-full place-items-center text-sm text-slate-500"><LoaderCircle className="mb-2 h-6 w-6 animate-spin text-teal-600" />正在恢复对话…</div>
-              ) : agent.messages.length === 0 ? (
+              ) : agent.messages.length === 0 && !agent.pendingMessage && !agent.isSending ? (
                 <div className="flex min-h-full flex-col justify-center">
                   <span className="grid h-12 w-12 place-items-center rounded-2xl bg-teal-100 text-teal-700"><Bot className="h-6 w-6" /></span>
                   <h3 className="mt-4 text-lg font-black text-ink">你好，我是排班助手</h3>
@@ -135,10 +136,12 @@ export function AgentPanel() {
                       void agent.sendMessage(`按 ${suggestion.suggestion_id} 调整。`)
                     }} />
                   ))}
-                  {agent.isSending && <div className="flex items-center gap-2 text-xs font-semibold text-slate-400"><LoaderCircle className="h-4 w-4 animate-spin text-teal-600" />正在读取真实排班上下文…</div>}
-                  <div ref={endRef} />
+
                 </div>
               )}
+              {agent.pendingMessage && !agent.messages.some((message) => message.client_message_id === agent.pendingMessage?.clientMessageId) && <div className="mt-4 rounded-2xl bg-teal-600 p-3 text-sm text-white">{agent.pendingMessage.content}</div>}
+              <AgentTrace calls={[]} events={agent.executionEvents} running={agent.isSending} />
+              <div ref={endRef} />
             </div>
 
             {agent.agentError && (

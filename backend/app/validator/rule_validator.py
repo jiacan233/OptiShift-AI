@@ -5,7 +5,10 @@ from __future__ import annotations
 from collections import defaultdict
 
 from ..core import SchedulingFacts
+from ..execution import traced
 from ..models import (
+    SHIFTS,
+    WEEK_DAYS,
     Day,
     Employee,
     HistoryStatus,
@@ -17,10 +20,7 @@ from ..models import (
     Shift,
     Skill,
     ValidationResult,
-    WEEK_DAYS,
-    SHIFTS,
 )
-
 
 HARD_RULE_IDS: tuple[str, ...] = (
     "H01",
@@ -39,6 +39,7 @@ HARD_RULE_IDS: tuple[str, ...] = (
 class RuleValidator:
     """Recompute every hard rule without consulting solver variables."""
 
+    @traced("validator")
     def validate(
         self,
         schedule: Schedule,

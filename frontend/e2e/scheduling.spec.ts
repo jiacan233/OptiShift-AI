@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { observeAgentStream, readAgentStream } from './stream-helper'
 
 const API = 'http://127.0.0.1:8001'
 const WORKSPACE = 'bw_playwright_agent_acceptance'
@@ -40,14 +41,17 @@ async function openAgent(page: Page) {
 
 async function sendMessage(page: Page, content: string) {
   const panel = await openAgent(page)
+  await observeAgentStream(page)
   const responsePromise = page.waitForResponse((response) => (
     response.url().includes('/api/agent/conversations/')
-    && response.url().endsWith('/messages')
+    && response.url().endsWith('/messages/stream')
     && response.request().method() === 'POST'
   ))
   await panel.getByPlaceholder('问排班、规则，或描述需要调整的内容…').fill(content)
   await panel.getByRole('button', { name: '发送消息' }).click()
-  return responsePromise
+  await responsePromise
+  await expect(panel.getByRole('button', { name: '新对话' })).toBeEnabled()
+  return readAgentStream(page)
 }
 
 async function rememberConversation(page: Page) {
@@ -191,7 +195,7 @@ test.describe.serial('持久化排班 Agent 验收', () => {
 
     expect(response.status()).toBe(409)
     expect((await response.json()).error.code).toBe('draft_pending')
-    await expect(page.getByText('已有待确认草稿')).toBeVisible()
+    await expect(page.getByText('已有待确认草稿', { exact: true })).toBeVisible()
     await expect(page.getByText('草稿版本 2 等待确认')).toBeVisible()
   })
 
@@ -258,7 +262,7 @@ test.describe.serial('持久化排班 Agent 验收', () => {
     const panel = await openAgent(page)
     await panel.getByRole('button', { name: '新对话' }).click()
     let dropped = false
-    await page.route('**/api/agent/conversations/*/messages', async (route) => {
+    await page.route('**/api/agent/conversations/*/messages/stream', async (route) => {
       if (!dropped) {
         dropped = true
         await route.fetch()
@@ -273,7 +277,7 @@ test.describe.serial('持久化排班 Agent 验收', () => {
     await expect(panel.getByText('网络连接异常')).toBeVisible()
     await panel.getByRole('button', { name: '使用同一请求标识重试' }).click()
     await expect(page.getByText('草稿版本 1 等待确认')).toBeVisible()
-    await page.unroute('**/api/agent/conversations/*/messages')
+    await page.unroute('**/api/agent/conversations/*/messages/stream')
 
     const currentId = await rememberConversation(page)
     const detail = await (await request.get(`${API}/api/agent/conversations/${currentId}?browser_workspace_id=${WORKSPACE}`)).json()
@@ -288,7 +292,7 @@ test.describe.serial('持久化排班 Agent 验收', () => {
     await expect(page.getByText('这一周还没有排班')).toBeVisible()
     let sentBody: Record<string, unknown> | null = null
     const requestPromise = page.waitForRequest((request) => {
-      if (!request.url().includes('/api/agent/conversations/') || !request.url().endsWith('/messages')) return false
+      if (!request.url().includes('/api/agent/conversations/') || !request.url().endsWith('/messages/stream')) return false
       sentBody = request.postDataJSON()
       return true
     })
@@ -360,8 +364,8 @@ test.describe.serial('持久化排班 Agent 验收', () => {
       messages: [userMessage, assistantMessage],
       tool_calls: [],
     }
-    await page.route(`${API}/api/agent/conversations/${conversation}/messages`, async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+    await page.route(`${API}/api/agent/conversations/${conversation}/messages/stream`, async (route) => {
+      await route.fulfill({ status: 200, contentType: 'text/event-stream', body: 'event: result\ndata: ' + JSON.stringify({
         user_message: userMessage,
         assistant_message: assistantMessage,
         intent: 'generate',
@@ -369,7 +373,7 @@ test.describe.serial('持久化排班 Agent 验收', () => {
         context: { target_week: WEEK_41, iso_year: 2026, iso_week: 41, display_schedule_id: null, display_schedule_version: null, confirmed_schedule_id: null, confirmed_schedule_version: null },
         tool_calls: [],
         schedule_result: infeasible,
-      }) })
+      }) + '\n\n' })
     })
     await page.route(`${API}/api/agent/conversations/${conversation}**`, async (route) => {
       if (route.request().method() === 'GET') {
@@ -394,7 +398,7 @@ test.describe.serial('持久化排班 Agent 验收', () => {
     await expect(page.getByTestId('infeasible-summary')).toBeVisible()
     await expect(page.getByText('覆盖缺口')).toBeVisible()
     await expect(page.getByText('这一周还没有排班')).not.toBeVisible()
-    await page.unroute(`${API}/api/agent/conversations/${conversation}/messages`)
+    await page.unroute(`${API}/api/agent/conversations/${conversation}/messages/stream`)
     await page.unroute(`${API}/api/agent/conversations/${conversation}**`)
   })
 })

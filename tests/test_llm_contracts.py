@@ -7,10 +7,25 @@ import pytest
 
 from backend.app.services.agent_router import agent_route_json_schema
 from backend.app.services.llm_client import (
-    AIUnavailableError,
     AgentLLMClient,
+    AIUnavailableError,
     validate_strict_json_schema,
 )
+
+
+@pytest.fixture(autouse=True)
+def close_clients(monkeypatch):
+    clients = []
+    original = AgentLLMClient.__init__
+
+    def initialize(self, *args, **kwargs):
+        original(self, *args, **kwargs)
+        clients.append(self)
+
+    monkeypatch.setattr(AgentLLMClient, "__init__", initialize)
+    yield
+    for client in clients:
+        client.close()
 
 
 def _response(content: str, status_code: int = 200) -> httpx.Response:
@@ -44,7 +59,9 @@ def test_complete_json_sends_strict_json_schema(monkeypatch: pytest.MonkeyPatch)
         captured.update(kwargs)
         return _response('{"ok": true}')
 
-    monkeypatch.setattr(httpx, "post", fake_post)
+    monkeypatch.setattr(
+        httpx.Client, "post", lambda self, *args, **kwargs: fake_post(*args, **kwargs)
+    )
     result = client.complete_json(
         system="test",
         user={"message": "hello"},
@@ -76,7 +93,9 @@ def test_health_check_requires_basic_and_structured(monkeypatch: pytest.MonkeyPa
             return _response('{"ok": true}')
         return _response("OK")
 
-    monkeypatch.setattr(httpx, "post", fake_post)
+    monkeypatch.setattr(
+        httpx.Client, "post", lambda self, *args, **kwargs: fake_post(*args, **kwargs)
+    )
     result = client.health_check()
 
     assert result["status"] == "ok"
@@ -93,10 +112,14 @@ def test_health_check_reports_degraded_structured_output(monkeypatch: pytest.Mon
         nonlocal calls
         calls += 1
         if "response_format" in kwargs["json"]:
-            return _response("Invalid schema for response_format 'agent_route': missing operations", 400)
+            return _response(
+                "Invalid schema for response_format 'agent_route': missing operations", 400
+            )
         return _response("OK")
 
-    monkeypatch.setattr(httpx, "post", fake_post)
+    monkeypatch.setattr(
+        httpx.Client, "post", lambda self, *args, **kwargs: fake_post(*args, **kwargs)
+    )
     result = client.health_check()
 
     assert result["status"] == "degraded"
@@ -113,7 +136,9 @@ def test_health_check_stops_after_basic_auth_failure(monkeypatch: pytest.MonkeyP
     def fake_post(_url: str, **_kwargs: object) -> httpx.Response:
         return _response("invalid key", 401)
 
-    monkeypatch.setattr(httpx, "post", fake_post)
+    monkeypatch.setattr(
+        httpx.Client, "post", lambda self, *args, **kwargs: fake_post(*args, **kwargs)
+    )
     result = client.health_check()
 
     assert result["status"] == "error"
@@ -121,8 +146,10 @@ def test_health_check_stops_after_basic_auth_failure(monkeypatch: pytest.MonkeyP
     assert "structured_output" not in result["checks"]
 
 
-def test_provider_message_is_redacted_before_public_details(monkeypatch: pytest.MonkeyPatch) -> None:
-    client = _client(monkeypatch)
+def test_provider_message_is_redacted_before_public_details(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _client(monkeypatch)
     error = AIUnavailableError(
         "provider failed",
         error_type="invalid_request",

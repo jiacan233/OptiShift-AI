@@ -156,6 +156,7 @@ export function errorCodeLabel(code: string) {
     draft_pending: '已有待确认草稿',
     suggestion_stale: '建议已失效',
     ai_unavailable: 'AI 助手暂时不可用',
+    agent_turn_timeout: '本轮处理超时',
     invalid_agent_action: 'Agent 操作无效',
     agent_operation_failed: 'Agent 操作失败',
     message_processing: '消息仍在处理中',
@@ -176,6 +177,7 @@ export function problemMessage(code: string, message?: string) {
     return message?.trim() || 'AI 助手暂时不可用，请稍后重试。'
   }
   const messages: Record<string, string> = {
+    agent_turn_timeout: '本轮处理超过执行预算，已保存的草稿会保留，请查看执行进度。',
     history_unavailable: '目标周缺少上一周已确认排班，因此无法安全校验连续工作天数和晚班转早班规则。请补充上一周排班或选择连续的排班周次。',
     draft_pending: '当前已有待确认草稿，请先确认或取消当前草稿。',
     version_conflict: '正式排班已经更新，请刷新当前周后再试。',
@@ -187,22 +189,24 @@ export function problemMessage(code: string, message?: string) {
   return messages[code] ?? localizeMessage(message, '请求未完成，请稍后重试。')
 }
 
-export function problemDetail(code: string, details?: unknown) {
-  if (code !== 'ai_unavailable' || !details || typeof details !== 'object') return null
+export const AGENT_STAGE_LABELS: Record<string, string> = {
+  agent_route: '理解排班请求', intent_parse: '解析排班调整', explanation: '生成排班说明',
+  response_compose: '生成回复', structured_output_health: '检测结构化输出',
+  structured_output: '检测结构化输出', basic_chat: '检测基础聊天',
+  resolve_context: '定位排班上下文', load_schedule: '读取当前排班', load_employees: '读取员工信息',
+  solver: '计算排班方案', validator: '校验排班规则', save_draft: '保存排班草稿', tool: '执行排班操作',
+}
+
+export function problemDetail(_code: string, details?: unknown) {
+  if (!details || typeof details !== 'object') return null
   const source = details as Record<string, unknown>
-  const errorType = typeof source.error_type === 'string' && source.error_type.trim()
-    ? source.error_type.trim()
-    : null
-  const providerStatus = typeof source.provider_status === 'number'
-    ? source.provider_status
-    : null
-  const providerMessage = typeof source.provider_message === 'string' && source.provider_message.trim()
-    ? source.provider_message.trim()
-    : null
-  const summary = providerMessage ? ` · ${providerMessage}` : ''
-  if (providerStatus !== null && errorType) return `HTTP ${providerStatus} · ${errorType}${summary}`
-  if (providerStatus !== null) return `HTTP ${providerStatus}`
-  return errorType ? `${errorType}${summary}` : providerMessage
+  const parts: string[] = []
+  if (typeof source.stage === 'string') parts.push(`阶段：${AGENT_STAGE_LABELS[source.stage] ?? '处理排班请求'}`)
+  if (typeof source.latency_ms === 'number') parts.push(`耗时：${(source.latency_ms / 1000).toFixed(1)} 秒`)
+  if (typeof source.provider_status === 'number') parts.push(`HTTP ${source.provider_status}`)
+  if (typeof source.error_type === 'string') parts.push(`类型：${source.error_type}`)
+  if (typeof source.provider_message === 'string' && source.provider_message.trim()) parts.push(source.provider_message)
+  return parts.join(' · ') || null
 }
 
 function containsChinese(value: string) {

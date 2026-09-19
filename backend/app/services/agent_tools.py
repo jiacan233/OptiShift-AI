@@ -4,8 +4,16 @@ from collections import Counter
 from datetime import date
 from typing import Any, Callable
 
-from ..models import ChangeType, ForceRequest, PatchOperation, Schedule, ScheduleChange, ScenarioPatch
-from ..repository import EmployeeRepository, ScheduleRepository, ScenarioRepository
+from ..execution import traced
+from ..models import (
+    ChangeType,
+    ForceRequest,
+    PatchOperation,
+    ScenarioPatch,
+    Schedule,
+    ScheduleChange,
+)
+from ..repository import EmployeeRepository, ScenarioRepository, ScheduleRepository
 from .rules import public_rules
 from .scheduling_service import SchedulingService
 
@@ -35,6 +43,7 @@ class AgentTools:
         self.scheduling = scheduling
         self.scenarios = scenarios
 
+    @traced("load_schedule")
     def get_current_schedule(self, *, target_week: date) -> dict[str, Any]:
         confirmed, draft = self.schedules.current_records_for_week(target_week)
         display = draft or confirmed
@@ -187,6 +196,7 @@ class AgentTools:
             agent_turn_guard=_turn_guard,
         )
 
+    @traced("load_schedule")
     def get_schedule_context(self, *, target_week: date) -> dict[str, Any]:
         current = self.get_current_schedule(target_week=target_week)
         display = current["display"]

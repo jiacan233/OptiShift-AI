@@ -1,4 +1,5 @@
 import type {
+  AgentExecutionEvent,
   ApiProblem,
   Assignment,
   OverrideScope,
@@ -185,6 +186,51 @@ async function checkLlmHealth(): Promise<LlmHealthResult> {
   })
 }
 
+async function streamAgentMessage(
+  conversationId: string, input: SendAgentMessageRequest,
+  onEvent: (event: AgentExecutionEvent) => void,
+): Promise<AgentTurnResult> {
+  const response = await fetch(`${API_BASE}/api/agent/conversations/${encodeURIComponent(conversationId)}/messages/stream`, {
+    method: 'POST',
+    headers: { Accept: 'text/event-stream', 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null)
+    const problem = payload?.error ?? payload?.detail
+    throw new ApiError({ code: problem?.code ?? statusCodeToProblem(response.status),
+      message: problem?.message ?? readableStatus(response.status),
+      details: problem?.details, status: response.status })
+  }
+  const reader = response.body?.getReader()
+  if (!reader) throw new ApiError({ code: 'network_error', message: '无法读取执行进度，请使用同一请求标识恢复。' })
+  const decoder = new TextDecoder()
+  let buffer = ''
+  try {
+    while (true) {
+      const { value, done } = await reader.read()
+      buffer += decoder.decode(value, { stream: !done })
+      let boundary: RegExpExecArray | null
+      while ((boundary = /\r?\n\r?\n/.exec(buffer))) {
+        const frame = buffer.slice(0, boundary.index)
+        buffer = buffer.slice(boundary.index + boundary[0].length)
+        const lines = frame.split(/\r?\n/)
+        const kind = lines.find((line) => line.startsWith('event:'))?.slice(6).trim()
+        if (!kind || kind === 'heartbeat') continue
+        const data = JSON.parse(lines.filter((line) => line.startsWith('data:')).map((line) => line.slice(5).trimStart()).join('\n'))
+        if (kind === 'execution') onEvent(data as AgentExecutionEvent)
+        else if (kind === 'result') return data as AgentTurnResult
+        else if (kind === 'error') throw new ApiError(data as ApiProblem)
+      }
+      if (done) break
+    }
+    throw new ApiError({ code: 'network_error', message: '进度连接已断开，后台仍会安全完成。请使用同一请求标识恢复结果。' })
+  } finally {
+    await reader.cancel().catch(() => undefined)
+    reader.releaseLock()
+  }
+}
+
 export const api = {
   health: {
     checkLlm: checkLlmHealth,
@@ -279,6 +325,7 @@ export const api = {
   },
 
   agent: {
+    streamMessage: streamAgentMessage,
     createConversation(browserWorkspaceId: string) {
       return request<Pick<ConversationRecord, 'conversation_id' | 'created_at'> & Partial<ConversationRecord>>('/api/agent/conversations', {
         method: 'POST',

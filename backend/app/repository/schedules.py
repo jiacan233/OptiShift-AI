@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..database import Database, utc_now
+from ..execution import traced
 from ..models import Assignment, HistoryStatus, Schedule
 from ..models.orm import (
     AssignmentRecord,
@@ -273,6 +274,7 @@ class ScheduleRepository:
                     "The known-empty history boundary changed; regenerate the draft"
                 )
 
+    @traced("save_draft")
     def save_draft(
         self,
         schedule: Schedule,

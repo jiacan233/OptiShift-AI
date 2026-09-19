@@ -2,16 +2,19 @@ from __future__ import annotations
 
 import json
 import logging
-import math
 import os
 import re
 import time
 from copy import deepcopy
+from threading import Lock, local
 from typing import Any, NoReturn
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit
 
 import httpx
+from jsonschema import Draft202012Validator
 
+from ..config import positive_seconds
+from ..execution import ExecutionTimeout, current_execution
 
 logger = logging.getLogger("optishift.llm")
 
@@ -20,6 +23,10 @@ def _redact_message(value: str | None, limit: int, secrets: tuple[str, ...] = ()
     if not value:
         return None
     safe = value
+    if re.search(
+        r"(?i)(<think|<reasoning|system[_ ]?prompt|reasoning_content|hidden_reasoning)", safe
+    ):
+        return "[REDACTED_PROVIDER_CONTENT]"
     for secret in secrets:
         if secret:
             safe = safe.replace(secret, "[REDACTED]")
@@ -196,7 +203,11 @@ class AgentLLMClient:
         ),
     }
 
-    def __init__(self) -> None:
+    def __init__(self, client: httpx.Client | None = None) -> None:
+        self._client = client
+        self._owns_client = client is None
+        self._client_lock = Lock()
+        self._local = local()
         self.enabled = os.getenv("LLM_ENABLED", "").strip().lower() in {
             "1",
             "true",
@@ -204,18 +215,43 @@ class AgentLLMClient:
         }
         self.api_key = os.getenv("LLM_API_KEY", "").strip()
         self.model = os.getenv("LLM_MODEL", "gpt-4.1-mini").strip()
-        self.base_url = os.getenv(
-            "LLM_BASE_URL", "https://api.openai.com/v1"
-        ).rstrip("/")
-        self._last_latency_ms = 0
-        self._configuration_error: str | None = None
-        try:
-            self.timeout = float(os.getenv("LLM_TIMEOUT_SECONDS", "5"))
-            if not math.isfinite(self.timeout) or self.timeout <= 0:
-                raise ValueError
-        except (TypeError, ValueError):
-            self.timeout = 5.0
-            self._configuration_error = "LLM_TIMEOUT_SECONDS 配置无效。"
+        self.base_url = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+        self.timeout = httpx.Timeout(
+            connect=positive_seconds("LLM_CONNECT_TIMEOUT_SECONDS", 8),
+            read=positive_seconds("LLM_READ_TIMEOUT_SECONDS", 50),
+            write=positive_seconds("LLM_WRITE_TIMEOUT_SECONDS", 50),
+            pool=positive_seconds("LLM_POOL_TIMEOUT_SECONDS", 8),
+        )
+
+    @property
+    def _last_latency_ms(self) -> int:
+        return getattr(self._local, "latency_ms", 0)
+
+    @_last_latency_ms.setter
+    def _last_latency_ms(self, value: int) -> None:
+        self._local.latency_ms = value
+
+    @property
+    def client(self) -> httpx.Client:
+        with self._client_lock:
+            if self._client is None:
+                self._client = httpx.Client(
+                    timeout=self.timeout,
+                    limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+                )
+            return self._client
+
+    def close(self) -> None:
+        with self._client_lock:
+            if self._client is not None and self._owns_client:
+                self._client.close()
+                self._client = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        self.close()
 
     def _redact_and_truncate(self, value: str | None, limit: int) -> str | None:
         return _redact_message(value, limit, (self.api_key,))
@@ -229,9 +265,9 @@ class AgentLLMClient:
             netloc = hostname
             if parsed.port is not None:
                 netloc = f"{netloc}:{parsed.port}"
-            safe_url = urlunsplit((parsed.scheme, netloc, parsed.path, "", ""))
+            safe_url = netloc
         except ValueError:
-            safe_url = self.base_url.split("?", 1)[0].split("#", 1)[0]
+            safe_url = "invalid-provider-url"
         return self._redact_and_truncate(safe_url, 300) or "<empty>"
 
     def _provider_error_message(self, response: httpx.Response) -> str | None:
@@ -287,15 +323,18 @@ class AgentLLMClient:
     ) -> NoReturn:
         latency_ms = max(0, round((time.perf_counter() - started) * 1000))
         safe_provider_message = self._redact_and_truncate(provider_message, 300)
+        trace = current_execution.get()
         logger.warning(
             "LLM request failed model=%s base_url=%s provider_status=%s "
-            "error_type=%s latency_ms=%s provider_message=%r",
+            "error_type=%s latency_ms=%s stage=%s conversation_id=%s client_message_id=%s",
             self._redact_and_truncate(self.model, 120) or "<empty>",
             self._safe_base_url(),
             provider_status,
             error_type,
             latency_ms,
-            safe_provider_message,
+            stage,
+            trace.conversation_id if trace else None,
+            trace.client_message_id if trace else None,
         )
         error = AIUnavailableError(
             message,
@@ -330,25 +369,52 @@ class AgentLLMClient:
                 started=started,
                 stage=stage,
             )
-        if self._configuration_error:
-            self._fail(
-                self._configuration_error,
-                error_type="configuration_error",
-                started=started,
-                stage=stage,
+        trace = current_execution.get()
+        remaining = trace.remaining(stage or "provider") if trace else None
+        timeout = (
+            self.timeout
+            if remaining is None
+            else httpx.Timeout(
+                **{
+                    key: min(value, remaining) if value is not None else remaining
+                    for key, value in self.timeout.as_dict().items()
+                }
             )
+        )
 
         try:
-            response = httpx.post(
+            response = self.client.post(
                 f"{self.base_url}/chat/completions",
                 headers={"Authorization": f"Bearer {self.api_key}"},
                 json=payload,
-                timeout=self.timeout,
+                timeout=timeout,
             )
         except httpx.TimeoutException as exc:
+            if trace and remaining is not None and time.monotonic() - trace.started >= trace.budget:
+                raise ExecutionTimeout(
+                    stage or "provider", round((time.monotonic() - trace.started) * 1000)
+                ) from exc
+            kind = (
+                "connect_timeout"
+                if isinstance(exc, httpx.ConnectTimeout)
+                else "read_timeout"
+                if isinstance(exc, httpx.ReadTimeout)
+                else "write_timeout"
+                if isinstance(exc, httpx.WriteTimeout)
+                else "pool_timeout"
+                if isinstance(exc, httpx.PoolTimeout)
+                else "timeout"
+            )
+            message = (
+                f"AI Provider 等待响应超过 {self.timeout.read:g} 秒。"
+                if kind == "read_timeout"
+                else "连接 AI Provider 超时。"
+                if kind == "connect_timeout"
+                else "AI Provider 请求超时。"
+            )
             self._fail(
-                "AI Provider 请求超时。",
-                error_type="timeout",
+                message,
+                error_type=kind,
                 started=started,
                 stage=stage,
                 cause=exc,
@@ -398,6 +464,19 @@ class AgentLLMClient:
                 started=started,
                 stage=stage,
             )
+        if trace:
+            trace.remaining(stage or "provider")
+        logger.info(
+            "llm_complete model=%s base_url=%s stage=%s latency_ms=%s provider_status=%s "
+            "conversation_id=%s client_message_id=%s status=completed error_type=none",
+            self._redact_and_truncate(self.model, 120),
+            self._safe_base_url(),
+            stage,
+            latency_ms,
+            response.status_code,
+            trace.conversation_id if trace else None,
+            trace.client_message_id if trace else None,
+        )
         return result, latency_ms, response.status_code
 
     def _content(
@@ -428,20 +507,28 @@ class AgentLLMClient:
                 started=started,
                 stage=stage,
             )
+        if re.search(r"(?i)<(?:think|thinking|reasoning)(?:>|\s)", content):
+            self._fail(
+                "AI Provider 返回了不适合展示的内容。",
+                error_type="invalid_provider_response",
+                started=started,
+                stage=stage,
+                provider_status=provider_status,
+            )
         return content.strip()
 
     def health_check(self) -> dict[str, Any]:
         checks: dict[str, dict[str, Any]] = {}
         try:
             response, latency_ms, provider_status = self._post(
-            {
-                "model": self.model,
-                "messages": [
-                    {"role": "user", "content": "你好，请只回复 OK"},
-                ],
-                "temperature": 0,
-            },
-            stage="basic_chat",
+                {
+                    "model": self.model,
+                    "messages": [
+                        {"role": "user", "content": "你好，请只回复 OK"},
+                    ],
+                    "temperature": 0,
+                },
+                stage="basic_chat",
             )
             reply = self._content(response, latency_ms, provider_status, stage="basic_chat")
             checks["basic_chat"] = {"status": "ok", "latency_ms": latency_ms, "reply": reply}
@@ -470,14 +557,14 @@ class AgentLLMClient:
                     "properties": {"ok": {"type": "boolean"}},
                     "required": ["ok"],
                 },
-                stage="structured_output",
+                stage="structured_output_health",
             )
             if structured.get("ok") is not True:
                 raise AIUnavailableError(
                     "AI Provider 返回了无法识别的结构化探针结果。",
                     error_type="invalid_provider_response",
                     latency_ms=self._last_latency_ms,
-                    stage="structured_output",
+                    stage="structured_output_health",
                 )
             checks["structured_output"] = {"status": "ok", "latency_ms": self._last_latency_ms}
         except AIUnavailableError as exc:
@@ -553,6 +640,14 @@ class AgentLLMClient:
                 started=started,
                 stage=stage,
             )
+        if not Draft202012Validator(schema).is_valid(parsed):
+            self._fail(
+                "AI 结构化结果不符合预期格式。",
+                error_type="structured_output_error",
+                started=started,
+                stage=stage,
+                provider_status=provider_status,
+            )
         return parsed
 
     def complete_text(
@@ -560,6 +655,7 @@ class AgentLLMClient:
         *,
         system: str,
         user: dict[str, Any],
+        stage: str = "response_compose",
     ) -> str:
         response, latency_ms, provider_status = self._post(
             {
@@ -572,6 +668,7 @@ class AgentLLMClient:
                         "content": json.dumps(user, ensure_ascii=False, default=str),
                     },
                 ],
-            }
+            },
+            stage=stage,
         )
-        return self._content(response, latency_ms, provider_status)
+        return self._content(response, latency_ms, provider_status, stage=stage)

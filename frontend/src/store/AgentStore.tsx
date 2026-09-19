@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { api, apiErrorMessage } from '@/api/client'
 import { useAppStore } from '@/store/AppStore'
 import type {
+  AgentExecutionEvent,
   AgentMessage,
   AgentToolCall,
   AgentTurnResult,
@@ -34,6 +35,7 @@ interface AgentStoreValue {
   conversationTitle: string | null
   conversations: ConversationSummary[]
   messages: AgentMessage[]
+  executionEvents: AgentExecutionEvent[]
   tracesByMessage: Record<string, AgentToolCall[]>
   isChatOpen: boolean
   isHistoryOpen: boolean
@@ -106,6 +108,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
   const [conversationTitle, setConversationTitle] = useState<string | null>(null)
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [messages, setMessages] = useState<AgentMessage[]>([])
+  const [executionEvents, setExecutionEvents] = useState<AgentExecutionEvent[]>([])
   const [tracesByMessage, setTracesByMessage] = useState<Record<string, AgentToolCall[]>>({})
   const [isChatOpen, setChatOpen] = useState(() => localStorage.getItem(AGENT_PANEL_OPEN_STORAGE_KEY) === '1')
   const [isHistoryOpen, setHistoryOpen] = useState(false)
@@ -148,6 +151,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
       setConversationTitle(created.title ?? null)
       setMessages([])
       setTracesByMessage({})
+      setExecutionEvents([])
       setPendingMessage(null)
       return created.conversation_id
     }).finally(() => {
@@ -174,6 +178,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
       rememberConversation(id)
       setConversationTitle(detail.conversation.title)
       setMessages(detail.messages)
+      setExecutionEvents([])
       const callsById = new Map((detail.tool_calls ?? []).map((call) => [call.tool_call_id, call]))
       const restoredTraces: Record<string, AgentToolCall[]> = {}
       detail.messages.forEach((message) => {
@@ -234,15 +239,19 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
     setSending(true)
     setAgentError(null)
     setPendingMessage(request)
+    setExecutionEvents([])
     try {
       const id = await ensureConversation()
-      const turn = await api.agent.sendMessage(id, {
+      const turn = await api.agent.streamMessage(id, {
         browser_workspace_id: browserWorkspaceId,
         client_message_id: request.clientMessageId,
         content: request.content,
         current_week_start: scheduleStore.activeWeekStart,
         trusted_action: request.trustedAction,
-      })
+      }, (event) => setExecutionEvents((events) => (
+        event.client_message_id !== request.clientMessageId || events.some((item) => item.event_id === event.event_id)
+          ? events : [...events, event]
+      )))
       setMessages((current) => {
         const returned = [turn.user_message, turn.assistant_message]
         const known = new Set(current.map((message) => message.message_id))
@@ -289,7 +298,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
         await scheduleStore.setActiveWeek(refreshWeek)
       }
       setAgentError(problem)
-      if (!['network_error', 'message_processing', 'conversation_busy'].includes(problem.code)) setPendingMessage(null)
+      if (!['network_error', 'message_processing', 'conversation_busy', 'agent_operation_failed'].includes(problem.code)) setPendingMessage(null)
     } finally {
       sendingRef.current = false
       setSending(false)
@@ -323,6 +332,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
     conversations,
     messages,
     tracesByMessage,
+    executionEvents,
     isChatOpen,
     isHistoryOpen,
     isSending,
@@ -347,7 +357,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
       if (pendingMessage) await executeMessage(pendingMessage)
     },
     dismissError: () => setAgentError(null),
-  }), [agentError, browserWorkspaceId, closeChat, conversationId, conversationTitle, conversations, executeMessage, isChatOpen, isHistoryOpen, isLoadingConversation, isSending, loadConversation, messages, newConversation, openChat, pendingMessage, refreshHistory, sendMessage, tracesByMessage])
+  }), [executionEvents, agentError, browserWorkspaceId, closeChat, conversationId, conversationTitle, conversations, executeMessage, isChatOpen, isHistoryOpen, isLoadingConversation, isSending, loadConversation, messages, newConversation, openChat, pendingMessage, refreshHistory, sendMessage, tracesByMessage])
 
   return <AgentStore.Provider value={value}>{children}</AgentStore.Provider>
 }

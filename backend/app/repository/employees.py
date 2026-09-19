@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..database import Database, utc_now
+from ..execution import traced
 from ..models import Employee
 from ..models.orm import EmployeeRecord, SystemMetadataRecord
 
@@ -49,6 +50,7 @@ class EmployeeRepository:
         else:
             revision.value = str(int(revision.value) + 1)
 
+    @traced("load_employees")
     def list(self) -> list[Employee]:
         employees, _revision = self.list_with_revision()
         return employees

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { observeAgentStream, readAgentStream } from './stream-helper'
 
 const API = 'http://127.0.0.1:8001'
 
@@ -19,10 +20,13 @@ test('明确请假授权生成草稿、刷新、确认并保留违规账本', as
   await page.getByLabel('选择排班周次').selectOption(week)
   await page.getByRole('button', { name: '问问 AI' }).click()
   const panel = page.getByRole('dialog', { name: 'OptiShift AI 智能排班助手' })
-  const responsePromise = page.waitForResponse((response) => response.url().endsWith('/messages') && response.request().method() === 'POST')
+  await observeAgentStream(page)
+  const responsePromise = page.waitForResponse((response) => response.url().endsWith('/messages/stream') && response.request().method() === 'POST')
   await panel.getByPlaceholder('问排班、规则，或描述需要调整的内容…').fill('我知道 E01 周一请假，但就是让 E01 周一早班上班。')
   await panel.getByRole('button', { name: '发送消息' }).click()
-  const response = await responsePromise
+  await responsePromise
+  await expect(panel.getByRole('button', { name: '新对话' })).toBeEnabled()
+  const response = await readAgentStream(page)
   expect(response.ok()).toBeTruthy()
   const result = (await response.json()).schedule_result
   expect(result.compliance_status).toBe('authorized_violations')

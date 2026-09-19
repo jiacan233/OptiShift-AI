@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import os
 import logging
+import os
+from contextlib import nullcontext
 from typing import Any
 
-import httpx
-
+from ..execution import current_execution, traced
 from ..models import Employee, Schedule
-
+from .llm_client import AgentLLMClient
 
 logger = logging.getLogger("optishift.explanation")
 
@@ -15,6 +15,10 @@ logger = logging.getLogger("optishift.explanation")
 class ExplanationService:
     """Build a factual template first and optionally polish the same facts."""
 
+    def __init__(self, llm: AgentLLMClient | None = None):
+        self.llm = llm
+
+    @traced("explanation")
     def build(
         self,
         schedule: Schedule,
@@ -54,25 +58,15 @@ class ExplanationService:
                 "fallback_reason": "missing_api_key",
             }
         try:
-            response = httpx.post(
-                f"{os.getenv('LLM_BASE_URL', 'https://api.openai.com/v1').rstrip('/')}/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}"},
-                json={
-                    "model": os.getenv("LLM_MODEL", "gpt-4o-mini"),
-                    "temperature": 0,
-                    "max_tokens": 180,
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": "Rewrite the supplied scheduling summary clearly. Preserve every fact and number; add no reasoning or claims.",
-                        },
-                        {"role": "user", "content": base},
-                    ],
-                },
-                timeout=float(os.getenv("LLM_TIMEOUT_SECONDS", "5")),
-            )
-            response.raise_for_status()
-            text = response.json()["choices"][0]["message"]["content"].strip()
+            trace = current_execution.get()
+            if trace and trace.remaining("explanation") < 5:
+                return {"text": base, "source": "deterministic_template", "llm_fallback": True}
+            with nullcontext(self.llm) if self.llm else AgentLLMClient() as client:
+                text = client.complete_text(
+                    stage="explanation",
+                    system="Rewrite this scheduling summary clearly. Preserve every fact and number; add no reasoning or claims.",
+                    user={"summary": base},
+                )
             return {"text": text or base, "source": "llm_polished", "llm_fallback": False}
         except Exception as exc:
             logger.info(

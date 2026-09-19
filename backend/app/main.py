@@ -1,19 +1,22 @@
 from __future__ import annotations
 
+import asyncio
+
 # Environment values must be loaded before modules create database/service singletons.
 # ruff: noqa: E402
-
 import logging
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from pathlib import Path
+from threading import BoundedSemaphore
 from uuid import uuid4
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response
-from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -30,8 +33,8 @@ from .database import database, initialize_database
 from .repository import (
     ConversationBusyError,
     ConversationNotFoundError,
-    DraftPendingError,
     DraftNotFoundError,
+    DraftPendingError,
     EmployeeNotFoundError,
     ImmutableEmployeeFieldError,
     InvalidScheduleStateError,
@@ -44,7 +47,6 @@ from .services.llm_client import AIUnavailableError
 from .services.request_validator import BusinessValidationError
 from .services.scheduling_service import SolverOutputError
 
-
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
@@ -55,7 +57,13 @@ logger = logging.getLogger("optishift.api")
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     initialize_database()
-    yield
+    _app.state.agent_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="agent-turn")
+    _app.state.agent_slots = BoundedSemaphore(8)
+    try:
+        yield
+    finally:
+        await asyncio.to_thread(_app.state.agent_executor.shutdown, wait=True)
+        agent_llm_client.close()
 
 
 app = FastAPI(

@@ -8,7 +8,10 @@ from datetime import date
 from ortools.sat.python import cp_model
 
 from ..core import SchedulingFacts
+from ..execution import current_execution
 from ..models import (
+    SHIFTS,
+    WEEK_DAYS,
     Assignment,
     BlockingReason,
     CandidateBlocking,
@@ -20,12 +23,9 @@ from ..models import (
     Shift,
     Skill,
     SolverStatus,
-    WEEK_DAYS,
-    SHIFTS,
 )
 from .constraint_builder import ConstraintBuilder
 from .primary_solver import _solver_status
-
 
 _COVERAGE_SKILL: dict[str, Skill | None] = {
     "R01": Skill.MANAGER,
@@ -101,7 +101,9 @@ class DiagnosticSolver:
             context, week_start=week_start, diagnostic=True
         )
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = context.rules.max_time_seconds
+        trace = current_execution.get()
+        remaining = trace.remaining("solver") if trace else context.rules.max_time_seconds
+        solver.parameters.max_time_in_seconds = min(context.rules.max_time_seconds, remaining)
         solver.parameters.random_seed = context.rules.random_seed
         solver.parameters.num_search_workers = context.rules.num_search_workers
         cp_status = solver.Solve(built.model)
@@ -127,7 +129,8 @@ class DiagnosticSolver:
                 objective -= weights.schedule_change_penalty * sum(built.change_terms)
             built.model.Maximize(objective)
             phase_b_solver = cp_model.CpSolver()
-            phase_b_solver.parameters.max_time_in_seconds = context.rules.max_time_seconds
+            remaining = trace.remaining("solver") if trace else context.rules.max_time_seconds
+            phase_b_solver.parameters.max_time_in_seconds = min(context.rules.max_time_seconds, remaining)
             phase_b_solver.parameters.random_seed = context.rules.random_seed
             phase_b_solver.parameters.num_search_workers = context.rules.num_search_workers
             phase_b_status = _solver_status(phase_b_solver.Solve(built.model))

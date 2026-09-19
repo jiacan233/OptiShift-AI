@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-import json
 import logging
 import os
 import re
+from contextlib import nullcontext
 from dataclasses import dataclass
 
-import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..execution import traced
 from ..models import ChangeType, Day, Employee, RequestIntent, ScheduleChange, Shift
 from .entity_resolver import EntityResolver
-
+from .llm_client import AgentLLMClient
 
 logger = logging.getLogger("optishift.intent")
 
@@ -52,8 +52,9 @@ class ParsedIntent:
 
 
 class IntentParser:
-    def __init__(self, resolver: EntityResolver | None = None) -> None:
+    def __init__(self, resolver: EntityResolver | None = None, llm: AgentLLMClient | None = None) -> None:
         self.resolver = resolver or EntityResolver()
+        self.llm = llm
 
     @staticmethod
     def extract_days(prompt: str) -> list[Day]:
@@ -189,8 +190,9 @@ class IntentParser:
             resolution={"status": "ai_unavailable"},
         )
 
-    @staticmethod
+    @traced("intent_parse")
     def _parse_with_llm(
+        self,
         prompt: str,
         employees: list[Employee],
         default_intent: RequestIntent,
@@ -228,40 +230,14 @@ class IntentParser:
             },
         }
         try:
-            response = httpx.post(
-                f"{os.getenv('LLM_BASE_URL', 'https://api.openai.com/v1').rstrip('/')}/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}"},
-                json={
-                    "model": os.getenv("LLM_MODEL", "gpt-4.1-mini"),
-                    "temperature": 0,
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": (
-                                "Convert the request to scheduling intent JSON. Use only the supplied "
-                                "employee IDs. Never add or change skills. If no concrete change is stated, "
-                                "return an empty changes array."
-                            ),
-                        },
-                        {
-                            "role": "user",
-                            "content": json.dumps(
-                                {
-                                    "request": prompt,
-                                    "default_intent": default_intent.value,
-                                    "valid_employee_ids": employee_ids,
-                                },
-                                ensure_ascii=False,
-                            ),
-                        },
-                    ],
-                    "response_format": {"type": "json_schema", "json_schema": schema},
-                },
-                timeout=float(os.getenv("LLM_TIMEOUT_SECONDS", "5")),
-            )
-            response.raise_for_status()
-            content = response.json()["choices"][0]["message"]["content"]
-            parsed = LLMIntentOutput.model_validate_json(content)
+            with nullcontext(self.llm) if self.llm else AgentLLMClient() as client:
+                payload = client.complete_json(
+                    stage="intent_parse", schema_name="schedule_intent", schema=schema["schema"],
+                    system="Convert the request to scheduling intent JSON. Use only supplied employee IDs. Never change skills. Return empty changes if none are requested.",
+                    user={"request": prompt, "default_intent": default_intent.value,
+                          "valid_employee_ids": employee_ids},
+                )
+            parsed = LLMIntentOutput.model_validate(payload)
             unknown = sorted({change.employee_id for change in parsed.changes} - set(employee_ids))
             if unknown:
                 logger.warning("llm_output_rejected reason=unknown_employee ids=%s", unknown)

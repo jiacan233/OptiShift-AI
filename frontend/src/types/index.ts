@@ -316,6 +316,7 @@ export interface AgentMessage {
   referenced_schedule_id?: string | null
   referenced_version?: number | null
   metadata_json?: {
+    execution_events?: AgentExecutionEvent[]
     suggestions?: AgentSuggestion[]
     generated_draft_id?: string
     generated_draft_version?: number
@@ -378,6 +379,7 @@ export interface TrustedAgentAction {
 }
 
 export interface AgentTurnResult {
+  execution_events?: AgentExecutionEvent[]
   user_message: AgentMessage
   assistant_message: AgentMessage
   intent: AgentIntent
@@ -385,4 +387,24 @@ export interface AgentTurnResult {
   context: AgentTurnContext
   tool_calls: AgentToolCall[]
   schedule_result: ScheduleOperationResult | null
+}
+
+export interface AgentExecutionEvent {
+  event_id: string
+  operation_id: string
+  turn_id: string
+  client_message_id: string
+  stage: string
+  status: 'started' | 'completed' | 'failed'
+  label: string
+  timestamp: string
+  duration_ms: number | null
+  details: {
+    intent?: string
+    target_week?: string
+    employees?: string[]
+    changes?: Array<{ employee_id: string; type: string; day: string }>
+    error_type?: string
+    latency_ms?: number
+  }
 }

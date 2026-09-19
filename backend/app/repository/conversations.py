@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..database import Database, utc_now
+from ..execution import current_execution
 from ..models.orm import (
     AgentToolCallRecord,
     ConversationMessageRecord,
@@ -668,6 +669,11 @@ class ConversationRepository:
                 return existing
 
             assistant_metadata = dict(metadata or {})
+            execution = current_execution.get()
+            if execution and execution.client_message_id == client_message_id:
+                events = execution.finish(failed=bool(result_fields.get("error")))
+                assistant_metadata["execution_events"] = list(events)
+                result_fields = {**result_fields, "execution_events": list(events)}
             assistant_metadata["in_reply_to_message_id"] = user.message_id
             assistant = ConversationMessageRecord(
                 message_id=assistant_message_id or self._new_id("msg"),

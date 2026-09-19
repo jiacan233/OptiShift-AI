@@ -80,7 +80,7 @@ docker compose up --build
 | `LLM_API_KEY` | OpenAI-compatible provider key | empty |
 | `LLM_MODEL` | Router/composer model | `gpt-4.1-mini` |
 | `LLM_BASE_URL` | OpenAI-compatible endpoint | `https://api.openai.com/v1` |
-| `LLM_TIMEOUT_SECONDS` | Provider request timeout | `5` |
+| `LLM_READ_TIMEOUT_SECONDS` | Provider read timeout | `50` |
 | `CORS_ORIGINS` | Local frontend origins | localhost Vite origins |
 | `SOLVER_MAX_TIME_SECONDS` | CP-SAT time limit | `10` |
 | `SOLVER_RANDOM_SEED` | Deterministic seed | `42` |
@@ -283,3 +283,36 @@ CloudBase 服务应连接 MySQL 内网地址并开启与数据库一致的 VPC�
 3. 确认 v2，打开版本历史说明 optimistic locking。
 4. 运行“周日店长全请假”，展示三层诊断以及无非法 Schedule 生成。
 5. 打开员工管理和规则中心，说明技能保护与后端规则单一事实源。
+
+
+### AI 超时与实时执行进度
+
+Provider 请求统一通过 `AgentLLMClient`，路由、旧版意图解析和说明生成共用应用生命周期内的 HTTP 连接池；服务关闭时先等待流式任务完成，再关闭连接。独立使用客户端时请使用 `with AgentLLMClient()` 或显式 `close()`。
+
+| 环境变量 | 默认秒数 | 作用 |
+| --- | ---: | --- |
+| `LLM_CONNECT_TIMEOUT_SECONDS` | 8 | DNS、连接、TLS |
+| `LLM_READ_TIMEOUT_SECONDS` | 50 | 等待 Provider 响应数据 |
+| `LLM_WRITE_TIMEOUT_SECONDS` | 50 | 发送请求 |
+| `LLM_POOL_TIMEOUT_SECONDS` | 8 | 等待连接池 |
+| `SOLVER_MAX_TIME_SECONDS` | 10 | 每次 CP-SAT 求解上限 |
+| `AGENT_TURN_TIMEOUT_SECONDS` | 90 | 整轮合作式执行预算 |
+| `AGENT_TURN_LEASE_SECONDS` | 180 | 数据库 owner 的 stale lease |
+
+所有秒数必须是有限正数，`0`、负数、文本、`NaN` 和 `inf` 均回退到上述默认值。旧 `LLM_TIMEOUT_SECONDS` 已废弃并被忽略，避免遗留的 5 秒配置继续影响聊天。生产配置由 CloudBase 控制台环境变量注入；不使用 `.env.cloudbase`。
+
+执行预算在关键阶段和写入前检查，Provider/CP-SAT 按剩余预算缩短等待。不强杀线程或数据库事务；正在进行的网络阶段或事务收尾可能使实际耗时略超过预算。已持久化草稿优先恢复，不因回复失败重新求解。lease 实际值至少为执行预算加 30 秒，每隔最多 15 秒续租；lease 不是 HTTP 超时。
+
+保留 `POST /api/agent/conversations/{id}/messages`。新增 `POST /api/agent/conversations/{id}/messages/stream`，请求字段完全相同，通过 fetch 读取 SSE：
+
+- `execution`：包含事件 ID、阶段操作 ID、turn ID、client_message_id、stage、status、时间戳、耗时和白名单业务事实。
+- `heartbeat`：每 10 秒维持连接，不进入聊天历史或时间线。
+- `result`：普通 POST 的完整结果；`error`：安全错误码和详情，二者均为流的终点。
+
+阶段包括收到请求、读取员工、理解请求、定位上下文、读取排班、Solver、Validator、说明生成、保存 Draft、生成回复、完成或失败。不可行是确定性业务结果，不等同于网络超时。具体路径仅展示真实执行过的阶段；澄清问题不会伪造 Solver 成功。
+
+断线只移除进度订阅，后台继续执行，并保留客户端请求标识。使用同一 `client_message_id` 重试可恢复最终结果；同一消息正在处理时返回 409。最终时间线随回复和幂等结果在同一事务内保存，刷新后可恢复。流式与普通请求共享 AgentService、Action Gate、lease、版本守卫和 Draft 的来源唯一性约束。进程意外终止时仍使用既有 stale recovery。
+
+Execution Timeline 只保存固定阶段和明确筛选的员工编号、日期、调整类型等事实。事件和日志不记录提示词、请求正文、Authorization、API Key、模型隐藏推理、原始工具异常或堆栈。Provider 错误消息经过脱敏，前端显示中文阶段、错误类型、HTTP 状态和耗时。健康检查仍只有基础聊天和小型结构化探针，并分别展示延迟。
+
+CloudBase 发布沿用 main push 触发的 CI：后端测试、前端 lint/build、浏览器回归、Docker build 后部署。SSE 使用 `no-cache, no-transform` 和 `X-Accel-Buffering: no`；上线仍应确认 CloudBase 公网网关没有缓冲响应，网关自身超时应大于执行预算。心跳不能覆盖网关的硬时限。

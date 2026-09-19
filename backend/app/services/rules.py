@@ -5,8 +5,8 @@ import os
 from pathlib import Path
 from typing import Any
 
+from ..config import positive_seconds
 from ..models import RuleConfig
-
 
 RULES_PATH = Path(__file__).resolve().parents[1] / "data" / "rules.json"
 
@@ -17,9 +17,7 @@ def _rule_document() -> dict[str, Any]:
 
 def load_rule_config() -> RuleConfig:
     payload = _rule_document()["config"]
-    payload["max_time_seconds"] = float(
-        os.getenv("SOLVER_MAX_TIME_SECONDS", str(payload["max_time_seconds"]))
-    )
+    payload["max_time_seconds"] = positive_seconds("SOLVER_MAX_TIME_SECONDS", 10)
     payload["random_seed"] = int(
         os.getenv("SOLVER_RANDOM_SEED", str(payload["random_seed"]))
     )

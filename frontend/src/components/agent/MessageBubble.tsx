@@ -57,7 +57,7 @@ export function MessageBubble({
             </div>
           )}
           {suggestions.length > 0 && <div className="mt-3 space-y-2">{suggestions.map((suggestion) => <SuggestionCard key={suggestion.suggestion_id} suggestion={suggestion} disabled={suggestionsDisabled} onApply={onApplySuggestion} />)}</div>}
-          <AgentTrace calls={trace} />
+          <AgentTrace calls={trace} events={message.metadata_json?.execution_events ?? []} />
         </div>
         <p className="mt-1 px-1 text-[10px] text-slate-400">{new Date(message.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</p>
       </div>

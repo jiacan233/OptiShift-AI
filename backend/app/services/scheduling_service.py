@@ -7,6 +7,8 @@ from uuid import uuid4
 
 from ..models import (
     Assignment,
+    ForceRequest,
+    OverrideAuthorization,
     PatchOperation,
     RequestIntent,
     ScenarioPatch,
@@ -14,8 +16,6 @@ from ..models import (
     ScheduleChange,
     ScheduleStatus,
     SolverStatus,
-    ForceRequest,
-    OverrideAuthorization,
 )
 from ..repository import (
     EmployeeRepository,
@@ -41,7 +41,6 @@ from .explanation import ExplanationService, normalize_validation
 from .intent_parser import IntentParser
 from .request_validator import validate_changes
 from .rules import load_rule_config
-
 
 logger = logging.getLogger("optishift.scheduling")
 
@@ -297,6 +296,8 @@ class SchedulingService:
         if result.status not in {SolverStatus.OPTIMAL, SolverStatus.FEASIBLE}:
             return {
                 "status": "solver_unknown",
+                "error_type": "solver_timeout" if result.status is SolverStatus.UNKNOWN else "solver_error",
+                "stage": "solver",
                 "solver_status": result.status.value,
                 "message": result.message or "The solver did not return a usable schedule.",
             }

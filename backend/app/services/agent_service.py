@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import logging
 from datetime import date, timedelta
-from typing import Any
+from threading import Event, Thread
+from typing import Any, NoReturn
 
+from ..config import positive_seconds
 from ..core import HistoryUnavailableError
+from ..execution import ExecutionTimeout, ExecutionTrace, current_execution, execution_stage, traced
 from ..models import ChangeType, Day, ForceRequest, Schedule, ScheduleChange
-from ..validator.authorization import compliance_fields
 from ..repository import (
     ConversationBusyError,
     ConversationNotFoundError,
@@ -15,6 +18,7 @@ from ..repository import (
     ScheduleRepository,
     VersionConflictError,
 )
+from ..validator.authorization import compliance_fields
 from .agent_context import ResolvedWeek, WeekResolutionError, WeekResolver
 from .agent_router import (
     AgentClarification,
@@ -25,9 +29,8 @@ from .agent_router import (
     UnknownAgentEmployeeError,
 )
 from .agent_tools import AgentTools
-from .llm_client import AIUnavailableError, AgentLLMClient
+from .llm_client import AgentLLMClient, AIUnavailableError
 from .request_validator import validate_changes
-
 
 _INFEASIBLE_RULE_NAMES = {
     "R01": "店长覆盖不足",
@@ -69,7 +72,7 @@ class StaleSuggestionError(ValueError):
 
 class AgentService:
     WRITE_INTENTS = {AgentIntent.GENERATE, AgentIntent.REPLAN}
-    TURN_LEASE_TIMEOUT = timedelta(seconds=60)
+    TURN_LEASE_TIMEOUT = timedelta(seconds=180)
 
     def __init__(
         self,
@@ -82,6 +85,10 @@ class AgentService:
         week_resolver: WeekResolver | None = None,
         llm: AgentLLMClient | None = None,
     ) -> None:
+        self.TURN_LEASE_TIMEOUT = timedelta(seconds=max(
+            positive_seconds("AGENT_TURN_LEASE_SECONDS", 180),
+            positive_seconds("AGENT_TURN_TIMEOUT_SECONDS", 90) + 30,
+        ))
         self.conversations = conversations
         self.employees = employees
         self.schedules = schedules
@@ -708,13 +715,14 @@ class AgentService:
             owner_token=owner_token,
         )
         try:
-            output = self.tools.run(tool_name, **inputs)
+            with execution_stage("tool"):
+                output = self.tools.run(tool_name, **inputs)
         except Exception as exc:
             finished = self.conversations.finish_tool_call(
                 call["tool_call_id"],
                 conversation_id,
                 browser_workspace_id,
-                output_json={"error": str(exc), "type": type(exc).__name__},
+                output_json={"error": "排班操作失败", "type": type(exc).__name__},
                 status="failed",
                 owner_token=owner_token,
             )
@@ -746,7 +754,7 @@ class AgentService:
         target_week: date | None = None,
         tool_calls: list[dict[str, Any]] | None = None,
         error_details: dict[str, Any] | None = None,
-    ) -> None:
+    ) -> NoReturn:
         result = self.conversations.finalize_turn(
             conversation_id,
             browser_workspace_id,
@@ -782,6 +790,7 @@ class AgentService:
         )
         raise AgentTurnError(status_code, code, message, result, error_details)
 
+    @traced("resolve_context")
     def _resolve_week(
         self,
         *,
@@ -893,6 +902,7 @@ class AgentService:
             },
         ]
 
+    @traced("response_compose")
     def _compose_read_response(
         self,
         *,
@@ -1046,7 +1056,67 @@ class AgentService:
                     )
         return changes, rebased
 
-    def send_message(
+    def send_message(self, *, event_sink=None, **request) -> dict[str, Any]:
+        execution = ExecutionTrace(request["conversation_id"], request["client_message_id"], event_sink)
+        token = current_execution.set(execution)
+        stop = Event()
+
+        def renew():
+            while not stop.wait(min(15, self.TURN_LEASE_TIMEOUT.total_seconds() / 3)):
+                if execution.owner is not None:
+                    user, owner = execution.owner
+                    try:
+                        self.conversations.renew_turn(
+                            request["conversation_id"], request["browser_workspace_id"],
+                            message_id=user["message_id"], owner_token=owner,
+                        )
+                    except Exception:
+                        # Commit still checks the owner under the database lock.
+                        logging.getLogger("optishift.execution").warning("turn_renewal_failed")
+                        return
+
+        renewal = Thread(target=renew, name="agent-lease", daemon=True)
+        renewal.start()
+        execution.emit("turn_started", "completed")
+        try:
+            try:
+                result = self._send_message(**request)
+            except ExecutionTimeout as exc:
+                if execution.owner is None:
+                    raise AgentTurnError(504, "agent_turn_timeout", str(exc), details={
+                        "stage": exc.stage, "error_type": exc.error_type, "latency_ms": exc.latency_ms,
+                    }) from exc
+                user, owner = execution.owner
+                recovery: dict[str, Any] = dict(
+                    conversation_id=request["conversation_id"],
+                    browser_workspace_id=request["browser_workspace_id"],
+                    client_message_id=request["client_message_id"],
+                    user_message=user, owner_token=owner,
+                )
+                recovered = self._recover_incomplete_turn(**recovery)
+                if recovered is not None:
+                    result = self._replay_turn(recovered)
+                else:
+                    self._complete_failure(**recovery, code="agent_turn_timeout", message=str(exc),
+                                           status_code=504, error_details={
+                                               "error_type": exc.error_type,
+                                               "stage": exc.stage, "latency_ms": exc.latency_ms,
+                                           })
+            execution.finish()
+            assert execution.terminal_event is not None
+            execution.publish(execution.terminal_event)
+            return result
+        except Exception:
+            execution.finish(failed=True)
+            assert execution.terminal_event is not None
+            execution.publish(execution.terminal_event)
+            raise
+        finally:
+            stop.set()
+            renewal.join(timeout=1)
+            current_execution.reset(token)
+
+    def _send_message(
         self,
         *,
         conversation_id: str,
@@ -1153,6 +1223,9 @@ class AgentService:
         if owner_token is None:
             raise AgentTurnError(409, "message_processing", "Turn lease is unavailable.")
 
+        execution = current_execution.get()
+        if execution:
+            execution.owner = (user_message, owner_token)
         messages = self.conversations.list_messages(
             conversation_id, browser_workspace_id
         )
@@ -1745,6 +1818,8 @@ class AgentService:
                 tool_calls=trace,
             )
             raise AssertionError("unreachable")
+        except ExecutionTimeout:
+            raise
         except Exception:
             recovered = self._recover_incomplete_turn(
                 conversation_id=conversation_id,
