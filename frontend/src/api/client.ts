@@ -154,6 +154,7 @@ export interface LlmHealthResult {
   checks: {
     basic_chat?: LlmHealthCheck
     structured_output?: LlmHealthCheck
+    agent_router?: LlmHealthCheck
   }
 }
 
@@ -166,6 +167,9 @@ export interface LlmHealthCheck {
   provider_message?: string
   provider_status?: number
   stage?: string
+  schema_name?: string
+  schema_bytes?: number
+  fallback_used?: boolean
 }
 
 async function checkLlmHealth(): Promise<LlmHealthResult> {

@@ -196,7 +196,7 @@ export function problemMessage(code: string, message?: string) {
 export const AGENT_STAGE_LABELS: Record<string, string> = {
   agent_route: '理解排班请求', intent_parse: '解析排班调整', explanation: '生成排班说明',
   response_compose: '生成回复', structured_output_health: '检测结构化输出',
-  structured_output: '检测结构化输出', basic_chat: '检测基础聊天',
+  agent_route_lite: 'Agent Router', agent_mutation: '解析排班变更', agent_force: '解析例外授权', router_fallback: '备用 JSON 解析', structured_output: '检测结构化输出', basic_chat: '检测基础聊天',
   resolve_context: '定位排班上下文', load_schedule: '读取当前排班', load_employees: '读取员工信息',
   solver: '计算排班方案', validator: '校验排班规则', save_draft: '保存排班草稿', tool: '执行排班操作',
 }

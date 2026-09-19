@@ -26,6 +26,10 @@ logger = logging.getLogger("optishift.execution")
 LABELS = {
     "turn_started": "已收到请求",
     "agent_route": "理解排班请求",
+    "agent_route_lite": "Agent Router",
+    "agent_mutation": "解析排班变更",
+    "agent_force": "解析例外授权",
+    "router_fallback": "使用备用 JSON 解析",
     "resolve_context": "定位目标周和排班上下文",
     "load_schedule": "读取当前排班",
     "load_employees": "读取员工信息",

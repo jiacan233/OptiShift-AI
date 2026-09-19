@@ -88,13 +88,18 @@ def test_router_stage_and_hidden_reasoning_ignored(monkeypatch, balanced_employe
     )
 
     def handler(request):
+        from tests.test_agent_router import decision, operation
+        name = json.loads(request.content)["response_format"]["json_schema"]["name"]
+        payload = decision(intent="replan", mutation_requested=True, employees=["E01"]) if name == "agent_route_lite" else {
+            "operations": [operation()], "minimize_changes": False, "clarification": None,
+        }
         return httpx.Response(
             200,
             json={
                 "choices": [
                     {
                         "message": {
-                            "content": route.model_dump_json(),
+                            "content": json.dumps(payload),
                             "reasoning_content": "SECRET_HIDDEN_REASONING",
                         }
                     }
@@ -113,10 +118,14 @@ def test_router_stage_and_hidden_reasoning_ignored(monkeypatch, balanced_employe
                 employees=balanced_employees,
                 recent_messages=[],
             )
-        assert result.target_week == date(2026, 10, 5)
+        assert (result.target_iso_year, result.target_iso_week) == (2026, 41)
         assert result.changes[0].employee_id == "E01"
         assert [(e["stage"], e["status"]) for e in events] == [
             ("agent_route", "started"),
+            ("agent_route_lite", "started"),
+            ("agent_route_lite", "completed"),
+            ("agent_mutation", "started"),
+            ("agent_mutation", "completed"),
             ("agent_route", "completed"),
         ]
         assert "SECRET_HIDDEN_REASONING" not in json.dumps(events)
@@ -356,30 +365,17 @@ def test_week41_replan_with_provider_schema_and_no_reasoning(execution_client, m
             },
         )
         assert confirmed.status_code == 200
-    route = AgentRoute(
-        intent="replan",
-        mutation_requested=True,
-        target_week=date(2026, 10, 5),
-        employees=["E01"],
-        changes=[{"employee_id": "E01", "day": "Mon", "type": "leave"}],
-    )
-    transport = httpx.Client(
-        transport=httpx.MockTransport(
-            lambda _: httpx.Response(
-                200,
-                json={
-                    "choices": [
-                        {
-                            "message": {
-                                "content": route.model_dump_json(),
-                                "reasoning_content": "DO_NOT_EXPOSE_REASONING",
-                            }
-                        }
-                    ],
-                },
-            )
-        )
-    )
+    def staged_response(request):
+        from tests.test_agent_router import decision, operation
+        data = json.loads(request.content)
+        name = data.get("response_format", {}).get("json_schema", {}).get("name")
+        payload = decision(intent="replan", mutation_requested=True, employees=["E01"]) if name == "agent_route_lite" else {
+            "operations": [operation()], "minimize_changes": False, "clarification": None,
+        }
+        return httpx.Response(200, json={"choices": [{"message": {
+            "content": json.dumps(payload), "reasoning_content": "DO_NOT_EXPOSE_REASONING",
+        }}]})
+    transport = httpx.Client(transport=httpx.MockTransport(staged_response))
     monkeypatch.setattr(dependencies.agent_llm_client, "_client", transport)
     monkeypatch.setattr(dependencies.agent_llm_client, "enabled", True)
     monkeypatch.setattr(dependencies.agent_llm_client, "api_key", "private-test-key")

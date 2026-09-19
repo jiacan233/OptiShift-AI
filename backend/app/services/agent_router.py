@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from datetime import date
 from enum import StrEnum
+from threading import local
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -10,7 +11,8 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from ..execution import traced
 from ..models import Assignment, ChangeType, Day, Employee, OverrideScope, ScheduleChange, Shift
 from .intent_parser import DAY_TOKENS, IntentParser, _normalize_identifier_text
-from .read_query import ReadQueryPlan, explicit_reference, is_counterfactual, normalize_plan
+from .read_query import ReadQueryPlan, QuestionType, explicit_reference, is_counterfactual, is_read_only_question, normalize_plan
+from .router_stages import RouterRun, parse_stage, schema_bytes
 from .llm_client import (
     AgentLLMClient,
     AIUnavailableError,
@@ -32,8 +34,10 @@ def calibrate_read_route(route: "AgentRoute", content: str, employees: list[Empl
     explicit_read = (
         not deterministic.mutation_requested and plan.question_type != "general_question"
         and not (deterministic.intent is AgentIntent.ADVICE and deterministic.changes)
+        and not AgentRouter._explicit_mutation(content)
+        and not AgentRouter._explicit_authorization(content)
     )
-    if is_counterfactual(content) or (explicit_read and route.intent is not AgentIntent.VALIDATE):
+    if is_counterfactual(content) or is_read_only_question(content) or (explicit_read and route.intent is not AgentIntent.VALIDATE):
         route = route.model_copy(update={
             "intent": AgentIntent.EXPLAIN, "mutation_requested": False, "changes": [],
             "operations": [], "force_generate": False, "override_requested": False,
@@ -134,6 +138,35 @@ class AgentRoute(BaseModel):
     clarification: AgentClarification = Field(default_factory=AgentClarification)
 
 
+class RouterDecision(BaseModel):
+    """Internal hints only; none of these fields authorize business execution."""
+    model_config = ConfigDict(extra="forbid")
+    intent: AgentIntent
+    mutation_requested: bool
+    employees: list[str]
+    force_or_override_intent: bool
+    clarification_required: bool
+    question_type: QuestionType
+
+
+class MutationPlan(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    operations: list[AgentScenarioOperation]
+    minimize_changes: bool
+    clarification: str | None
+
+
+class ForcePlan(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    requested_overrides: list[OverrideScope]
+    forced_assignments: list[Assignment]
+    clarification: str | None
+
+
+def lite_router_json_schema() -> dict[str, Any]:
+    return strict_json_schema(RouterDecision.model_json_schema())
+
+
 def agent_route_json_schema() -> dict[str, Any]:
     """Derive the provider contract from the same models used to parse its reply."""
     return strict_json_schema(AgentRoute.model_json_schema())
@@ -156,16 +189,23 @@ class TrustedAgentAction(BaseModel):
 class AgentRouter:
     def __init__(self, llm: AgentLLMClient | None = None) -> None:
         self.llm = llm or AgentLLMClient()
+        self._local = local()
+
+    @property
+    def last_run(self) -> RouterRun | None:
+        return getattr(self._local, "run", None)
 
     @traced("agent_route")
     def route(
         self, content: str, *, employees: list[Employee], recent_messages: list[dict[str, Any]],
         conversation_summary: str | None = None, trusted_action: TrustedAgentAction | None = None,
     ) -> AgentRoute:
+        self._local.run = RouterRun()
         try:
             route = self._route(content, employees=employees, recent_messages=recent_messages,
                                 conversation_summary=conversation_summary, trusted_action=trusted_action)
-        except (AIUnavailableError, UnknownAgentEmployeeError):
+        except AIUnavailableError as exc:
+            self.last_run.error_type = exc.error_type
             fallback = self._deterministic_route(content, employees)
             if not is_counterfactual(content) and (fallback.mutation_requested or (
                 normalize_plan(content, employees).question_type == "general_question"
@@ -173,7 +213,11 @@ class AgentRouter:
             )):
                 raise
             route = fallback
-        return calibrate_read_route(route, content, employees) if trusted_action is None else route
+        if trusted_action is None:
+            route = calibrate_read_route(route, content, employees)
+        route = self._invariants(route, employees)
+        self.last_run.completed_ms = self.last_run.latency_ms
+        return route
 
     def _route(
         self,
@@ -209,88 +253,221 @@ class AgentRouter:
         if not self.llm.enabled:
             return self._deterministic_route(content, employees)
 
-        schema = agent_route_json_schema()
-        payload = self.llm.complete_json(
-            system=(
-                "Route a scheduling assistant message into the supplied JSON schema. "
-                "For read-only ASK/EXPLAIN/ADVICE populate read_query with question_type and "
-                "requested_facts. A question about removing an assignment is a read-only "
-                "counterfactual, not replan or what_if. Only explicitly referenced suggestions "
-                "may set reference; concrete schedule questions never inherit a suggestion. "
-                "The backend supplies the workbench week when unspecified: do not ask which "
-                "week merely because history mentions other weeks. Skill eligibility of assigned "
-                "people and rule validation are coverage_analysis. Employee why/absence and "
-                "employee removal questions are assignment_explanation. Counts are staffing_explanation; "
-                "only inability to produce a schedule is feasibility_explanation. Explicit suggestion "
-                "explanations use general_question with reference_mode suggestion. "
-                "Separate analysis from mutation: advice about leave is read only unless the "
-                "user explicitly asks to generate or replan. Never treat confirmation words as "
-                "permission to confirm a schedule; confirmation remains a UI-only action. Use "
-                "only supplied employee IDs. Resolve references such as 'second one' to a "
-                "suggestion reference when supported by recent messages. Set operation to "
-                "add, set, remove, or clear from the structured plan; preserve one change "
-                "per employee/day and do not invent a cross-product. Populate operations with "
-                "ordered per-employee add/set/remove/clear operations; a clear operation may "
-                "have day null. Use null for unspecified nullable fields. For changes of type "
-                "preference, assign, or unassign, shift must be specified. Treat only direct "
-                "statements such as 'force generate' or 'I authorize this exception' as an "
-                "override request. An override needs exact rule/day/shift scope: R08 also needs "
-                "an employee, while R01-R04 need allowed_shortage. Do not infer an override "
-                "from 'try', 'continue', or other ambiguous wording."
-            ),
-            user={
-                "message": content,
-                "conversation_summary": conversation_summary,
-                "valid_employee_ids": [employee.id for employee in employees],
-                "recent_messages": recent_messages[-12:],
-            },
-            stage="agent_route",
-            schema_name="agent_route",
-            schema=schema,
-        )
-        try:
-            route = AgentRoute.model_validate(payload)
-        except ValidationError as exc:
-            raise AIUnavailableError(
-                "AI Provider 返回了无法识别的响应。",
-                error_type="structured_output_error",
-                stage="agent_route",
-                latency_ms=self.llm._last_latency_ms,
-            ) from exc
+        return self._staged_route(content, employees, recent_messages, conversation_summary)
 
-        known = {employee.id for employee in employees}
-        referenced = set(route.employees) | {item.employee_id for item in route.changes}
-        referenced |= {item.employee_id for item in route.operations}
-        referenced |= {item.employee_id for item in route.forced_assignments}
-        referenced |= {item.employee_id for item in route.requested_overrides if item.employee_id}
-        unknown = sorted(referenced - known)
-        if unknown:
-            raise UnknownAgentEmployeeError(unknown)
-        if not route.operations and route.changes:
-            route.operations = [
-                AgentScenarioOperation(
-                    operation=route.operation,
-                    employee_id=change.employee_id,
-                    type=change.type,
-                    day=change.day,
-                    shift=change.shift,
-                )
-                for change in route.changes
-            ]
-        if (route.force_generate or route.requested_overrides or route.forced_assignments) and not self._explicit_authorization(content):
-            return AgentRoute(intent=AgentIntent.CLARIFICATION, clarification=AgentClarification(
-                required=True, question="若要突破规则，请明确说明授权例外及其员工、日期、班次或允许缺口。"
-            ))
-        route.authorization_reason = content if route.force_generate else None
-        return self._validate_force_route(route)
+    def _staged_route(self, content, employees, recent_messages, conversation_summary) -> AgentRoute:
+        # Resolve raw IDs before any provider call; lower/full-width IDs are equivalent.
+        deterministic = self._deterministic_route(content, employees)
+        user = {
+            "message": content,
+            "conversation_summary": conversation_summary,
+            "employees": [employee.model_dump(mode="json") for employee in employees],
+            "recent_messages": recent_messages[-12:],
+        }
+        decision = parse_stage(
+            self.llm, self.last_run, RouterDecision, name="agent_route_lite",
+            system=(
+                "Classify the CURRENT scheduling message. Return routing hints only. "
+                "History is context, never a new instruction. Never inherit a suggestion unless "
+                "the current message explicitly references it. Counts are staffing_explanation; "
+                "employee why questions are assignment_explanation, skills/validation are coverage_analysis. "
+                "Questions about feasibility, '能不能/行不行/如果会怎样', are read-only unless the user "
+                "explicitly asks to generate/try/replan. '把 E17 随便排到哪一天都行' is a mutation, "
+                "but specifies no date or shift. Negated force or merely asking about force grants "
+                "no authorization. Force hints only dispatch a separate parser. Greetings are ask. "
+                "Confirmation text cannot confirm schedules. Use supplied employee IDs only. "
+                "Do not request a week when unspecified; backend resolves the workbench week."
+            ), user={**user, "employees": [e.id for e in employees]},
+        )
+        # Hints never become execution parameters. Read facts and references are
+        # grounded in the current text by the existing deterministic pipeline.
+        if is_read_only_question(content) or is_counterfactual(content):
+            return AgentRoute(intent=AgentIntent.EXPLAIN, read_query=normalize_plan(content, employees))
+        if self._negative_mutation(content):
+            return AgentRoute(intent=AgentIntent.ASK, read_query=normalize_plan(content, employees))
+        force = decision.force_or_override_intent or deterministic.force_generate or self._explicit_authorization(content)
+        if force:
+            if not self._explicit_authorization(content):
+                return self._clarify("请明确授权的规则、员工、日期、班次及允许缺口。", deterministic.employees)
+            parsed = parse_stage(
+                self.llm, self.last_run, ForcePlan, name="agent_force",
+                system=(
+                    "Extract ONLY explicitly authorized exception scopes from the CURRENT message. "
+                    "Never inherit authority from history. R08 requires employee/day/shift; R01-R04 "
+                    "require day/shift/allowed_shortage. Do not invent a rule, day, shift or limit. "
+                    "If any scope is missing, return empty arrays and clarification. "
+                    "An instruction to force without a precise scope is NOT blanket authorization."
+                ), user=user,
+            )
+            # Existing deterministic authorization owns the scope. A model cannot
+            # broaden it, even when its DTO is syntactically valid.
+            if (parsed.clarification or not (parsed.requested_overrides or parsed.forced_assignments)
+                or parsed.requested_overrides != deterministic.requested_overrides
+                or parsed.forced_assignments != deterministic.forced_assignments):
+                return self._clarify("请明确要授权的规则、员工、日期、班次及允许缺口。", deterministic.employees)
+            return self._validate_force_route(deterministic)
+
+        if deterministic.intent == AgentIntent.ADVICE and deterministic.changes and not self._explicit_mutation(content):
+            return deterministic
+        wants_mutation = decision.mutation_requested or deterministic.mutation_requested or self._explicit_mutation(content)
+        if wants_mutation:
+            # A fallback or a confident model is not sufficient permission to write.
+            if not self._explicit_mutation(content) and not deterministic.mutation_requested:
+                return self._clarify("请明确是否需要生成、重新排班或修改试排条件。", deterministic.employees)
+            parsed = parse_stage(
+                self.llm, self.last_run, MutationPlan, name="agent_mutation",
+                system=(
+                    "Parse scheduling changes from the ORIGINAL CURRENT message, not router hints. "
+                    "Preserve every employee/day and ordered add/set/remove/clear operation. "
+                    "Do not form a cross-product across employees' separate clauses. '先清掉 E01 的限制，再给 E02 周五请假' "
+                    "is clear E01 with day=null, then add E02 leave Fri. '周一周二请假' needs two operations. "
+                    "Preference/assign/unassign require an explicit shift; all non-clear operations need a day. "
+                    "Never invent unspecified days/shifts, including '随便排到哪一天'. Return clarification "
+                    "when execution fields are missing. Pure schedule generation needs empty operations. "
+                    "Read original text, employee master data and context; never inherit changes implicitly. "
+                    "No force authorization, confirmation, read query or dates belong in this DTO."
+                ), user=user,
+            )
+            if parsed.clarification:
+                return self._clarify(parsed.clarification, deterministic.employees)
+            if not self._grounded_operations(parsed.operations, content, deterministic.employees):
+                return self._clarify("请逐条说明员工、日期、班次和变更类型；不会补齐未指定的条件。", deterministic.employees)
+            if deterministic.employees and not parsed.operations and not explicit_reference(content):
+                return self._clarify("请补充要安排的日期和班次，或说明该员工的具体变更。", deterministic.employees)
+            try:
+                changes = [ScheduleChange(employee_id=o.employee_id, type=o.type, day=o.day, shift=o.shift)
+                           for o in parsed.operations if o.operation != "clear"]
+            except ValidationError:
+                return self._clarify("请补充每条变更的日期及需要的班次。", deterministic.employees)
+            intent = deterministic.intent if deterministic.intent in {AgentIntent.GENERATE, AgentIntent.REPLAN, AgentIntent.WHAT_IF} else decision.intent
+            if intent not in {AgentIntent.GENERATE, AgentIntent.REPLAN, AgentIntent.WHAT_IF}:
+                intent = AgentIntent.WHAT_IF if parsed.operations else AgentIntent.GENERATE
+            return AgentRoute(
+                intent=intent, mutation_requested=True, employees=deterministic.employees,
+                target_week=deterministic.target_week, target_iso_year=deterministic.target_iso_year,
+                target_iso_week=deterministic.target_iso_week, operations=parsed.operations,
+                changes=changes, minimize_changes=parsed.minimize_changes,
+                operation=parsed.operations[0].operation if parsed.operations else "add",
+            )
+        intent = decision.intent
+        if intent in {AgentIntent.GENERATE, AgentIntent.REPLAN, AgentIntent.WHAT_IF, AgentIntent.CLARIFICATION}:
+            return self._clarify("请说明希望查询排班，还是生成或调整一版草稿。", deterministic.employees)
+        return AgentRoute(intent=intent, read_query=normalize_plan(
+            content, employees, proposal={"question_type": decision.question_type}
+        ))
+
+    @staticmethod
+    def _clarify(question: str, employees: list[str]) -> AgentRoute:
+        return AgentRoute(intent=AgentIntent.CLARIFICATION, employees=employees,
+                          clarification=AgentClarification(required=True, question=question))
+
+    @staticmethod
+    def _negative_mutation(content: str) -> bool:
+        return bool(re.search(r"(?:不要|别|不必|不想|不能).{0,4}(?:强制|生成|重排|违反)|do not (?:force|generate)|don't (?:force|generate)", content, re.I))
+
+    @classmethod
+    def _explicit_mutation(cls, content: str) -> bool:
+        if cls._negative_mutation(content) or is_read_only_question(content):
+            return False
+        return bool(re.search(
+            r"重新排|重排|试排|生成|给我出一版|帮我.*排|就这么排|排一版|排出来|排到|清掉|清除|撤销|取消|恢复可用|"
+            r"(?:按|采用|应用).*(?:建议|条|方案)|(?:replan|generate|clear|apply)\b", content, re.I
+        ))
+
+    @staticmethod
+    def _grounded_operations(operations, content, employee_ids) -> bool:
+        spans: dict[str, list[str]] = {}
+        for employee_id, span in AgentRouter._employee_spans(content):
+            spans.setdefault(employee_id, []).append(span)
+        for item in operations:
+            item.employee_id = _normalize_identifier_text(item.employee_id).upper()
+            if item.employee_id not in employee_ids:
+                return False
+            valid = False
+            for span in spans.get(item.employee_id, []):
+                if item.operation == "clear":
+                    valid |= bool(re.search(r"清掉|清除|恢复全部|clear", span, re.I)) and (item.day is None or item.day in IntentParser.extract_days(span))
+                    continue
+                if item.day is None or item.day not in IntentParser.extract_days(span):
+                    continue
+                if item.shift and not any(t in span.lower() for t in (
+                    ("早班", "morning") if item.shift == Shift.MORNING else ("晚班", "evening")
+                )):
+                    continue
+                type_terms = {
+                    ChangeType.LEAVE: r"请假|请周|只请|仅请|也请|leave",
+                    ChangeType.UNAVAILABLE: r"不可|不排|别排|unavailable",
+                    ChangeType.AVAILABLE: r"恢复|取消|撤销|不请|不用请假|available|remove",
+                    ChangeType.PREFERENCE: r"优先|偏好|prefer",
+                    ChangeType.ASSIGN: r"安排|排到|上班|assign",
+                    ChangeType.UNASSIGN: r"去掉|移除|不排|别排|unassign|remove",
+                }
+                if not re.search(type_terms[item.type], span, re.I):
+                    continue
+                if item.operation == "remove" and not re.search(r"取消|撤销|恢复|不请|不用请假|remove", span, re.I):
+                    continue
+                if item.operation == "set" and not re.search(r"只|仅|改成|设为|only|set", span, re.I):
+                    continue
+                valid = True
+            if not valid:
+                return False
+        # Independently parsed explicit conditions cannot silently disappear.
+        expected = AgentRouter._extract_operations(content, employee_ids, [], False, False)
+        def key(o):
+            # The scenario reducer clears all conditions for this employee;
+            # change type is a required DTO placeholder, not a clear scope.
+            if o.operation == "clear":
+                return (o.operation, o.employee_id, None, o.day, o.shift)
+            return (o.operation, o.employee_id, o.type, o.day, o.shift)
+        if expected and [key(o) for o in operations] != [key(o) for o in expected]:
+            return False
+        return not operations or set(employee_ids) <= {o.employee_id for o in operations}
+
+    @classmethod
+    def _invariants(cls, route, employees):
+        known = {e.id for e in employees}
+        referenced = set(route.employees) | {o.employee_id for o in route.operations} | {c.employee_id for c in route.changes}
+        referenced |= {a.employee_id for a in route.forced_assignments}
+        referenced |= {s.employee_id for s in route.requested_overrides if s.employee_id}
+        if referenced - known:
+            raise UnknownAgentEmployeeError(sorted(referenced - known))
+        if route.clarification.required or route.intent == AgentIntent.CLARIFICATION:
+            return cls._clarify(route.clarification.question or "请补充具体排班要求。", route.employees)
+        if route.intent not in {AgentIntent.GENERATE, AgentIntent.REPLAN, AgentIntent.WHAT_IF}:
+            # ADVICE may retain hypothetical changes for read-only analysis.
+            return route.model_copy(update={"mutation_requested": False, "operations": [], "operation": "add",
+                "force_generate": False, "override_requested": False, "requested_overrides": [],
+                "forced_assignments": [], "authorization_reason": None})
+        return cls._validate_force_route(route)
+
+    def probe(self, *, employees: list[Employee]) -> dict[str, Any]:
+        result = {"model": self.llm.model, "schema_name": "agent_route_lite",
+                  "schema_bytes": schema_bytes(lite_router_json_schema()), "fallback_used": False,
+                  "error_type": None}
+        try:
+            if not self.llm.enabled:
+                raise AIUnavailableError("AI 功能当前未启用。", error_type="llm_disabled")
+            route = self.route("把 E17 随便排到哪一天都行", employees=employees, recent_messages=[])
+            run = self.last_run
+            decision = run.results.get("agent_route_lite", {})
+            if run.error_type or not decision.get("mutation_requested") or "E17" not in route.employees or route.changes or route.forced_assignments:
+                raise AIUnavailableError("Agent Router 探针未能安全解析请求。", error_type=run.error_type or "router_probe_failed")
+            result.update(status="ok", intent=route.intent.value, mutation_requested=route.mutation_requested)
+        except (AIUnavailableError, UnknownAgentEmployeeError) as exc:
+            result.update(status="error", error_type=getattr(exc, "error_type", "unknown_employee"))
+        run = self.last_run
+        result.update(latency_ms=run.latency_ms if run else 0, fallback_used=run.fallback_used if run else False)
+        return result
 
     @staticmethod
     def _explicit_authorization(content: str) -> bool:
+        if is_read_only_question(content) or re.search(r"我只是问|能否|可以.*强制.*吗|别违反规则|不要违反规则", content):
+            return False
         return any(term in content.lower() for term in (
             "强制", "我授权", "允许", "即使", "还是让", "就是让", "仍然安排", "仍要安排",
             "没有店长也先", "规则先不", "限制先不", "force", "authorize", "override",
             "我知道有冲突", "有冲突也", "即使违反", "照这样排", "照样排", "照这样安排",
-            "我知道", "明知",
+            "我知道", "明知", "就算违反", "违反规则也",
         )) and not any(term in content.lower() for term in (
             "不要强制", "别强制", "不能强制", "不授权", "不允许", "不强制",
             "do not override", "don't override", "do not force", "don't force",
@@ -300,16 +477,8 @@ class AgentRouter:
     def _validate_force_route(route: AgentRoute) -> AgentRoute:
         if not (route.force_generate or route.override_requested or route.requested_overrides or route.forced_assignments):
             return route
-        if not route.force_generate or not route.authorization_reason:
-            return route.model_copy(update={
-                "intent": AgentIntent.CLARIFICATION,
-                "mutation_requested": False,
-                "force_generate": False,
-                "clarification": AgentClarification(
-                    required=True,
-                    question="请明确要授权的规则、具体日期和班次；请假或不可用例外还需要员工编号。",
-                ),
-            })
+        if not route.force_generate or not route.authorization_reason or not (route.requested_overrides or route.forced_assignments):
+            return AgentRouter._clarify("请明确要授权的规则、具体日期和班次；请假或不可用例外还需要员工编号。", route.employees)
         return route.model_copy(update={
             "intent": AgentIntent.GENERATE,
             "mutation_requested": True,
@@ -350,6 +519,10 @@ class AgentRouter:
         if unknown:
             raise UnknownAgentEmployeeError(unknown)
         employee_ids = sorted(referenced_ids)
+
+        if is_read_only_question(content) or is_counterfactual(content) or cls._negative_mutation(content):
+            return AgentRoute(intent=AgentIntent.EXPLAIN if is_read_only_question(content) or is_counterfactual(content) else AgentIntent.ASK,
+                              employees=employee_ids, read_query=normalize_plan(content, employees))
 
         reference = AgentReference()
         ordinal = re.search(r"(?:第\s*([一二两三四五六七八九十\d]+)\s*条|(?:suggestion|方案)[_ ]?(\d+))", normalized)
@@ -399,7 +572,7 @@ class AgentRouter:
             "强制排",
             "即使违反规则",
         )
-        mutation_requested = any(term in normalized for term in mutation_terms)
+        mutation_requested = any(term in normalized for term in mutation_terms) or cls._explicit_mutation(content)
         reference_apply = reference.type != "none" and any(
             term in normalized for term in ("调整", "改", "应用", "按方案", "apply")
         )
@@ -452,7 +625,7 @@ class AgentRouter:
         leave = leave or remove_leave
         operations = cls._extract_operations(text, employee_ids, days, leave, remove_leave)
         changes = [
-            ScheduleChange(employee_id=item.employee_id, type=item.type, day=item.day)
+            ScheduleChange(employee_id=item.employee_id, type=item.type, day=item.day, shift=item.shift)
             for item in operations
             if item.day is not None
         ]
@@ -470,7 +643,7 @@ class AgentRouter:
                 target_week = date.fromisoformat(date_match.group(1))
             except ValueError:
                 target_week = None
-        iso_match = re.search(r"(?:(\d{4})\s*年\s*)?第\s*(\d{1,2})\s*周", text)
+        iso_match = re.search(r"(?<![A-Za-z0-9_])(?:(\d{4})\s*年\s*)?(?:第\s*)?(\d{1,2})\s*周", text)
         if iso_match is None:
             iso_match = re.search(
                 r"(?:(\d{4})\s*[-/]?\s*)?\b(?:week|wk)\s*(\d{1,2})\b",
@@ -481,7 +654,7 @@ class AgentRouter:
         clarification = AgentClarification()
         explicit_force = any(term in normalized for term in (
             "强制生成", "强制排", "强制安排", "force generate", "authorized override", "即使违反规则", "我授权", "没有店长也先排", "没有店长也先生成",
-            "即使违反", "强制", "我知道有冲突", "有冲突也", "照这样排", "照样排", "照这样安排",
+            "即使违反", "强制", "我知道有冲突", "有冲突也", "照这样排", "照样排", "照这样安排", "就算违反", "违反规则也",
         )) or (leave and any(term in normalized for term in ("还是让", "就是让", "仍然安排", "仍要安排")))
         explicit_force = explicit_force and cls._explicit_authorization(text)
         shifts = [value for value, tokens in (
@@ -536,7 +709,11 @@ class AgentRouter:
             changes = []
             operations = []
 
-        return AgentRoute(
+        if mutation_requested and intent == AgentIntent.ASK:
+            intent = AgentIntent.WHAT_IF if operations else AgentIntent.GENERATE
+        if mutation_requested and employee_ids and not operations and not force_generate and reference.type == "none":
+            return cls._clarify("请补充具体日期、班次或该员工的变更条件。", employee_ids)
+        return cls._validate_force_route(AgentRoute(
             intent=intent,
             mutation_requested=mutation_requested,
             target_week=target_week,
@@ -556,7 +733,7 @@ class AgentRouter:
             requested_overrides=requested_overrides,
             forced_assignments=forced_assignments,
             authorization_reason=text if force_generate else None,
-        )
+        ))
 
     @staticmethod
     def _extract_changes(
@@ -596,49 +773,50 @@ class AgentRouter:
             )
         return result
 
+    @staticmethod
+    def _employee_spans(text: str) -> list[tuple[str, str]]:
+        normalized = _normalize_identifier_text(text)
+        mentions = list(re.finditer(r"(?<![A-Za-z0-9_])([eE]\d{1,4})(?![A-Za-z0-9_])", normalized))
+        spans = []
+        for index, match in enumerate(mentions):
+            previous = mentions[index - 1].end() if index else 0
+            separators = list(re.finditer(r"[，,；;。]", normalized[previous:match.start()]))
+            start = previous + separators[-1].end() if separators else previous
+            end = mentions[index + 1].start() if index + 1 < len(mentions) else len(normalized)
+            # A verb preceding the NEXT employee belongs to that next clause.
+            next_separator = re.search(r"[，,；;。]", normalized[match.end():end])
+            if next_separator:
+                end = match.end() + next_separator.start()
+            spans.append((match.group(1).upper(), normalized[start:end]))
+        return spans
+
     @classmethod
     def _extract_operations(
-        cls,
-        text: str,
-        employee_ids: list[str],
-        fallback_days: list[Day],
-        leave: bool,
-        remove_leave: bool,
+        cls, text: str, employee_ids: list[str], fallback_days: list[Day],
+        leave: bool, remove_leave: bool,
     ) -> list[AgentScenarioOperation]:
-        if not leave:
-            return []
-        normalized = _normalize_identifier_text(text)
-        mentions = list(re.finditer(
-            r"(?<![A-Za-z0-9_])([eE]\d{1,4})(?![A-Za-z0-9_])", normalized
-        ))
-        if len(mentions) <= 1:
-            ids_and_spans = [(employee_ids[0], normalized)] if employee_ids else []
-        else:
-            ids_and_spans = []
-            for index, match in enumerate(mentions):
-                end = mentions[index + 1].start() if index + 1 < len(mentions) else len(normalized)
-                ids_and_spans.append((match.group(1).upper(), normalized[match.start():end]))
-        result: list[AgentScenarioOperation] = []
-        for employee_id, span in ids_and_spans:
+        result = []
+        for employee_id, span in cls._employee_spans(text):
             lowered = span.lower()
-            span_days = IntentParser.extract_days(span) or fallback_days
-            span_remove = remove_leave or any(
-                token in lowered
-                for token in ("不请", "不用请假", "取消", "撤销", "恢复可用", "remove")
-            )
-            span_clear = any(token in lowered for token in ("清掉", "清除", "恢复全部", "clear"))
-            span_set = any(token in lowered for token in ("只", "仅", "only", "set", "改成"))
-            operation = "clear" if span_clear else "remove" if span_remove else "set" if span_set else "add"
-            change_type = ChangeType.AVAILABLE if operation == "remove" else ChangeType.LEAVE
-            if operation == "clear" and not span_days:
-                result.append(AgentScenarioOperation(
-                    operation=operation, employee_id=employee_id, type=change_type, day=None
-                ))
+            days = IntentParser.extract_days(span)
+            clear = bool(re.search(r"清掉|清除|恢复全部|clear", lowered))
+            remove = bool(re.search(r"取消|撤销|恢复可用|不用请假|不请|remove", lowered))
+            operation = "clear" if clear else "remove" if remove else "set" if re.search(r"只|仅|only|set|改成", lowered) else "add"
+            if clear:
+                result.extend(AgentScenarioOperation(operation="clear", employee_id=employee_id, day=d)
+                              for d in (days or [None]))
                 continue
-            result.extend(
-                AgentScenarioOperation(
-                    operation=operation, employee_id=employee_id, type=change_type, day=day
-                )
-                for day in span_days
+            shift = Shift.MORNING if re.search(r"早班|morning", lowered) else Shift.EVENING if re.search(r"晚班|evening", lowered) else None
+            change_type = (
+                ChangeType.AVAILABLE if remove else
+                ChangeType.LEAVE if re.search(r"请假|请周|只请|仅请|也请|leave", lowered) else
+                ChangeType.UNAVAILABLE if re.search(r"不可工作|别排|unavailable", lowered) else
+                ChangeType.PREFERENCE if re.search(r"偏好|优先|prefer", lowered) else
+                ChangeType.ASSIGN if re.search(r"安排|排到|上班|assign", lowered) and shift else None
             )
+            if change_type is None or (change_type in {ChangeType.PREFERENCE, ChangeType.ASSIGN} and shift is None):
+                continue
+            result.extend(AgentScenarioOperation(operation=operation, employee_id=employee_id,
+                type=change_type, day=day, shift=shift if change_type in {ChangeType.PREFERENCE, ChangeType.ASSIGN} else None)
+                for day in days)
         return result

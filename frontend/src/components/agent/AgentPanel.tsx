@@ -55,7 +55,8 @@ export function AgentPanel() {
     : null
   const basicCheck = llmHealth?.checks.basic_chat
   const structuredCheck = llmHealth?.checks.structured_output
-  const structuredReady = basicCheck?.status === 'ok' && structuredCheck?.status === 'ok'
+  const routerCheck = llmHealth?.checks.agent_router
+  const structuredReady = llmHealth?.status === 'ok' && basicCheck?.status === 'ok' && structuredCheck?.status === 'ok' && routerCheck?.status === 'ok'
 
   const checkLlm = async () => {
     if (isCheckingLlm) return
@@ -99,14 +100,14 @@ export function AgentPanel() {
               {isCheckingLlm ? (
                 <span className="flex items-center gap-2"><LoaderCircle className="h-3.5 w-3.5 animate-spin" />正在连接 AI Provider…</span>
               ) : structuredReady ? (
-                <div className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div><p className="font-black">AI 联通正常</p><p className="mt-0.5 text-[10px]">模型：{llmHealth?.model ?? ''}</p><p className="mt-0.5 text-[10px]">基础聊天：✓ {basicCheck?.latency_ms != null ? `${basicCheck.latency_ms} ms` : '耗时未返回'}</p><p className="mt-0.5 text-[10px]">结构化输出：✓ {structuredCheck?.latency_ms != null ? `${structuredCheck.latency_ms} ms` : '耗时未返回'}</p></div></div>
+                <div className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div><p className="font-black">AI 联通正常</p><p className="mt-0.5 text-[10px]">模型：{llmHealth?.model ?? ''}</p><p className="mt-0.5 text-[10px]">基础聊天：✓ {basicCheck?.latency_ms != null ? `${basicCheck.latency_ms} ms` : '耗时未返回'}</p><p className="mt-0.5 text-[10px]">结构化输出：✓ {structuredCheck?.latency_ms != null ? `${structuredCheck.latency_ms} ms` : '耗时未返回'}</p><p className="mt-0.5 text-[10px]">Agent Router：✓ {routerCheck?.latency_ms != null ? `${routerCheck.latency_ms} ms` : '耗时未返回'}{routerCheck?.fallback_used ? ' · 使用备用 JSON' : ''}</p></div></div>
               ) : llmHealth ? (
                 <div className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div>
-                  <p className="font-black">{basicCheck?.status === 'ok' ? 'AI 基础连接正常' : 'AI 联通失败'}</p>
-                  {basicCheck?.status === 'ok' && structuredCheck?.status !== 'ok' ? <p className="mt-0.5 leading-5">Agent 结构化输出不可用</p> : <p className="mt-0.5 leading-5">{basicCheck?.message || structuredCheck?.message || 'AI Provider 暂时不可用。'}</p>}
+                  <p className="font-black">{basicCheck?.status === 'ok' ? 'AI 服务部分可用（degraded）' : 'AI 联通失败'}</p>
+                  {basicCheck?.status === 'ok' && structuredCheck?.status !== 'ok' ? <p className="mt-0.5 leading-5">Agent 结构化输出不可用</p> : <p className="mt-0.5 leading-5">{routerCheck?.status === 'error' ? 'Agent Router 不可用' : basicCheck?.message || structuredCheck?.message || 'AI Provider 暂时不可用。'}</p>}
                   {structuredCheck?.status !== 'ok' && structuredCheck && <p className="mt-0.5 leading-5">{structuredCheck.provider_message || structuredCheck.message || ''}</p>}
                   {basicCheck?.status !== 'ok' && basicCheck && <p className="mt-0.5 leading-5">{basicCheck.provider_message || ''}</p>}
-                  {(() => { const check = basicCheck?.status === 'ok' ? structuredCheck : basicCheck; return <p className="mt-0.5 font-mono text-[10px]">{check?.provider_status ? `HTTP ${check.provider_status} · ` : ''}{check?.error_type || 'provider_error'}{check?.latency_ms != null ? ` · ${check.latency_ms} ms` : ''}</p> })()}
+                  {(() => { const check = basicCheck?.status !== 'ok' ? basicCheck : structuredCheck?.status !== 'ok' ? structuredCheck : routerCheck; return <p className="mt-0.5 font-mono text-[10px]">{check?.provider_status ? `HTTP ${check.provider_status} · ` : ''}{check?.error_type || 'provider_error'}{check?.latency_ms != null ? ` · ${check.latency_ms} ms` : ''}</p> })()}
                 </div></div>
               ) : (
                 <div className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /><div><p className="font-black">无法执行检测</p><p className="mt-0.5 leading-5">{llmHealthError}</p></div></div>

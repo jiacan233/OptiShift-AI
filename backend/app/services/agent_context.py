@@ -134,7 +134,7 @@ class WeekResolver:
             return self._result(monday_for(explicit_date), "explicit_date")
 
         iso_match = re.search(
-            r"(?:(\d{4})\s*年\s*)?第\s*(\d{1,2})\s*周", content
+            r"(?<![A-Za-z0-9_])(?:(\d{4})\s*年\s*)?(?:第\s*)?(\d{1,2})\s*周", content
         )
         if iso_match is None:
             iso_match = re.search(

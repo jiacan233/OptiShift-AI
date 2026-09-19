@@ -123,20 +123,28 @@ test('AI 联通检测展示服务端耗时和失败详情', async ({ page, reque
     checks++
     await route.fulfill({ json: checks === 1 ? {
       enabled: true, key_present: true, model: 'health-fixture', status: 'ok',
-      checks: { basic_chat: { status: 'ok', latency_ms: 73 }, structured_output: { status: 'ok', latency_ms: 91 } },
-    } : {
+      checks: { basic_chat: { status: 'ok', latency_ms: 73 }, structured_output: { status: 'ok', latency_ms: 91 }, agent_router: { status: 'ok', latency_ms: 5073 } },
+    } : checks === 2 ? {
       enabled: true, key_present: true, model: 'health-fixture', status: 'degraded',
       checks: { basic_chat: { status: 'ok', latency_ms: 75 }, structured_output: { status: 'error', error_type: 'schema_error', message: '结构化响应不符合协议' } },
+    } : {
+      enabled: true, key_present: true, model: 'health-fixture', status: 'degraded',
+      checks: { basic_chat: { status: 'ok', latency_ms: 75 }, structured_output: { status: 'ok', latency_ms: 91 }, agent_router: { status: 'error', error_type: 'read_timeout', latency_ms: 25000 } },
     } })
   })
   await panel.getByRole('button', { name: '检测 AI 联通状态' }).click()
   await expect(panel.getByText('AI 联通正常', { exact: true })).toBeVisible()
   await expect(panel).toContainText('73 ms')
   await expect(panel).toContainText('91 ms')
+  await expect(panel).toContainText('Agent Router：✓ 5073 ms')
   await panel.getByRole('button', { name: '检测 AI 联通状态' }).click()
   await expect(panel).toContainText('Agent 结构化输出不可用')
   await expect(panel).toContainText('结构化响应不符合协议')
-  expect(checks).toBe(2)
+  await panel.getByRole('button', { name: '检测 AI 联通状态' }).click()
+  await expect(panel).toContainText('degraded')
+  await expect(panel).toContainText('Agent Router 不可用')
+  await expect(panel).toContainText('25000 ms')
+  expect(checks).toBe(3)
 })
 test('方案区域：预览不写入，真实 Draft Cancel / Confirm 及空候选状态', async ({ page, request }) => {
   await openWeek(page, request)

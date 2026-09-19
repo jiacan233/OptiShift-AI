@@ -232,6 +232,10 @@ class AgentLLMClient:
         self._local.latency_ms = value
 
     @property
+    def last_request_metrics(self) -> dict[str, Any]:
+        return getattr(self._local, "request_metrics", {})
+
+    @property
     def client(self) -> httpx.Client:
         with self._client_lock:
             if self._client is None:
@@ -356,6 +360,16 @@ class AgentLLMClient:
         read_timeout_seconds: float | None = None,
     ) -> tuple[dict[str, Any], int, int]:
         started = time.perf_counter()
+        definition = payload.get("response_format", {}).get("json_schema", {})
+        compact = lambda value: len(json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+        self._local.request_metrics = {
+            "request_bytes": compact(payload),
+            "message_count": len(payload.get("messages", [])),
+        }
+        logger.info("llm_request stage=%s model=%s schema_name=%s schema_bytes=%s request_bytes=%s message_count=%s",
+                    stage, self._redact_and_truncate(self.model, 120), definition.get("name"),
+                    compact(definition["schema"]) if definition else 0,
+                    self.last_request_metrics["request_bytes"], self.last_request_metrics["message_count"])
         if not self.enabled:
             self._fail(
                 "AI 功能当前未启用。",
@@ -601,8 +615,11 @@ class AgentLLMClient:
         schema: dict[str, Any],
         stage: str = "structured_output",
         read_timeout_seconds: float | None = None,
+        strict_output: bool = True,
     ) -> dict[str, Any]:
         validate_strict_json_schema(schema)
+        if not strict_output:
+            system += " Return only a JSON object, with all fields and no extra fields, matching: " + json.dumps(schema, ensure_ascii=False, separators=(",", ":"))
         response, latency_ms, provider_status = self._post(
             {
                 "model": self.model,
@@ -614,14 +631,14 @@ class AgentLLMClient:
                         "content": json.dumps(user, ensure_ascii=False, default=str),
                     },
                 ],
-                "response_format": {
+                **({"response_format": {
                     "type": "json_schema",
                     "json_schema": {
                         "name": schema_name,
                         "strict": True,
                         "schema": schema,
                     },
-                },
+                }} if strict_output else {}),
             },
             stage=stage,
             read_timeout_seconds=read_timeout_seconds,

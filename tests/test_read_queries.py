@@ -192,8 +192,11 @@ def test_evaluation_pipeline_offline_contract(read_service, database, monkeypatc
     from sqlalchemy import event
     read_service.llm.enabled = True
     def structured_reply(**kwargs):
-        if kwargs["stage"] == "agent_route":
-            return AgentRouter._deterministic_route(kwargs["user"]["message"], read_service.employees.list()).model_dump(mode="json")
+        if kwargs["stage"] == "agent_route_lite":
+            from tests.test_agent_router import decision
+            route = AgentRouter._deterministic_route(kwargs["user"]["message"], read_service.employees.list())
+            return decision(intent=route.intent.value, employees=route.employees,
+                            question_type=case["expected"]["question_type"])
         return {"sentence_ids": list(kwargs["user"]["sentences"])}
     monkeypatch.setattr(read_service.llm, "complete_json", structured_reply)
     before = database_snapshot(database)

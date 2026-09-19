@@ -24,7 +24,7 @@ from fastapi.staticfiles import StaticFiles
 load_dotenv()
 
 from .api.agent import router as agent_router
-from .api.dependencies import agent_llm_client
+from .api.dependencies import agent_llm_client, employee_repository
 from .api.employees import router as employees_router
 from .api.rules import router as rules_router
 from .api.schedule import router as schedule_router
@@ -43,6 +43,7 @@ from .repository import (
     VersionConflictError,
 )
 from .services.agent_service import AgentTurnError
+from .services.agent_router import AgentRouter
 from .services.llm_client import AIUnavailableError
 from .services.request_validator import BusinessValidationError
 from .services.scheduling_service import SolverOutputError
@@ -252,7 +253,20 @@ def health(response: Response) -> dict:
 @app.get("/health/llm", tags=["system"])
 def llm_health(response: Response) -> dict:
     result = agent_llm_client.health_check()
+    if result.get("status") != "error":
+        probe = AgentRouter(agent_llm_client).probe(employees=employee_repository.list())
+        result["checks"]["agent_router"] = probe
+        if probe["status"] != "ok":
+            result["status"] = "degraded"
     if result.get("status") != "ok":
+        response.status_code = 503
+    return result
+
+
+@app.get("/health/agent-router", tags=["system"])
+def agent_router_health(response: Response) -> dict:
+    result = AgentRouter(agent_llm_client).probe(employees=employee_repository.list())
+    if result["status"] != "ok":
         response.status_code = 503
     return result
 

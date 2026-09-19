@@ -31,7 +31,9 @@ def eval_service(tmp_path):
     tools = AgentTools(emp_repo, sched_repo, sched_svc, scen_repo)
     conv_repo = ConversationRepository(db)
     router = AgentRouter()
+    router.llm.enabled = False
     service = AgentService(conv_repo, emp_repo, sched_repo, tools, router=router)
+    service.llm.enabled = False
     return service, emp_repo
 
 
@@ -99,12 +101,13 @@ def test_eval_case_c_explicit_do_not_force(eval_service):
     assert not route.requested_overrides
 
 
-def test_eval_live_llm_force_evaluation():
+def test_eval_live_llm_force_evaluation(database, evaluation_output_dir):
     if (
         os.getenv("LIVE_AGENT_EVAL", "false").lower() != "true"
         or not os.getenv("LLM_API_KEY", "").strip()
     ):
         pytest.skip("LIVE_AGENT_EVAL is disabled or LLM_API_KEY is missing")
 
-    client = AgentLLMClient()
-    assert client.enabled
+    from tests.evals.test_live_router_eval import evaluate_router
+    evaluate_router({"name": "explicit_force_r08", "input": "我知道 E01 周三请假，但就是让 E01 周三早班上班，强制生成。", "kind": "force"},
+                    database, evaluation_output_dir)

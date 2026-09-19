@@ -69,25 +69,15 @@ class RecordingLLM(AgentLLMClient):
 
 def check_raw_plan(case, outputs):
     """Report provider mistakes separately from successful server corrections."""
-    route = next((c["output"] for c in outputs if c.get("stage") == "agent_route" and "output" in c), None)
+    route = next((c["output"] for c in outputs if c.get("stage") == "agent_route_lite" and "output" in c), None)
     if route is None:
-        return [{"category": "provider_error", "detail": "No valid raw route"}]
+        return [{"category": "provider_error", "detail": "No valid raw Lite route"}]
     findings = []
-    expected = case["expected"]
-    query = route.get("read_query") or {}
     if route.get("mutation_requested") or route.get("intent") not in {"ask", "explain", "advice", "validate"}:
         findings.append({"category": "wrong_intent", "detail": route.get("intent")})
-    for field, category in (("question_type", "wrong_intent"), ("day", "wrong_day"),
-                            ("shift", "wrong_shift"), ("employee_ids", "wrong_employee")):
-        if query.get(field) != expected[field]:
-            findings.append({"category": category, "detail": {"field": field, "raw": query.get(field), "expected": expected[field]}})
-    # The model may leave the week null; final authority always belongs to backend.
-    proposed_week = query.get("target_week") or route.get("target_week")
-    if proposed_week and proposed_week != expected["target_week"]:
-        findings.append({"category": "wrong_week", "detail": proposed_week})
-    reference = (route.get("reference") or {}).get("type", "none")
-    if expected["reference_mode"] == "none" and (reference != "none" or query.get("reference_mode", "none") != "none"):
-        findings.append({"category": "implicit_history_reference", "detail": reference})
+    if route.get("question_type") != case["expected"]["question_type"]:
+        findings.append({"category": "wrong_question_hint", "detail": route.get("question_type")})
+    # Entity/day/reference facts deliberately belong to normalize_plan, not Lite.
     return findings
 
 
@@ -151,25 +141,6 @@ def check_case(case, result):
     return failures
 
 
-@pytest.fixture(scope="session")
-def evaluation_output_dir():
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
-    path = Path(os.getenv("LLM_EVAL_OUTPUT_DIR") or f"artifacts/agent-evals/{stamp}")
-    path.mkdir(parents=True, exist_ok=True)
-    yield path
-    records = [json.loads(p.read_text(encoding="utf-8")) for p in path.glob("case-*.json")]
-    executed = [r for r in records if r["status"] != "skipped"]
-    passed = sum(r["status"] == "passed" for r in records)
-    (path / "summary.json").write_text(json.dumps({
-        "total": len(records), "passed": passed,
-        "failed": sum(r["status"] == "failed" for r in records),
-        "skipped": sum(r["status"] == "skipped" for r in records),
-        "score": passed / len(executed) if executed else None,
-        "raw_plan_score": sum(not r.get("raw_plan_failures") for r in executed) / len(executed) if executed else None,
-        "cases": [{"name": r["name"], "status": r["status"], "failures": r.get("failures", [])} for r in records],
-    }, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c["name"])
 def test_live_read_agent(case, database, monkeypatch, evaluation_output_dir):
     output = evaluation_output_dir / f"case-{case['name']}.json"
@@ -211,13 +182,19 @@ def test_live_read_agent(case, database, monkeypatch, evaluation_output_dir):
         event.remove(database.engine, "checkout", read_only_connection)
         event.remove(database.engine, "before_cursor_execute", guard)
         llm.close()
-    for call in llm.outputs:
-        if call.get("error"):
-            failures.append({"category": "timeout" if "timeout" in call["error"]["error_type"] else "provider_error", "detail": call["error"]})
+    run = service.router.last_run
+    if not run or run.error_type or not run.results.get("agent_route_lite"):
+        failures.append({"category": "provider_error", "detail": run.error_type if run else "missing router call"})
+    if run and run.latency_ms >= 120000:
+        failures.append({"category": "timeout", "detail": "router watchdog exceeded"})
     record = {"name": case["name"], "status": "failed" if failures else "passed", "model": llm.model,
               "started_at": datetime.now(timezone.utc).isoformat(), "duration_seconds": time.monotonic() - started,
               "prompt_version": PROMPT_VERSION, "dry_run": True, "database_unchanged": database_snapshot(database) == before,
               "raw_model_outputs": llm.outputs, "raw_plan_failures": check_raw_plan(case, llm.outputs),
+              "router_latency_ms": sum(s["latency_ms"] for s in run.stages) if run else None,
+              "fallback_used": run.fallback_used if run else False,
+              "schema_bytes": max((s["schema_bytes"] for s in run.stages), default=0) if run else 0,
+              "router_stages": run.stages if run else [],
               **result, "failures": failures}
     # Never serialize clients, request headers, provider credentials or environment values.
     serialized = json.dumps(record, ensure_ascii=False, indent=2, default=str)

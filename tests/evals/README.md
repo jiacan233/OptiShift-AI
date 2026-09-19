@@ -30,6 +30,31 @@ prompt version. It never records hidden reasoning or authorization headers.
 To load **only LLM settings** from the repository `.env` and execute live cases:
 `python -m tests.evals`. This does not load `DATABASE_URL` or `APP_ENV` from `.env`.
 
+The same runner also executes `test_live_router_eval.py` and a real R08 force
+parser evaluation. These call the configured provider, capture the Lite DTO,
+specialized parser DTO and final `AgentRoute`, and never call `send_message`.
+The Router has its own `LLM_ROUTER_TIMEOUT_SECONDS=25` per-attempt deadline and
+`LLM_ROUTER_BUDGET_SECONDS=60` total deadline (caps: 30 and 60 seconds).
+Compatibility errors permit at most one plain-JSON fallback across all stages;
+authentication, configuration and connection errors do not retry. Every response
+still passes JSON Schema, Pydantic and deterministic guards. A 120-second live
+watchdog is a failure threshold, not the production Router timeout.
+
+Normal CI keeps live tests disabled. The ignored `artifacts/agent-evals/` reports
+include actual model, router/total latency, stage/schema/request byte counts,
+fallback status and a pass/fail/skip summary. Router E17 tests use canonical
+20-employee fixtures; existing grounded read tests retain their fixed snapshots.
+On a machine with production settings already in the process environment, set
+`APP_ENV=development` for this isolated test process before running pytest.
+
+`GET /health/agent-router` probes “把 E17 随便排到哪一天都行” against the real Router
+and current employee master data. Missing assignment day/shift safely produces
+clarification. This probe only reads employees: no conversation, message, scenario
+or schedule is persisted. `/health/llm` combines it with Basic Chat and Structured
+Output; a failed Router marks AI health degraded. Container `/health` remains
+application/database-only. `diagnose_route.py`, when present locally, remains a
+manual diagnostic and is not part of CI.
+
 Each case gets its own SQLite database from pytest's temporary directory, fixed
 employees, two schedule snapshots, current RuleConfig and seeded suggestion
 history. `DATABASE_URL` is not used to construct the evaluation database. After
