@@ -121,6 +121,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
   const createPromiseRef = useRef<Promise<string> | null>(null)
   const loadRequestRef = useRef(0)
   const sendingRef = useRef(false)
+  const settledMessageIdsRef = useRef(new Set<string>())
 
   const openChat = useCallback(() => {
     localStorage.setItem(AGENT_PANEL_OPEN_STORAGE_KEY, '1')
@@ -153,6 +154,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
       setTracesByMessage({})
       setExecutionEvents([])
       setPendingMessage(null)
+      settledMessageIdsRef.current.clear()
       return created.conversation_id
     }).finally(() => {
       createPromiseRef.current = null
@@ -233,6 +235,37 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
     conversationIdRef.current ?? createConversation()
   ), [createConversation])
 
+  const applyTurnResult = useCallback(async (turn: AgentTurnResult, id: string) => {
+    const settleKey = turn.user_message.client_message_id ?? turn.user_message.message_id
+    if (settledMessageIdsRef.current.has(settleKey)) return
+    settledMessageIdsRef.current.add(settleKey)
+    setMessages((current) => {
+      const returned = [turn.user_message, turn.assistant_message]
+      const known = new Set(current.map((message) => message.message_id))
+      return [...current, ...returned.filter((message) => !known.has(message.message_id))]
+    })
+    setTracesByMessage((current) => ({ ...current, [turn.assistant_message.message_id]: turn.tool_calls }))
+    setConversationTitle((current) => current ?? turn.user_message.content.slice(0, 28))
+    const targetWeek = turn.context?.target_week
+    if (turn.schedule_result) {
+      const isStoredSchedule = turn.schedule_result.status === 'feasible' || turn.schedule_result.status === 'confirmed'
+      if (!isStoredSchedule && targetWeek && targetWeek !== scheduleStore.activeWeekStart) {
+        await scheduleStore.setActiveWeek(targetWeek)
+      }
+      await scheduleStore.applyScheduleResult(turn.schedule_result)
+    } else if (targetWeek && targetWeek !== scheduleStore.activeWeekStart) {
+      await scheduleStore.setActiveWeek(targetWeek)
+    }
+    setPendingMessage(null)
+    setAgentError(null)
+    await loadConversation(id, {
+      allowWhileSending: true,
+      syncScheduleWeek: false,
+      restoreWorkbenchResult: false,
+    }).catch(() => undefined)
+    await refreshHistory().catch(() => undefined)
+  }, [loadConversation, refreshHistory, scheduleStore])
+
   const executeMessage = useCallback(async (request: PendingMessage) => {
     if (sendingRef.current || scheduleStore.isBootstrapping || scheduleStore.isRunning || scheduleStore.isLoadingWeek || scheduleStore.isSavingEmployee) return
     sendingRef.current = true
@@ -252,58 +285,29 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
         event.client_message_id !== request.clientMessageId || events.some((item) => item.event_id === event.event_id)
           ? events : [...events, event]
       )))
-      setMessages((current) => {
-        const returned = [turn.user_message, turn.assistant_message]
-        const known = new Set(current.map((message) => message.message_id))
-        return [...current, ...returned.filter((message) => !known.has(message.message_id))]
-      })
-      setTracesByMessage((current) => ({ ...current, [turn.assistant_message.message_id]: turn.tool_calls }))
-      setConversationTitle((current) => current ?? turn.user_message.content.slice(0, 28))
-      if (turn.schedule_result) {
-        const isStoredSchedule = turn.schedule_result.status === 'feasible' || turn.schedule_result.status === 'confirmed'
-        if (!isStoredSchedule && turn.context.target_week !== scheduleStore.activeWeekStart) {
-          await scheduleStore.setActiveWeek(turn.context.target_week)
-        }
-        await scheduleStore.applyScheduleResult(turn.schedule_result)
-      } else if (turn.context.target_week && turn.context.target_week !== scheduleStore.activeWeekStart) {
-        await scheduleStore.setActiveWeek(turn.context.target_week)
-      }
-      setPendingMessage(null)
-      await loadConversation(id, {
-        allowWhileSending: true,
-        syncScheduleWeek: false,
-        restoreWorkbenchResult: false,
-      }).catch(() => undefined)
-      await refreshHistory().catch(() => undefined)
+      await applyTurnResult(turn, id)
     } catch (error) {
       const problem = apiErrorMessage(error)
-      const turn = persistedTurn(problem)
-      if (turn) {
-        setMessages((current) => {
-          const known = new Set(current.map((message) => message.message_id))
-          return [...current, ...[turn.user_message, turn.assistant_message].filter((message) => !known.has(message.message_id))]
-        })
-        setTracesByMessage((current) => ({ ...current, [turn.assistant_message.message_id]: turn.tool_calls }))
-        setConversationTitle((current) => current ?? turn.user_message.content.slice(0, 28))
+      const recoveredTurn = persistedTurn(problem)
+      if (recoveredTurn) {
         const activeConversationId = conversationIdRef.current
-        if (activeConversationId) await loadConversation(activeConversationId, {
-          allowWhileSending: true,
-          syncScheduleWeek: false,
-          restoreWorkbenchResult: false,
-        }).catch(() => undefined)
-        await refreshHistory().catch(() => undefined)
+        if (activeConversationId) await applyTurnResult(recoveredTurn, activeConversationId)
+        if (!['network_error', 'message_processing', 'conversation_busy', 'agent_operation_failed', 'result_pending'].includes(problem.code)) {
+          setAgentError(problem)
+          setPendingMessage(null)
+        }
+        return
       }
       if (['draft_pending', 'version_conflict'].includes(problem.code)) {
-        const refreshWeek = turn?.assistant_message.target_week ?? scheduleStore.activeWeekStart
-        await scheduleStore.setActiveWeek(refreshWeek)
+        await scheduleStore.setActiveWeek(scheduleStore.activeWeekStart)
       }
       setAgentError(problem)
-      if (!['network_error', 'message_processing', 'conversation_busy', 'agent_operation_failed'].includes(problem.code)) setPendingMessage(null)
+      if (!['network_error', 'message_processing', 'conversation_busy', 'agent_operation_failed', 'result_pending'].includes(problem.code)) setPendingMessage(null)
     } finally {
       sendingRef.current = false
       setSending(false)
     }
-  }, [browserWorkspaceId, ensureConversation, loadConversation, refreshHistory, scheduleStore])
+  }, [applyTurnResult, browserWorkspaceId, ensureConversation, scheduleStore])
 
   const sendMessage = useCallback(async (content: string, trustedAction?: TrustedAgentAction) => {
     const trimmed = content.trim()

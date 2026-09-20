@@ -190,6 +190,48 @@ async function checkLlmHealth(): Promise<LlmHealthResult> {
   })
 }
 
+const RECOVERY_DELAYS_MS = [300, 500, 1000, 2000, 3000, 5000, 5000]
+const RECOVERY_BUDGET_MS = 20_000
+
+function isRecoverableTurnProblem(error: unknown) {
+  if (error instanceof ApiError) {
+    return error.problem.code === 'message_processing' || error.problem.code === 'conversation_busy'
+  }
+  return error instanceof TypeError
+}
+
+async function recoverAgentMessage(
+  conversationId: string, input: SendAgentMessageRequest,
+): Promise<AgentTurnResult> {
+  const started = Date.now()
+  let delayIndex = 0
+  while (Date.now() - started < RECOVERY_BUDGET_MS) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), RECOVERY_BUDGET_MS - (Date.now() - started))
+    try {
+      return await request<AgentTurnResult>(`/api/agent/conversations/${encodeURIComponent(conversationId)}/messages`, {
+        method: 'POST',
+        body: input,
+        signal: controller.signal,
+      })
+    } catch (error) {
+      if (controller.signal.aborted) break
+      if (!isRecoverableTurnProblem(error)) throw error
+      const delay = RECOVERY_DELAYS_MS[Math.min(delayIndex++, RECOVERY_DELAYS_MS.length - 1)]
+      if (Date.now() - started + delay >= RECOVERY_BUDGET_MS) break
+      await new Promise((resolve) => setTimeout(resolve, delay))
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
+  throw new ApiError({
+    code: 'result_pending',
+    message: '后台请求结果暂未恢复，可能仍在执行。请使用同一请求标识继续恢复。',
+    details: { conversation_id: conversationId, client_message_id: input.client_message_id },
+    status: 409,
+  })
+}
+
 async function streamAgentMessage(
   conversationId: string, input: SendAgentMessageRequest,
   onEvent: (event: AgentExecutionEvent) => void,
@@ -207,13 +249,13 @@ async function streamAgentMessage(
       details: problem?.details, status: response.status })
   }
   const reader = response.body?.getReader()
-  if (!reader) throw new ApiError({ code: 'network_error', message: '无法读取执行进度，请使用同一请求标识恢复。' })
+  if (!reader) return recoverAgentMessage(conversationId, input)
   const decoder = new TextDecoder()
   let buffer = ''
   try {
     while (true) {
       const { value, done } = await reader.read()
-      buffer += decoder.decode(value, { stream: !done })
+      buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done })
       let boundary: RegExpExecArray | null
       while ((boundary = /\r?\n\r?\n/.exec(buffer))) {
         const frame = buffer.slice(0, boundary.index)
@@ -228,11 +270,15 @@ async function streamAgentMessage(
       }
       if (done) break
     }
-    throw new ApiError({ code: 'network_error', message: '进度连接已断开，后台仍会安全完成。请使用同一请求标识恢复结果。' })
+  } catch (error) {
+    // A successful stream without a terminal frame is transport ambiguity. Replay
+    // the exact same idempotent turn; explicit server errors remain authoritative.
+    if (error instanceof ApiError) throw error
   } finally {
     await reader.cancel().catch(() => undefined)
     reader.releaseLock()
   }
+  return recoverAgentMessage(conversationId, input)
 }
 
 export const api = {

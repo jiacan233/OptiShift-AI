@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections import Counter
 from datetime import date
 from enum import StrEnum
 from threading import local
@@ -352,6 +353,8 @@ class AgentRouter:
                 system=(
                     "Parse scheduling changes from the ORIGINAL CURRENT message, not router hints. "
                     "Preserve every employee/day and ordered add/set/remove/clear operation. "
+                    "Use add for ordinary leave, preference or assignment requests. Set means replacing "
+                    "existing conditions and requires explicit only/set/只/仅/改成 wording; 优先 alone is add, not set. "
                     "Do not form a cross-product across employees' separate clauses. '先清掉 E01 的限制，再给 E02 周五请假' "
                     "is clear E01 with day=null, then add E02 leave Fri. '周一周二请假' needs two operations. "
                     "Preference/assign/unassign require an explicit shift; all non-clear operations need a day. "
@@ -363,25 +366,28 @@ class AgentRouter:
             )
             if parsed.clarification:
                 return self._clarify(parsed.clarification, deterministic.employees)
-            if not self._grounded_operations(parsed.operations, content, deterministic.employees):
+            canonical_operations = self._ground_and_canonicalize_operations(
+                parsed.operations, content, deterministic.employees
+            )
+            if canonical_operations is None:
                 return self._clarify("请逐条说明员工、日期、班次和变更类型；不会补齐未指定的条件。", deterministic.employees)
-            if deterministic.employees and not parsed.operations and not explicit_reference(content):
+            if deterministic.employees and not canonical_operations and not explicit_reference(content):
                 return self._clarify("请补充要安排的日期和班次，或说明该员工的具体变更。", deterministic.employees)
             try:
                 changes = [ScheduleChange(employee_id=o.employee_id, type=o.type, day=o.day, shift=o.shift)
-                           for o in parsed.operations if o.operation != "clear"]
+                           for o in canonical_operations if o.operation != "clear"]
             except ValidationError:
                 return self._clarify("请补充每条变更的日期及需要的班次。", deterministic.employees)
             intent = deterministic.intent if deterministic.intent in {AgentIntent.GENERATE, AgentIntent.REPLAN, AgentIntent.WHAT_IF} else decision.intent
             if intent not in {AgentIntent.GENERATE, AgentIntent.REPLAN, AgentIntent.WHAT_IF}:
-                intent = AgentIntent.WHAT_IF if parsed.operations else AgentIntent.GENERATE
+                intent = AgentIntent.WHAT_IF if canonical_operations else AgentIntent.GENERATE
             return AgentRoute(
                 intent=intent, mutation_requested=True, employees=deterministic.employees,
                 speech_act=SpeechAct.ACTION_REQUEST, classification_source="lite_router+deterministic",
                 target_week=deterministic.target_week, target_iso_year=deterministic.target_iso_year,
-                target_iso_week=deterministic.target_iso_week, operations=parsed.operations,
+                target_iso_week=deterministic.target_iso_week, operations=canonical_operations,
                 changes=changes, minimize_changes=parsed.minimize_changes,
-                operation=parsed.operations[0].operation if parsed.operations else "add",
+                operation=canonical_operations[0].operation if canonical_operations else "add",
             )
         intent = decision.intent
         if intent in {AgentIntent.GENERATE, AgentIntent.REPLAN, AgentIntent.WHAT_IF, AgentIntent.CLARIFICATION}:
@@ -413,24 +419,40 @@ class AgentRouter:
             r"(?:按|采用|应用).*(?:建议|条|方案)|(?:replan|generate|clear|apply)\b", content, re.I
         ))
 
-    @staticmethod
-    def _grounded_operations(operations, content, employee_ids) -> bool:
+    @classmethod
+    def _ground_and_canonicalize_operations(
+        cls, operations: list[AgentScenarioOperation], content: str, employee_ids: list[str]
+    ) -> list[AgentScenarioOperation] | None:
+        """Verify provider facts against the current message and return user order.
+
+        Provider ordering is intentionally ignored for validation.  The deterministic
+        parser owns operation order because scenario reducers are sequential.
+        """
+        known_ids = {_normalize_identifier_text(value).upper() for value in employee_ids}
         spans: dict[str, list[str]] = {}
-        for employee_id, span in AgentRouter._employee_spans(content):
-            spans.setdefault(employee_id, []).append(span)
+        for employee_id, span in cls._employee_spans(content):
+            spans.setdefault(_normalize_identifier_text(employee_id).upper(), []).append(span)
+        expected = cls._extract_operations(content, list(known_ids), [], False, False)
+        if known_ids and set(IntentParser.extract_days(content)) - {o.day for o in expected}:
+            # A following clause without a repeated employee ID may be outside
+            # the parser's supported spans. Never silently drop its dates.
+            return None
+        normalized_operations: list[AgentScenarioOperation] = []
         for item in operations:
-            item.employee_id = _normalize_identifier_text(item.employee_id).upper()
-            if item.employee_id not in employee_ids:
-                return False
+            normalized = item.model_copy(update={
+                "employee_id": _normalize_identifier_text(item.employee_id).upper(),
+            })
+            if normalized.employee_id not in known_ids:
+                return None
             valid = False
-            for span in spans.get(item.employee_id, []):
-                if item.operation == "clear":
-                    valid |= bool(re.search(r"清掉|清除|恢复全部|clear", span, re.I)) and (item.day is None or item.day in IntentParser.extract_days(span))
+            for span in spans.get(normalized.employee_id, []):
+                if normalized.operation == "clear":
+                    valid |= bool(re.search(r"清掉|清除|恢复全部|clear", span, re.I)) and (normalized.day is None or normalized.day in IntentParser.extract_days(span))
                     continue
-                if item.day is None or item.day not in IntentParser.extract_days(span):
+                if normalized.day is None or normalized.day not in IntentParser.extract_days(span):
                     continue
-                if item.shift and not any(t in span.lower() for t in (
-                    ("早班", "morning") if item.shift == Shift.MORNING else ("晚班", "evening")
+                if normalized.shift and not any(t in span.lower() for t in (
+                    ("早班", "morning") if normalized.shift == Shift.MORNING else ("晚班", "evening")
                 )):
                     continue
                 type_terms = {
@@ -441,26 +463,48 @@ class AgentRouter:
                     ChangeType.ASSIGN: r"安排|排到|上班|assign",
                     ChangeType.UNASSIGN: r"去掉|移除|不排|别排|unassign|remove",
                 }
-                if not re.search(type_terms[item.type], span, re.I):
+                if not re.search(type_terms[normalized.type], span, re.I):
                     continue
-                if item.operation == "remove" and not re.search(r"取消|撤销|恢复|不请|不用请假|remove", span, re.I):
+                if normalized.operation == "remove" and not re.search(r"取消|撤销|恢复|不请|不用请假|remove", span, re.I):
                     continue
-                if item.operation == "set" and not re.search(r"只|仅|改成|设为|only|set", span, re.I):
+                if normalized.operation == "set" and not re.search(r"只|仅|改成|设为|only|set", span, re.I):
                     continue
                 valid = True
             if not valid:
-                return False
+                return None
+            normalized_operations.append(normalized)
         # Independently parsed explicit conditions cannot silently disappear.
-        expected = AgentRouter._extract_operations(content, employee_ids, [], False, False)
         def key(o):
             # The scenario reducer clears all conditions for this employee;
             # change type is a required DTO placeholder, not a clear scope.
             if o.operation == "clear":
                 return (o.operation, o.employee_id, None, o.day, o.shift)
             return (o.operation, o.employee_id, o.type, o.day, o.shift)
-        if expected and [key(o) for o in operations] != [key(o) for o in expected]:
-            return False
-        return not operations or set(employee_ids) <= {o.employee_id for o in operations}
+        actual_keys = [key(o) for o in normalized_operations]
+        expected_keys = [key(o) for o in expected]
+        if actual_keys and not expected_keys:
+            return None
+        if Counter(actual_keys) != Counter(expected_keys):
+            return None
+        if set(known_ids) - {o.employee_id for o in normalized_operations}:
+            return None
+        # ``clear.type`` is a DTO placeholder. Preserve the provider's validated
+        # placeholder while taking order and scope from the deterministic parser.
+        clear_types = {
+            (item.employee_id, item.day, item.shift): item.type
+            for item in normalized_operations if item.operation == "clear"
+        }
+        return [
+            item.model_copy(update={
+                "type": clear_types.get((item.employee_id, item.day, item.shift), item.type)
+            }) if item.operation == "clear" else item
+            for item in expected
+        ]
+
+    @classmethod
+    def _grounded_operations(cls, operations, content, employee_ids) -> bool:
+        """Compatibility wrapper for callers that only need a pass/fail result."""
+        return cls._ground_and_canonicalize_operations(operations, content, employee_ids) is not None
 
     @classmethod
     def _invariants(cls, route, employees):

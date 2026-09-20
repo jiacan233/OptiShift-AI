@@ -389,7 +389,7 @@ export interface AgentTurnResult {
   assistant_message: AgentMessage
   intent: AgentIntent
   mutation_requested: boolean
-  context: AgentTurnContext
+  context: AgentTurnContext | null
   tool_calls: AgentToolCall[]
   schedule_result: ScheduleOperationResult | null
 }

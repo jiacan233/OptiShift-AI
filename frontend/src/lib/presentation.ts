@@ -164,6 +164,7 @@ export function errorCodeLabel(code: string) {
     invalid_agent_action: 'Agent 操作无效',
     agent_operation_failed: 'Agent 操作失败',
     message_processing: '消息仍在处理中',
+    result_pending: '结果暂未恢复',
     conversation_busy: '当前对话正在处理另一条消息',
     turn_interrupted: '先前请求已中断',
     validation_error: '请求校验未通过',

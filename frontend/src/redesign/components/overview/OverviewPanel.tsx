@@ -40,16 +40,17 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
         </span>
       </div>
 
-      {/* Card 1: 人员与技能覆盖达标率 */}
+      {/* This is a shift-coverage KPI, separate from the backend hard-rule validator. */}
       <div className="bg-white rounded-3xl p-4 border border-slate-150/70 shadow-sm flex items-center justify-between">
         <div>
-          <div className="text-xs font-semibold text-slate-400">班次达标率</div>
+          <div className="text-xs font-semibold text-slate-400">班次覆盖达标率</div>
           <div className="text-xl font-bold text-blue-600 mt-0.5">
             {metrics.coverageRate}%
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5 font-medium">
-            达标 {metrics.compliantShifts} / {metrics.totalShifts} 班次
+            覆盖达标 {metrics.compliantShifts} / {metrics.totalShifts} 班次
           </div>
+          <div className="mt-1 text-[10px] text-slate-400">硬约束规则合规率见下方规则清单</div>
         </div>
         <MiniBarChart />
       </div>

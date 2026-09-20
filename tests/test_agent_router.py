@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from backend.app.database import DEMO_EMPLOYEES
 from backend.app.models import Employee
 from backend.app.services.agent_router import (
-    AgentDomain, AgentRoute, AgentRouter, ForcePlan, MutationPlan, RouterDecision, SpeechAct, TrustedAgentAction,
+    AgentDomain, AgentIntent, AgentRoute, AgentRouter, ForcePlan, MutationPlan, RouterDecision, SpeechAct, TrustedAgentAction,
     UnknownAgentEmployeeError, agent_route_json_schema, lite_router_json_schema,
 )
 from backend.app.services.llm_client import AgentLLMClient, AIUnavailableError, strict_json_schema, validate_strict_json_schema
@@ -144,6 +144,81 @@ def test_ids_and_multi_day_mutation(router_factory, employees, identifier):
     assert len(result.changes) == 3
     assert text in calls[1][0]["messages"][1]["content"]
     assert len(calls) == 2
+
+
+def test_provider_operation_order_is_canonicalized_to_current_message(router_factory, employees):
+    expected = [operation(day="Mon"), operation(day="Tue"), operation("E02", "Wed", type="preference", shift="evening")]
+    router, _ = router_factory(
+        decision(intent="replan", mutation_requested=True),
+        {"operations": [expected[2], expected[1], expected[0]], "minimize_changes": False, "clarification": None},
+    )
+    result = route(router, employees, "E01 周一周二请假，E02 周三晚班优先，帮我重新排一下")
+    assert [(item.employee_id, item.type.value, item.day.value if item.day else None, item.shift.value if item.shift else None) for item in result.operations] == [
+        ("E01", "leave", "Mon", None),
+        ("E01", "leave", "Tue", None),
+        ("E02", "preference", "Wed", "evening"),
+    ]
+
+
+def test_provider_cannot_replace_existing_preferences_without_set_authority(router_factory, employees):
+    router, _ = router_factory(
+        decision(intent="replan", mutation_requested=True),
+        {"operations": [
+            operation(day="Mon"),
+            operation(day="Tue"),
+            operation("E02", "Wed", type="preference", shift="evening", operation="set"),
+        ], "minimize_changes": False, "clarification": None},
+    )
+    result = route(router, employees, "E01 周一周二请假，E02 周三晚班优先，帮我重新排一下")
+    assert result.intent == AgentIntent.CLARIFICATION
+    assert not result.mutation_requested
+
+
+@pytest.mark.parametrize("returned", [
+    [operation(day="Mon"), operation(day="Tue"), operation("E02", "Wed", type="preference", shift="morning")],
+    [operation(day="Mon"), operation(day="Tue"), operation("E02", "Wed", type="preference", shift="evening"), operation(day="Fri")],
+    [operation(day="Mon"), operation("E02", "Wed", type="preference", shift="evening")],
+    [operation(day="Mon"), operation(day="Mon"), operation("E02", "Wed", type="preference", shift="evening")],
+    [operation(day="Mon"), operation(day="Tue"), operation("E03", "Wed", type="preference", shift="evening")],
+])
+def test_grounding_rejects_missing_duplicate_or_unknown_operations(router_factory, employees, returned):
+    router, _ = router_factory(
+        decision(intent="replan", mutation_requested=True),
+        {"operations": returned, "minimize_changes": False, "clarification": None},
+    )
+    result = route(router, employees, "E01 周一周二请假，E02 周三晚班优先，帮我重新排一下")
+    assert result.intent == AgentIntent.CLARIFICATION
+    assert not result.mutation_requested
+
+
+@pytest.mark.parametrize("text,ops", [
+    ("先清掉 E01 周一限制，再给 E01 周一请假", [operation(operation="clear"), operation()]),
+    ("E01 周一取消请假，再给 E01 周二请假", [operation(operation="remove", type="available"), operation(day="Tue")]),
+    ("E01 只请周一假，再给 E01 周二请假", [operation(operation="set"), operation(day="Tue")]),
+    ("E01 周一请假，E02 周二取消请假", [operation(), operation("E02", "Tue", operation="remove", type="available")]),
+])
+def test_sequential_mutations_use_text_order_even_when_provider_reverses(router_factory, employees, text, ops):
+    router, _ = router_factory(decision(mutation_requested=True),
+        {"operations": list(reversed(ops)), "minimize_changes": False, "clarification": None})
+    result = route(router, employees, text)
+    assert result.mutation_requested
+    assert [o.model_dump(mode="json") for o in result.operations] == ops
+
+
+@pytest.mark.parametrize("text,ops", [
+    ("E01、E02 周一都请假，重新排一下", [operation(), operation("E02")]),
+    ("E01 和 E02 周一请假", [operation(), operation("E02")]),
+    ("E01/E02 周一周二请假", [operation(), operation(day="Tue"), operation("E02"), operation("E02", "Tue")]),
+    ("E01 周一、E02 周二都请假", [operation(), operation("E02", "Tue")]),
+    ("E01 清掉周一限制，再加周二请假", [operation(operation="clear"), operation(day="Tue")]),
+    ("E01 清掉周一限制，再加周二请假", [operation(operation="clear")]),
+])
+def test_unsupported_shared_clauses_fail_closed(router_factory, employees, text, ops):
+    router, _ = router_factory(decision(mutation_requested=True),
+        {"operations": ops, "minimize_changes": False, "clarification": None})
+    result = route(router, employees, text + "，重新排一下")
+    assert not result.mutation_requested
+    assert result.intent == AgentIntent.CLARIFICATION
 
 
 @pytest.mark.parametrize("clear_type", ["leave", "unavailable"])

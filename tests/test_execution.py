@@ -171,8 +171,22 @@ def frames(response):
     ]
 
 
-def test_sse_and_post_share_idempotent_draft_and_persist_events(execution_client, monkeypatch):
+@pytest.mark.parametrize("drop_terminal", [False, True])
+def test_sse_and_post_share_idempotent_draft_and_persist_events(execution_client, monkeypatch, drop_terminal):
     from backend.app.api import dependencies
+    from backend.app.api import agent as agent_api
+
+    if drop_terminal:
+        response_class = agent_api.StreamingResponse
+
+        def losing_response(content, **kwargs):
+            async def filter_terminal():
+                async for frame in content:
+                    if not frame.startswith("event: result"):
+                        yield frame
+            return response_class(filter_terminal(), **kwargs)
+
+        monkeypatch.setattr(agent_api, "StreamingResponse", losing_response)
 
     client = execution_client
     cid = conversation(client)
@@ -184,12 +198,21 @@ def test_sse_and_post_share_idempotent_draft_and_persist_events(execution_client
         return original(*args, **kwargs)
 
     monkeypatch.setattr(dependencies.scheduling_service.solver, "solve", solve)
+    original_save = dependencies.scheduling_service.schedules.save_draft
+    saves = []
+
+    def save(*args, **kwargs):
+        saved = original_save(*args, **kwargs)
+        saves.append(saved.schedule_id)
+        return saved
+
+    monkeypatch.setattr(dependencies.scheduling_service.schedules, "save_draft", save)
     path = f"/api/agent/conversations/{cid}/messages"
     response = client.post(path + "/stream", json=body())
     assert response.headers["content-type"].startswith("text/event-stream")
     stream = frames(response)
-    assert stream[-1][0] == "result", stream[-1]
-    result = stream[-1][1]
+    assert stream[-1][0] == ("execution" if drop_terminal else "result"), stream[-1]
+    result = client.post(path, json=body()).json() if drop_terminal else stream[-1][1]
     assert result["schedule_result"]["status"] == "feasible"
     stages = [(e[1]["stage"], e[1]["status"]) for e in stream if e[0] == "execution"]
     assert stages[0] == ("turn_started", "completed")
@@ -206,6 +229,7 @@ def test_sse_and_post_share_idempotent_draft_and_persist_events(execution_client
     replay = client.post(path, json=body()).json()
     assert replay == result
     assert len(solves) == 1
+    assert saves == [result["schedule_result"]["schedule_id"]]
     detail = client.get(
         f"/api/agent/conversations/{cid}", params={"browser_workspace_id": "events"}
     ).json()
