@@ -142,7 +142,7 @@ async function main() {
     await s.page.reload(); await expect(s.page.getByTestId('plan-current')).toBeVisible(); await expect(s.page.getByTestId('scenario-preview')).toHaveCount(0);
     await preview(s); await s.page.getByTestId('clear-scenario').click(); await expect(s.page.getByTestId('scenario-preview')).toHaveCount(0); expect((await s.state()).patches).toEqual([]);
     await s.page.reload(); await expect(s.page.getByTestId('plan-current')).toBeVisible(); await expect(s.page.getByTestId('scenario-preview')).toHaveCount(0);
-    await preview(s); await s.panel.getByRole('button', { name: '新对话', exact: true }).click(); await expect(s.page.getByTestId('markdown-message')).toHaveCount(0); await expect(s.page.getByTestId('scenario-preview')).toHaveCount(0);
+    await preview(s); await s.panel.getByRole('button', { name: '新对话', exact: true }).click(); await expect(s.panel.getByRole('heading', { name: '你好，我是排班助手', exact: true })).toBeVisible({ timeout: 30000 }); await expect(s.panel.getByTestId('markdown-message')).toHaveCount(0); await expect(s.page.getByTestId('scenario-preview')).toHaveCount(0);
     const newIds = await s.page.evaluate(() => ({ cid: localStorage.getItem('optishift_conversation_id'), workspace: localStorage.getItem('optishift_browser_workspace_id') }));
     expect(newIds.cid).not.toBe(s.ids.cid);
     report.conversations.push({ ...newIds, case: 'G-new-conversation' });
@@ -170,6 +170,9 @@ async function main() {
     await s.panel.getByRole('textbox', { name: '排班消息' }).fill('E02 周五临时请假，帮我重新排一下，其他员工尽量少调整。');
     await s.panel.getByRole('button', { name: '发送消息', exact: true }).click();
     await expect(s.page.getByTestId('plan-draft')).toBeVisible({ timeout: 310000 });
+    // The workbench refresh can finish before conversation hydration on a real network.
+    await expect(s.panel.getByRole('textbox', { name: '排班消息' })).toBeEnabled({ timeout: 30000 });
+    await expect(s.panel.getByTestId('markdown-message')).toHaveCount(1, { timeout: 30000 });
     const draft = original.schedule_result;
     const detail = await get(`/api/agent/conversations/${s.ids.cid}?browser_workspace_id=${s.ids.workspace}`);
     const newRecords = (await versions()).versions.filter(v => !beforeVersions.some(b => b.schedule_id === v.schedule_id));
