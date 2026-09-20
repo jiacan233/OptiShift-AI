@@ -227,7 +227,8 @@ def test_versioned_demo_sync_idempotence_and_upgrade(tmp_path):
     db.initialize()
     now = utc_now()
 
-    # Simulate old v1 database with 16 employees
+    # Simulate an old fixture version containing an employee created by the
+    # former dynamic employee flow.
     with db.transaction(immediate=True) as session:
         v_rec = session.get(SystemMetadataRecord, "demo_employee_fixture_version")
         if v_rec:
@@ -239,7 +240,7 @@ def test_versioned_demo_sync_idempotence_and_upgrade(tmp_path):
             r_rec.value = "5"
         else:
             session.add(SystemMetadataRecord(key="employee_revision", value="5"))
-        # Add a custom non-demo employee that should never be deleted
+        # Add a non-canonical employee that the closed-roster upgrade must delete.
         session.add(
             EmployeeRecord(
                 id="E99",
@@ -253,9 +254,9 @@ def test_versioned_demo_sync_idempotence_and_upgrade(tmp_path):
             )
         )
 
-    # First sync: version 1 -> version 2
+    # First sync: old version -> closed-roster fixture version.
     updated_count = seed_demo_employees(db)
-    assert updated_count == 20  # 20 demo employees synced/upserted
+    assert updated_count == 21  # 20 canonical upserts plus the E99 deletion.
 
     with db.session() as session:
         fixture_ver = session.get(SystemMetadataRecord, "demo_employee_fixture_version").value
@@ -263,13 +264,11 @@ def test_versioned_demo_sync_idempotence_and_upgrade(tmp_path):
         assert fixture_ver == str(DEMO_EMPLOYEE_FIXTURE_VERSION)
         assert rev_after == 6  # Incremented exactly once from 5 to 6
 
-        # Custom employee E99 is preserved
-        assert session.get(EmployeeRecord, "E99") is not None
-        # All 20 demo employees present
+        assert session.get(EmployeeRecord, "E99") is None
         all_ids = set(session.scalars(select(EmployeeRecord.id)).all())
-        assert {f"E{i:02d}" for i in range(1, 21)}.issubset(all_ids)
+        assert all_ids == {f"E{i:02d}" for i in range(1, 21)}
 
-    # Second sync: already version 2, must be idempotent
+    # Second sync: already at the current version, must be idempotent.
     second_run = seed_demo_employees(db)
     assert second_run == 0
 
@@ -277,7 +276,8 @@ def test_versioned_demo_sync_idempotence_and_upgrade(tmp_path):
         rev_subsequent = int(session.get(SystemMetadataRecord, "employee_revision").value)
         assert rev_subsequent == 6  # Revision not incremented on idempotent rerun
 
-    # Test that subsequent sync does NOT overwrite user-modified fields once fixture_version == 2
+    # Subsequent sync does not overwrite user-modified fields once the fixture
+    # is already current.
     with db.transaction() as session:
         e01_rec = session.get(EmployeeRecord, "E01")
         e01_rec.preferred_shift = "evening"

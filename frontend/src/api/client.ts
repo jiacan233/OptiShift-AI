@@ -287,9 +287,6 @@ export const api = {
   },
 
   employees: {
-    create(employee: Employee) {
-      return request<Employee>('/api/employees', { method: 'POST', body: employee })
-    },
     async list() {
       const payload = await request<Employee[] | { employees: Employee[] }>('/api/employees')
       return unwrapArray(payload, 'employees')

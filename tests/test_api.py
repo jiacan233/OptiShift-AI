@@ -95,9 +95,47 @@ def test_health_employees_and_rules(client):
     assert health.status_code == 200
     assert health.json() == {"status": "ok", "app": "optishift-ai", "database": True}
     assert employees.status_code == 200
-    assert len(employees.json()["employees"]) == 20
+    employee_ids = [item["id"] for item in employees.json()["employees"]]
+    assert employee_ids == [f"E{index:02d}" for index in range(1, 21)]
     rule_ids = {item["rule_id"] for item in rules.json()["rules"]}
     assert rule_ids == {"H01", *{f"R{index:02d}" for index in range(1, 10)}, "S01", "S02", "S03"}
+
+
+def test_employee_creation_route_is_unavailable_and_roster_stays_closed(client):
+    response = client.post(
+        "/api/employees",
+        json={
+            "id": "E21",
+            "role": "clerk",
+            "skills": ["beverage"],
+            "available_days": ["Mon"],
+            "leave_days": [],
+            "preferred_shift": None,
+        },
+    )
+
+    assert response.status_code in {404, 405}
+    employees = client.get("/api/employees")
+    assert employees.status_code == 200
+    assert [item["id"] for item in employees.json()["employees"]] == [
+        f"E{index:02d}" for index in range(1, 21)
+    ]
+
+
+def test_employee_profile_patch_remains_available(client):
+    response = client.patch(
+        "/api/employees/E01",
+        json={
+            "available_days": ["Mon", "Tue", "Fri"],
+            "leave_days": ["Tue"],
+            "preferred_shift": "evening",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["available_days"] == ["Mon", "Tue", "Fri"]
+    assert response.json()["leave_days"] == ["Tue"]
+    assert response.json()["preferred_shift"] == "evening"
 
 
 def test_generate_validate_confirm_replan_versions_and_replan_again(client):

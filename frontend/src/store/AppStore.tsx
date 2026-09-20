@@ -134,7 +134,6 @@ interface StoreValue extends WorkbenchState {
   cancelDraft(): Promise<void>
   resolveClarification(employeeId: string): Promise<void>
   updateEmployee(employeeId: string, patch: EmployeePatch): Promise<void>
-  createEmployee(employee: Employee): Promise<boolean>
   selectShift(shift: { day: Day; shift: ShiftType } | null): void
   selectEmployee(employeeId: string | null): void
   dismissError(): void
@@ -340,19 +339,6 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     }
   }, [loadWeek, state.activeWeekStart])
 
-  const createEmployee = useCallback(async (input: Employee) => {
-    dispatch({ type: 'PATCH', patch: { isSavingEmployee: input.id, error: null } })
-    try {
-      const employee = await api.employees.create(input)
-      dispatch({ type: 'PATCH', patch: { employees: await api.employees.list(), isSavingEmployee: null, notice: `${employee.id} 已添加。` } })
-      await loadWeek(state.activeWeekStart)
-      return true
-    } catch (error) {
-      dispatch({ type: 'PATCH', patch: { isSavingEmployee: null, error: apiErrorMessage(error) } })
-      return false
-    }
-  }, [loadWeek, state.activeWeekStart])
-
   const value = useMemo<StoreValue>(() => ({
     ...state,
     activeSchedule: state.draftSchedule ?? state.confirmedSchedule,
@@ -366,13 +352,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     cancelDraft,
     resolveClarification,
     updateEmployee,
-    createEmployee,
     selectShift: (selectedShift) => dispatch({ type: 'PATCH', patch: { selectedShift } }),
     selectEmployee: (selectedEmployeeId) => dispatch({ type: 'PATCH', patch: { selectedEmployeeId } }),
     dismissError: () => dispatch({ type: 'PATCH', patch: { error: null } }),
     dismissNotice: () => dispatch({ type: 'PATCH', patch: { notice: null } }),
     dismissClarification: () => dispatch({ type: 'PATCH', patch: { clarification: null } }),
-  }), [state, bootstrap, setActiveWeek, applyScheduleResult, generate, replan, confirmDraft, cancelDraft, resolveClarification, updateEmployee, createEmployee])
+  }), [state, bootstrap, setActiveWeek, applyScheduleResult, generate, replan, confirmDraft, cancelDraft, resolveClarification, updateEmployee])
 
   return <AppStore.Provider value={value}>{children}</AppStore.Provider>
 }

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
-from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, ConfigDict
+from fastapi import APIRouter
 
-from ..models import Day, Shift, Employee
+from ..models import Day, Shift
 from .dependencies import employee_repository
 
 
@@ -15,20 +15,6 @@ class EmployeePatch(BaseModel):
     available_days: list[Day] | None = None
     leave_days: list[Day] | None = None
     preferred_shift: Shift | None = None
-
-
-class EmployeeCreate(Employee):
-    id: str = Field(min_length=1, max_length=32, pattern=r"^[A-Za-z0-9_-]+$")
-    role: str = Field(min_length=1, max_length=64)
-
-
-@router.post("", status_code=201)
-def create_employee(body: EmployeeCreate) -> dict:
-    employee = Employee.model_validate(body.model_dump())
-    try:
-        return employee_repository.create(employee).model_dump(mode="json")
-    except ValueError as exc:
-        raise HTTPException(status_code=409, detail="员工编号已存在，请使用其他编号。") from exc
 
 
 @router.get("")

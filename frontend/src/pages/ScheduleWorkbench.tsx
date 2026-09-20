@@ -300,9 +300,9 @@ export function ScheduleWorkbench() {
             employeeCountText={`全员 ${rows.length} 名员工在册`}
           />
 
-          {/* Main Content Area: Left Schedule View + Right Overview Panel */}
-          <div className="flex flex-col xl:flex-row gap-6 items-start">
-            <div data-schedule-grid-container className="flex-1 min-w-0 w-full">
+          {/* Main Content Area: Independent left and right column flows */}
+          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+            <div data-schedule-grid-container className="flex min-w-0 w-full flex-col gap-5">
               {/* E2E Test Compatibility & Screen Reader Interaction Anchor */}
               <div
                 className="fixed bottom-2 left-24 overlay-popover flex flex-wrap opacity-[0.005] pointer-events-auto"
@@ -323,12 +323,6 @@ export function ScheduleWorkbench() {
                     } else if (!busy && !store.draftSchedule) {
                       addShift(shift.day as Day, 'morning', id)
                     }
-                  }}
-                  onSwapClick={() => {
-                    void agent.openWithPrompt(
-                      '张宇 (E02) 与 孙静 (E05) 申请周五班次互换，请分析互换影响及规则合规性。',
-                      { intent: 'advice', target_week: store.activeWeekStart }
-                    )
                   }}
                 />
               ) : (
@@ -352,6 +346,12 @@ export function ScheduleWorkbench() {
                   onSelectEmployee={(e) => { setIsDayDrawerOpen(false); setPreviewEmployeeId(e.id) }}
                 />
               )}
+
+              {/* Companion cards follow the schedule in the left column flow. */}
+              <div className="flex flex-col gap-5 border-t border-slate-100 pt-2 md:flex-row">
+                <AttendanceCard metrics={weekMetrics} />
+                <ActivityFeed versions={store.versions} />
+              </div>
             </div>
 
             {/* Right Side: Overview & Real Metrics Panel */}
@@ -370,12 +370,6 @@ export function ScheduleWorkbench() {
               }}
               onViewAllRules={() => store.setPage('rules')}
             />
-          </div>
-
-          {/* Attendance & Activity Companion Cards */}
-          <div className="flex flex-col md:flex-row gap-5 pt-2 border-t border-slate-100">
-            <AttendanceCard metrics={weekMetrics} />
-            <ActivityFeed versions={store.versions} />
           </div>
 
           <CandidateComparisonBar plan={selectedPlan} baseline={plans.find(plan => plan.kind === 'current') ?? null} />

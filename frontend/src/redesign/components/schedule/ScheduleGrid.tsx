@@ -2,14 +2,12 @@ import React, { useState, useMemo } from 'react'
 import { Search, RotateCcw, Users, CalendarX } from 'lucide-react'
 import { EmployeeRow, ShiftItem, RoleType, Employee } from '../../types/schedule'
 import { ShiftCard } from './ShiftCard'
-import { SwapBadge } from './SwapBadge'
 
 interface ScheduleGridProps {
   scheduleData: EmployeeRow[]
   onShiftClick: (employeeName: string, shift: ShiftItem) => void
   daysHeader: { day: string; dayCn: string; date: number; fullDate: string }[]
   onSelectEmployee?: (employee: Employee) => void
-  onSwapClick?: () => void
 }
 
 export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
@@ -17,7 +15,6 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   onShiftClick,
   daysHeader,
   onSelectEmployee,
-  onSwapClick,
 }) => {
   // Lightweight Filter States
   const [searchQuery, setSearchQuery] = useState('')
@@ -86,7 +83,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
         <div>
           <h3 className="text-base font-bold text-slate-800">暂无员工数据</h3>
           <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-            系统尚未录入或同步员工主数据档案，请前往“员工档案与技能中心”录入员工。
+            系统尚未同步员工主数据档案，请检查后端主数据状态。
           </p>
         </div>
       </div>
@@ -281,15 +278,6 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
               })}
             </div>
 
-            {/* Floating 'Swap requested' Popover (Positioned in grid) */}
-            <div className="absolute right-8 top-[180px] z-20 pointer-events-auto">
-              <SwapBadge
-                user1Avatar="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
-                user2Avatar="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80"
-                statusText="调班申请待确认"
-                onClick={onSwapClick}
-              />
-            </div>
           </div>
         </div>
       )}

@@ -224,7 +224,9 @@ class Database:
 
 
 CANONICAL_EMPLOYEE_FIXTURE_VERSION = 2
-DEMO_EMPLOYEE_FIXTURE_VERSION = 2
+# Version 3 closes the demo roster to the canonical E01-E20 set and removes
+# any rows created by the former dynamic employee flow.
+DEMO_EMPLOYEE_FIXTURE_VERSION = 3
 
 DEMO_EMPLOYEES = [
     {
@@ -408,6 +410,7 @@ def seed_demo_employees(database: Database) -> int:
         }
         mutated = False
         count = 0
+        canonical_ids = {item["id"] for item in DEMO_EMPLOYEES}
         for item in DEMO_EMPLOYEES:
             emp_id = item["id"]
             if emp_id in existing:
@@ -442,6 +445,14 @@ def seed_demo_employees(database: Database) -> int:
                 )
                 mutated = True
                 count += 1
+
+        # The demo master data is a closed roster. Remove every employee row
+        # that is not part of the canonical fixture, regardless of its id or
+        # how it was created. This runs in the same transaction as the upsert.
+        for emp_id in set(existing) - canonical_ids:
+            session.delete(existing[emp_id])
+            mutated = True
+            count += 1
 
         if fixture_record is None:
             session.add(
