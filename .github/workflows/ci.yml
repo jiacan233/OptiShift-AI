@@ -23,6 +23,13 @@ jobs:
           cache-dependency-path: backend/requirements-dev.txt
       - run: pip install -r backend/requirements-dev.txt
       - run: python -m pytest -q
+      - name: Validate Python compilation
+        run: python -m compileall -q backend/app
+      - name: Validate Alembic migration heads
+        working-directory: backend
+        run: alembic heads
+      - name: Validate acceptance harness regressions
+        run: python -m pytest -q tests/evals/test_multiturn_harness.py tests/test_dialogue_repository.py tests/test_dialogue_state.py
 
   frontend-build:
     runs-on: ubuntu-latest
