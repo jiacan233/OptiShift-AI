@@ -32,6 +32,7 @@ class PendingAction(DialogueModel):
     shift: Shift | None = None
     source_message_id: str
     proposal: bool = False
+    execution_on_complete: Literal["none", "create_draft"] = "none"
 
     def missing(self):
         return [name for name, absent in (
@@ -83,6 +84,7 @@ class ConditionEdit(DialogueModel):
 class TurnCommand(DialogueModel):
     edits: list[ConditionEdit] = Field(default_factory=list)
     execution: Literal["none", "analyze", "preview", "create_draft", "advice"] = "none"
+    suppress_execution: bool = False
     reference: Literal["none", "current", "active", "suggestion"] = "none"
     reference_ids: list[str] = Field(default_factory=list)
     expected_count: int | None = None

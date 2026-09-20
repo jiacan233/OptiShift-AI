@@ -207,7 +207,8 @@ class DialogueAgent:
         legacy_only = all(c.source_kind == "legacy" for c in state.conditions)
         if (legacy_only and not state.proposals and not state.pending
                 and command.execution in {"preview", "advice", "create_draft"}
-                and command.edits and not command.adopt):
+                and command.edits and not command.adopt
+                and command.source != "deterministic_action"):
             return None
         if (state.conditions and legacy_only and not state.proposals and not state.pending
                 and command.edits and re.search(r"如果|改成|试排", text)):

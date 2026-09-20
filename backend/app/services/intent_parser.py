@@ -33,13 +33,13 @@ def _normalize_identifier_text(value: str) -> str:
 
 
 DAY_TOKENS = {
-    Day.MON: ("mon", "monday", "周一", "星期一"),
-    Day.TUE: ("tue", "tuesday", "周二", "星期二"),
-    Day.WED: ("wed", "wednesday", "周三", "星期三"),
-    Day.THU: ("thu", "thursday", "周四", "星期四"),
-    Day.FRI: ("fri", "friday", "周五", "星期五"),
-    Day.SAT: ("sat", "saturday", "周六", "星期六"),
-    Day.SUN: ("sun", "sunday", "周日", "星期日", "星期天"),
+    Day.MON: ("mon", "monday", "周一", "星期一", "礼拜一"),
+    Day.TUE: ("tue", "tuesday", "周二", "星期二", "礼拜二"),
+    Day.WED: ("wed", "wednesday", "周三", "星期三", "礼拜三"),
+    Day.THU: ("thu", "thursday", "周四", "星期四", "礼拜四"),
+    Day.FRI: ("fri", "friday", "周五", "星期五", "礼拜五"),
+    Day.SAT: ("sat", "saturday", "周六", "星期六", "礼拜六"),
+    Day.SUN: ("sun", "sunday", "周日", "星期日", "星期天", "礼拜日", "礼拜天"),
 }
 
 

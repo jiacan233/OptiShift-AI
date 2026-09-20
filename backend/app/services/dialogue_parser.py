@@ -4,6 +4,7 @@ import re
 from ..models.dialogue import ConditionEdit, TurnCommand
 from ..models.domain import ChangeType, Shift
 from .intent_parser import IntentParser
+from .draft_request import is_assignment_request, is_explicit_draft_request, suppresses_execution
 from .router_stages import RouterRun, parse_stage
 
 
@@ -26,7 +27,7 @@ def kind(text):
         return ChangeType.UNASSIGN
     if re.search(r"允许|可以上|恢复可用|available", text, re.I):
         return ChangeType.AVAILABLE
-    if re.search(r"上班|让.*上|放进|排进|排到|安排|assign", text, re.I) or re.search(r"[早晚]班上", text):
+    if re.search(r"上班|上个班|让.*上|(?:放|加|调|挪|换)(?:到|进)|排(?:进|到|上|个|一下)|安排|assign", text, re.I) or re.search(r"[早晚]班上", text):
         return ChangeType.ASSIGN
     return None
 
@@ -39,15 +40,18 @@ def deterministic_command(text, state, employees):
     shifts = [v for v, token in [(Shift.MORNING, "早班"), (Shift.EVENING, "晚班")] if token in text]
     shift = shifts[0] if len(shifts) == 1 else None
     command = TurnCommand()
-    suppress = bool(re.search(r"(?:先别|先不要|不要真的|不要|不许|别|先不)[^，。；]{0,5}(?:生成|执行|重排|排班|强制)|先别排", text))
-    execute = bool(re.search(r"重新排|重排|生成|排一版|帮我排|保存当前方案|采用当前方案", text)) and not suppress
+    suppress = suppresses_execution(text)
+    command.suppress_execution = suppress
+    execute = is_explicit_draft_request(text)
     preview = bool(re.search(r"试排|preview", text, re.I))
-    hypothetical = bool(re.search(r"如果.*(?:怎样|影响|合适|如何)|会怎样|先分析|先不要.*你先分析|可不可以|先不要改|先分析，不要改", text))
+    hypothetical = bool(re.search(r"如果|假如|会怎[样么]|分析|可不可以|能上吗|行不行|合适吗|合不合适|是否可行|先不要改", text))
     advice = bool(re.search(r"(?:给我|给出|提供).*(?:方案|建议)|优化方案|拆成具体调整", text))
-    explicit_record = bool(re.search(r"记住|记录|设成|设为", text))
+    explicit_record = bool(re.search(r"记住|记录|记下来|设成|设为", text))
     reference = bool(re.search(r"条件|要求|这[一二两三四\d]|最终|当前方案|修正后的|一出一进|现在.*重排", text))
     if execute:
         command.execution = "create_draft"
+        if is_assignment_request(text) and kind(text) == ChangeType.ASSIGN:
+            command.source = "deterministic_action"
     elif advice:
         command.execution = "advice"
     elif preview:
@@ -77,7 +81,7 @@ def deterministic_command(text, state, employees):
         command.edits = [ConditionEdit(operation="correct", days=[days[-1]], old_day=days[0])]
         command.execution = "none"
         return command
-    if re.search(r"(?:取消|撤销|不要了).*(?:待补|待完成|这个动作)|(?:这个|刚才的).*(?:不调了|不用补|取消)|取消.*pending", text, re.I):
+    if re.search(r"(?:取消|撤销|不要了).*(?:待补|待完成|这个动作)|(?:这个|刚才的).*(?:不调了|不用补|取消)|取消.*pending", text, re.I) or (state.pending and re.search(r"取消刚才那个", text)):
         command.edits = [ConditionEdit(operation="cancel_pending")]
         return command
     remove = bool(re.search(r"取消|撤销|不要了|那个不要|这个不要|保持原样", text))
@@ -97,7 +101,10 @@ def deterministic_command(text, state, employees):
         command.inspect = True
         return command
     # A slot answer only binds a single existing pending action.
-    slot_only = bool(re.fullmatch(r"(?:E\d{2}|周[一二三四五六日天]|[早晚]班)(?:[。.!！])?", text.strip(), re.I))
+    # Remove execution controls only from slot parsing; retain their authority
+    # on the command so a slot plus '先别生成' also revokes continuation.
+    slot_text = re.sub(r"[，,。；;]?\s*(?:不过|但是|但)?(?:先别|先不要|暂时别|暂时不|先不|不要真的|不要|先分析|先看看|只记下来).*", "", normalized).strip()
+    slot_only = bool(re.fullmatch(r"(?:E\d{2}|(?:周|星期|礼拜)[一二三四五六日天]|mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?|[早晚]班|[，,\s])+", slot_text, re.I))
     if slot_only or re.fullmatch(r"(?:班次)?还是[早晚]班[。.!！]?", text.strip()):
         if state.pending:
             command.edits = [ConditionEdit(employee_ids=ids, days=days, shift=shift)]
@@ -111,8 +118,14 @@ def deterministic_command(text, state, employees):
     # Reporting facts, checking absence and reasons must not manufacture edits.
     read = bool(re.search(r"怎么排|排了几个|为什么|哪些|有哪些|是谁|谁的|列出来|主要会违反|最少恢复哪个|会影响谁", text))
     if read and not hypothetical and not execute and not advice and not re.search(r"再加|改成|最终想要", text):
-        return None
+        return command if suppress and state.pending else None
     fragments = re.split(r"[，,。；;]|(?=(?<![A-Za-z0-9_])E\d{2}(?![A-Za-z0-9_]))", text)
+    # With one actor and one action, punctuation/order do not divide the slots:
+    # 周一早班安排E02上班 and E02排进周一，早班 are the same operation.
+    condition_text = re.sub(r"(?:先别|先不要|暂时别|暂时不|先不|不要真的|不要)[^，,。；;]{0,5}(?:生成|执行|重排|排班|排|改)", "", text)
+    fragment_kinds = {kind(f) for f in re.split(r"[，,。；;]", condition_text)} - {None}
+    if len(ids) <= 1 and len(fragment_kinds) == 1 and len(shifts) <= 1:
+        fragments = [condition_text]
     # Employee splitting retains the opening verb for phrases such as 把E11从…去掉.
     current_ids = ids[:1] if len(ids) == 1 else []
     for fragment in fragments:
@@ -135,7 +148,7 @@ def deterministic_command(text, state, employees):
         command.edits.append(ConditionEdit(employee_ids=resolved_ids,
             days=fragment_days, shift=fragment_shift, type=change_kind,
             proposal=(hypothetical or preview) and not explicit_record, group_skill=group_skill))
-    if not command.edits and (re.search(r"我想调|我要调|想让他上班|我选E", text)):
+    if not command.edits and (re.search(r"我想调|我要调|想让他上班|我选E", text) or (execute and kind(text) == ChangeType.ASSIGN)):
         if re.search(r"[二两三四五\d]+个人", text) and not ids:
             command.inspect = True
             command.expected_count = None
@@ -145,6 +158,8 @@ def deterministic_command(text, state, employees):
         # A vague preface with a headcount is not an execution collection reference.
         if not days and not any(e.days for e in command.edits):
             command.expected_count = None
+        return command
+    if suppress and state.pending:
         return command
     if execute or preview or advice or explicit_record:
         if execute and state.current():
@@ -169,12 +184,19 @@ def parse_command(text, state, employees, llm):
         return None
     if not llm.enabled:
         return TurnCommand(clarification="请说明要修改的员工、日期、班次或要采纳的条件。")
-    return parse_stage(llm, RouterRun(), TurnCommand, name="agent_dialogue", system=(
+    command = parse_stage(llm, RouterRun(), TurnCommand, name="agent_dialogue", system=(
         "Parse only the current user turn into a typed scheduling command. Use the supplied week-scoped "
         "state for explicit references and pronouns, never invent slots. Full conditions are record-only "
-        "by default. Hypotheses are proposals. create_draft requires explicit present-turn execution; "
+        "by default. Explicit scheduling action requests create drafts even without the word generate. "
+        "Hypotheses are proposals. create_draft requires explicit present-turn execution; "
         "先别生成 prevents execution but preserves edits. Corrections target exact ids; removals match "
         "the stated scope. Incomplete operations preserve known slots. Do not authorize force. "
         "Return clarification on ambiguous references. source must be semantic_parser."),
         user={"text": text, "state": state.model_dump(mode="json"),
               "known_employee_ids": [e.id for e in employees]})
+    # Provider interpretation can never override a deterministic read-only veto.
+    if command is not None and suppresses_execution(text):
+        command.suppress_execution = True
+        if command.execution == "create_draft":
+            command.execution = "analyze"
+    return command

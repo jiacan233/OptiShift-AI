@@ -38,6 +38,12 @@ def _selected(state, edit):
 
 def reduce_command(original, command, *, message_id, employees, employee_revision):
     state = original.model_copy(deep=True)
+    # Revocation survives even an ambiguous/invalid edit in the same turn.
+    if command.suppress_execution or command.execution in {"analyze", "preview", "advice"}:
+        for pending in state.pending:
+            pending.execution_on_complete = "none"
+    rollback = state.model_copy(deep=True)
+    resume_execution = False
     known = {e.id: e for e in employees}
     if command.clarification:
         return state, command.clarification
@@ -88,7 +94,7 @@ def reduce_command(original, command, *, message_id, employees, employee_revisio
                 member_ids = [e.id for e in employees if edit.group_skill in [s.value for s in e.skills]]
                 if not member_ids:
                     raise DialogueClarification("员工主数据中没有符合该技能范围的员工。")
-            if not member_ids and len(state.employee_focus) == 1:
+            if not member_ids and not state.pending and len(state.employee_focus) == 1:
                 member_ids = list(state.employee_focus)
             # An unrelated incomplete request never overwrites an existing action.
             compatible = [p for p in state.pending if (not member_ids or not p.employee_id or p.employee_id in member_ids)
@@ -108,6 +114,8 @@ def reduce_command(original, command, *, message_id, employees, employee_revisio
                 pending.days = edit.days or pending.days
                 pending.shift = edit.shift or pending.shift
                 pending.proposal = edit.proposal if edit.type else pending.proposal
+                if command.execution == "create_draft" and not command.suppress_execution and not pending.proposal:
+                    pending.execution_on_complete = "create_draft"
                 actions.append(pending)
             complete_changes = []
             for pending in actions:
@@ -119,20 +127,23 @@ def reduce_command(original, command, *, message_id, employees, employee_revisio
                     continue
                 complete_changes.extend(ScheduleChange(employee_id=pending.employee_id, type=pending.type,
                     day=day, shift=pending.shift) for day in pending.days)
+                if filling and pending.execution_on_complete == "create_draft" and not pending.proposal:
+                    resume_execution = True
                 state.pending = [p for p in state.pending if p.id != pending.id]
             if complete_changes:
+                proposal = all(p.proposal for p in actions)
                 existing = next((i for i in state.conditions + state.proposals
                                  if set(map(key, i.changes)) == set(map(key, complete_changes))), None)
                 if existing:
                     item = existing
-                    if not edit.proposal and item in state.proposals:
+                    if not proposal and item in state.proposals:
                         state.proposals.remove(item)
                         state.conditions.append(item)
                         item.source_message_id = message_id
                 else:
                     item = Condition(changes=complete_changes, source_message_id=message_id,
                                      employee_revision=employee_revision if edit.group_skill else None)
-                    (state.proposals if edit.proposal else state.conditions).append(item)
+                    (state.proposals if proposal else state.conditions).append(item)
                 state.employee_focus = list(dict.fromkeys(c.employee_id for c in item.changes))
                 state.focus = Focus(kind="proposal" if item in state.proposals else "condition", ids=[item.id])
                 if item.id not in state.context_ids:
@@ -155,7 +166,10 @@ def reduce_command(original, command, *, message_id, employees, employee_revisio
                 state.focus.kind = "condition"
     except DialogueClarification as exc:
         # An invalid batch cannot partially remove, correct or adopt conditions.
-        return original.model_copy(deep=True), str(exc)
+        command.clarification = str(exc)
+        return rollback, str(exc)
+    if resume_execution and not state.pending and not command.suppress_execution and command.execution == "none":
+        command.execution = "create_draft"
     question = None
     if state.pending:
         question = "待补信息：" + "；".join(

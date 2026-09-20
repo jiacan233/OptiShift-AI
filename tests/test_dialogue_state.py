@@ -104,7 +104,7 @@ def test_case_b_slot_filling_recovers_from_database_and_records_without_solving(
     _, state = _turn(agent_client, conversation, "E18。", "b2")
     assert state["pending"][0]["id"] == pending_id
     assert state["pending"][0]["employee_id"] == "E18"
-    _, state = _turn(agent_client, conversation, "想让他上班。", "b3")
+    _, state = _turn(agent_client, conversation, "想让他上班，先别生成。", "b3")
     assert state["pending"][0]["type"] == "assign"
     assert state["pending"][0]["days"] == []
 
