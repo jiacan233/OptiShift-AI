@@ -52,8 +52,7 @@ and current employee master data. Missing assignment day/shift safely produces
 clarification. This probe only reads employees: no conversation, message, scenario
 or schedule is persisted. `/health/llm` combines it with Basic Chat and Structured
 Output; a failed Router marks AI health degraded. Container `/health` remains
-application/database-only. `diagnose_route.py`, when present locally, remains a
-manual diagnostic and is not part of CI.
+application/database-only.
 
 Each case gets its own SQLite database from pytest's temporary directory, fixed
 employees, two schedule snapshots, current RuleConfig and seeded suggestion

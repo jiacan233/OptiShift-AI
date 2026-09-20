@@ -43,6 +43,8 @@ Thumbs.db
 # Generated acceptance/runtime artifacts
 /artifacts/
 /tests/acceptance/screenshots/
+/tests/acceptance/results/
+/test-results/
 /report/*.png
 
 # Browser/debug captures

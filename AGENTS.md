@@ -56,8 +56,8 @@ For Agent / scheduling bugs, read only as needed:
 ## Do not read by default
 
 - `artifacts/`
-- `tests/acceptance/screenshots/`
-- `tests/acceptance/results/`
+- `docs/archive/`
+- Do not read historical archived reports unless explicitly requested.
 - `report/*.png`
 - Browser page-source dumps (`*.html`, `*_html.txt`)
 - Playwright output
@@ -65,6 +65,17 @@ For Agent / scheduling bugs, read only as needed:
 - Generated transcripts (`transcript.json`, etc.)
 
 Only inspect those when the task explicitly concerns a specific test result or historical run.
+
+## Historical documents
+
+`docs/archive/` contains historical debugging and acceptance reports.
+They are not the current source of truth and must not be used to infer current behavior unless the task explicitly asks for historical analysis.
+
+The current sources of truth are:
+- Production code
+- Current tests
+- Current README
+- Current AGENTS.md
 
 ## Modification rule
 
