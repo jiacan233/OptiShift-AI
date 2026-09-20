@@ -37,7 +37,21 @@ Thumbs.db
 
 # Superpowers execution artifacts
 .superpowers/
-/artifacts/agent-evals/
 .pytest-*/
-# Large local acceptance transcripts are retained outside Git history.
-artifacts/agent-multiturn-live/**/transcript.json
+
+# Generated acceptance/runtime artifacts
+/artifacts/
+/tests/acceptance/screenshots/
+/report/*.png
+
+# Browser/debug captures
+/chat_source.html
+/app_page_source.html
+/page_source.html
+/app_ui_screenshot.png
+/ui_screenshot.png
+/error_panel.png
+
+# Local debug outputs
+/run_output.log
+/results.json
