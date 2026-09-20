@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useReducer, useRef, type ReactNode } from 'react'
-import { api, apiErrorMessage, type RuleConfig, type EmployeePatch } from '@/api/client'
+import { api, apiErrorMessage, confirmationError, type RuleConfig, type EmployeePatch } from '@/api/client'
 import { buildWeekWindow, currentMonday } from '@/lib/isoWeek'
 import type {
   ClarificationState,
@@ -148,6 +148,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const weekLoadRequestRef = useRef(0)
   const weekOptionsRequestRef = useRef(0)
+  const confirmingRef = useRef(false)
 
   const refreshWeekOptions = useCallback(async (anchorWeekStart: string) => {
     const requestId = weekOptionsRequestRef.current + 1
@@ -194,7 +195,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       if (display) {
         result = await api.schedules.validate(display.schedule_id, display.version)
       }
-      if (requestId !== weekLoadRequestRef.current) return
+      if (requestId !== weekLoadRequestRef.current) return false
       dispatch({ type: 'PATCH', patch: {
         activeWeekStart: context.week_start || weekStart,
         confirmedSchedule: context.confirmed_schedule,
@@ -208,7 +209,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         isRunning: false,
       } })
     } catch (error) {
-      if (requestId !== weekLoadRequestRef.current) return
+      if (requestId !== weekLoadRequestRef.current) return false
       dispatch({ type: 'PATCH', patch: {
         confirmedSchedule: null,
         draftSchedule: null,
@@ -220,8 +221,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         isRunning: false,
         error: apiErrorMessage(error),
       } })
+      return false
     }
     if (requestId === weekLoadRequestRef.current) await refreshWeekOptions(weekStart)
+    return requestId === weekLoadRequestRef.current
   }, [refreshWeekOptions])
 
   const applyScheduleResult = useCallback(async (result: ScheduleOperationResult) => {
@@ -300,16 +303,24 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   const confirmDraft = useCallback(async () => {
     const draft = state.draftSchedule
-    if (!draft) return
-    dispatch({ type: 'PATCH', patch: { isRunning: true, error: null } })
+    if (!draft || confirmingRef.current) return
+    confirmingRef.current = true
+    dispatch({ type: 'PATCH', patch: { isRunning: true, error: null, notice: null } })
     try {
-      const result = await api.schedules.confirm(draft.schedule_id, draft.version)
-      await applyScheduleResult(result)
-      dispatch({ type: 'PATCH', patch: { notice: `排班 v${result.status === 'confirmed' || result.status === 'feasible' ? result.version : draft.version} 已确认并生效。` } })
+      const result = await api.schedules.confirm(draft.schedule_id, draft.version, state.activeWeekStart)
+      if (result.status !== 'confirmed' || result.schedule_id !== draft.schedule_id || result.version !== draft.version) {
+        throw new Error('确认响应异常，请刷新后检查正式排班。')
+      }
+      if (await loadWeek(draft.week_start, result)) {
+        dispatch({ type: 'PATCH', patch: { notice: `排班 v${result.version} 已确认并生效。` } })
+      }
     } catch (error) {
-      dispatch({ type: 'PATCH', patch: { isRunning: false, error: apiErrorMessage(error) } })
+      dispatch({ type: 'PATCH', patch: { error: confirmationError(error) } })
+    } finally {
+      confirmingRef.current = false
+      dispatch({ type: 'PATCH', patch: { isRunning: false } })
     }
-  }, [applyScheduleResult, state.draftSchedule])
+  }, [loadWeek, state.activeWeekStart, state.draftSchedule])
 
   const cancelDraft = useCallback(async () => {
     const draft = state.draftSchedule

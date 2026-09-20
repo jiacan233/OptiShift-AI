@@ -329,10 +329,10 @@ export const api = {
         body: { schedule_id: scheduleId, version },
       })
     },
-    confirm(scheduleId: string, version: number) {
+    confirm(scheduleId: string, version: number, weekStart: string) {
       return request<ScheduleOperationResult>('/api/schedule/confirm', {
         method: 'POST',
-        body: { schedule_id: scheduleId, version },
+        body: { schedule_id: scheduleId, version, week_start: weekStart },
       })
     },
     cancel(scheduleId: string, version: number) {
@@ -415,4 +415,16 @@ export function apiErrorMessage(error: unknown): ApiProblem {
     return { code: 'network_error', message: '无法连接排班服务，请确认服务已启动。' }
   }
   return { code: 'unknown', message: error instanceof Error ? error.message : '发生未知错误。' }
+}
+
+export function confirmationError(error: unknown): ApiProblem {
+  const problem = apiErrorMessage(error)
+  console.error('draft_confirmation_failed', {
+    status: problem.status, code: problem.code, detail: problem.details,
+  })
+  if (problem.code === 'version_conflict') return { ...problem, message: '当前正式排班已发生变化，请刷新后重新确认。' }
+  if (problem.status === 404) return { ...problem, code: 'draft_not_found', message: '该草稿已失效，请重新生成排班。' }
+  if (problem.status === 422) return { ...problem, message: '确认请求参数异常，请刷新后重试。' }
+  if (problem.status && problem.status >= 500) return { ...problem, message: '确认失败，请稍后重试。' }
+  return problem
 }
