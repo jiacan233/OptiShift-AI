@@ -6,10 +6,19 @@ from datetime import date, timedelta
 from threading import Event, Thread
 from typing import Any, NoReturn
 
+from pydantic import ValidationError
+
 from ..config import positive_seconds
 from ..core import HistoryUnavailableError
 from ..execution import ExecutionTimeout, ExecutionTrace, current_execution, execution_stage, traced
-from ..models import ChangeType, Day, ForceRequest, Schedule, ScheduleChange
+from ..models import ChangeType, ForceRequest, ScenarioPatch, Schedule, ScheduleChange
+from ..models.scenario_changes import (
+    build_scenario_preview_inputs,
+    canonical_conditions,
+    format_conditions,
+    route_scenario_patches,
+    scenario_patch_to_schedule_changes,
+)
 from ..repository import (
     ConversationBusyError,
     ConversationNotFoundError,
@@ -19,6 +28,8 @@ from ..repository import (
     ScheduleRepository,
     VersionConflictError,
 )
+from ..repository.scenarios import ScenarioRevisionConflict, ScenarioInvalidatedError
+from ..repository.conversations import TurnLeaseLostError
 from ..validator.authorization import compliance_fields
 from .agent_context import ResolvedWeek, WeekResolutionError, WeekResolver
 from .agent_router import (
@@ -138,6 +149,43 @@ class StaleSuggestionError(ValueError):
     pass
 
 
+def safe_public_payload(value):
+    """Older failed turns may contain pre-fix diagnostics; never replay those."""
+    if isinstance(value, str) and re.search(r"pydantic\.dev|validation error[s]? for|Traceback \(most recent call|File \".+\", line \d+|sqlalchemy\.exc", value, re.I):
+        return "排班条件处理异常，请稍后重试。"
+    if isinstance(value, dict):
+        return {key: safe_public_payload(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [safe_public_payload(item) for item in value]
+    return value
+
+
+def map_agent_error(exc: Exception) -> dict[str, Any]:
+    """One public error contract for persisted turns, HTTP and SSE."""
+    if isinstance(exc, AgentTurnError):
+        return safe_public_payload({"status": exc.status_code, "code": exc.code, "message": str(exc),
+                "details": {**(exc.turn_result or {}), **(exc.details or {})}})
+    if isinstance(exc, ValidationError):
+        return {"status": 500, "code": "agent_internal_error",
+                "message": "排班条件处理异常，请稍后重试。"}
+    if isinstance(exc, (ConversationBusyError, TurnLeaseLostError)):
+        return {"status": 409, "code": "message_processing", "message": "请求仍在处理中，请使用同一请求标识重试。"}
+    if isinstance(exc, ScenarioRevisionConflict):
+        return {"status": 409, "code": "suggestion_stale", "message": "试排条件已更新，请刷新后重试。"}
+    if isinstance(exc, ScenarioInvalidatedError):
+        return {"status": 409, "code": "scenario_expired", "message": "旧试排条件已失效，请重新发起本次试排。"}
+    if isinstance(exc, ConversationNotFoundError):
+        return {"status": 404, "code": "conversation_not_found", "message": "未找到当前对话。"}
+    if isinstance(exc, LookupError):
+        return {"status": 404, "code": "entity_not_found", "message": "未找到请求的员工、排班或对话。"}
+    if isinstance(exc, AIUnavailableError):
+        return {"status": 503, "code": "ai_unavailable", "message": exc.safe_message}
+    if isinstance(exc, ValueError):
+        return {"status": 422, "code": "clarification_required",
+                "message": "请检查排班条件中的员工、日期和班次后重试。"}
+    return {"status": 500, "code": "agent_internal_error", "message": "排班服务暂时异常，请稍后重试。"}
+
+
 class AgentService:
     WRITE_INTENTS = {AgentIntent.GENERATE, AgentIntent.REPLAN}
     TURN_LEASE_TIMEOUT = timedelta(seconds=360)
@@ -171,6 +219,14 @@ class AgentService:
     def list_conversations(self, browser_workspace_id: str) -> list[dict[str, Any]]:
         return self.conversations.list_conversations(browser_workspace_id)
 
+    def clear_scenario(self, conversation_id, browser_workspace_id, week_start, expected_revision=None):
+        try:
+            self.tools.clear_scenario(conversation_id=conversation_id, browser_workspace_id=browser_workspace_id,
+                                      target_week=week_start, expected_revision=expected_revision)
+        except (ScenarioRevisionConflict, ScenarioInvalidatedError) as exc:
+            error = map_agent_error(exc)
+            raise AgentTurnError(error["status"], error["code"], error["message"]) from exc
+
     def get_conversation(
         self, conversation_id: str, browser_workspace_id: str
     ) -> dict[str, Any]:
@@ -179,18 +235,20 @@ class AgentService:
         )
         if conversation is None:
             raise ConversationNotFoundError(conversation_id)
-        return {
+        return safe_public_payload({
             "conversation": conversation,
+            "scenario_notices": [state.model_dump(mode="json") for state in self.tools.scenarios.invalidated_states(conversation_id)],
             "messages": self.conversations.list_messages(
                 conversation_id, browser_workspace_id
             ),
             "tool_calls": self.conversations.list_tool_calls(
                 conversation_id, browser_workspace_id
             ),
-        }
+        })
 
     @staticmethod
     def _replay_turn(result: dict[str, Any]) -> dict[str, Any]:
+        result = safe_public_payload(result)
         error = result.get("error")
         if isinstance(error, dict):
             code = str(error.get("code", "agent_error"))
@@ -845,7 +903,7 @@ class AgentService:
                 call["tool_call_id"],
                 conversation_id,
                 browser_workspace_id,
-                output_json={"error": "排班操作失败", "type": type(exc).__name__},
+                output_json={"error": map_agent_error(exc)["code"]},
                 status="failed",
                 owner_token=owner_token,
             )
@@ -1201,6 +1259,21 @@ class AgentService:
         renewal = Thread(target=renew, name="agent-lease", daemon=True)
         renewal.start()
         execution.emit("turn_started", "completed")
+
+        def fail_routing(exc: Exception) -> NoReturn:
+            logging.getLogger("optishift.agent").exception("agent_routing_failed")
+            error = map_agent_error(exc)
+            if execution.owner is not None:
+                user, owner = execution.owner
+                self._complete_failure(
+                    conversation_id=request["conversation_id"],
+                    browser_workspace_id=request["browser_workspace_id"],
+                    client_message_id=request["client_message_id"],
+                    user_message=user, owner_token=owner,
+                    code=error["code"], message=error["message"], status_code=error["status"],
+                )
+            raise AgentTurnError(error["status"], error["code"], error["message"]) from exc
+
         try:
             try:
                 result = self._send_message(**request)
@@ -1225,6 +1298,10 @@ class AgentService:
                                                "error_type": exc.error_type,
                                                "stage": exc.stage, "latency_ms": exc.latency_ms,
                                            })
+            except ValidationError as exc:
+                fail_routing(exc)
+            except ValueError as exc:
+                fail_routing(exc)
             execution.finish()
             assert execution.terminal_event is not None
             execution.publish(execution.terminal_event)
@@ -1368,6 +1445,10 @@ class AgentService:
                 conversation_summary=(conversation or {}).get("summary"),
                 trusted_action=trusted_action,
             )
+            if route.operations and route.mutation_requested:
+                route_scenario_patches(route.changes, canonical_conditions(route), route.operation)
+                route.changes = [ScheduleChange(employee_id=o.employee_id, type=o.type, day=o.day, shift=o.shift)
+                                 for o in route.operations if o.operation != "clear"]
             if trusted_action is None:
                 # Enforce the boundary even for a custom/injected router.
                 route = calibrate_read_route(route, content, employees)
@@ -1438,16 +1519,9 @@ class AgentService:
             scenario_patch = suggestion.get("scenario_patch")
             if isinstance(scenario_patch, dict):
                 try:
-                    patch_days = [Day(str(item)) for item in scenario_patch.get("days", [])]
-                    patch_type = ChangeType(str(scenario_patch.get("change_type", "leave")))
-                    scenario_changes = [
-                        ScheduleChange(
-                            employee_id=str(scenario_patch["employee_id"]),
-                            type=patch_type,
-                            day=day,
-                        )
-                        for day in patch_days
-                    ]
+                    scenario_changes = scenario_patch_to_schedule_changes(ScenarioPatch.model_validate(scenario_patch))
+                except ValidationError:
+                    raise
                 except (KeyError, ValueError) as exc:
                     self._complete_failure(
                         conversation_id=conversation_id,
@@ -1465,6 +1539,8 @@ class AgentService:
                     update={
                         "intent": AgentIntent.WHAT_IF,
                         "changes": scenario_changes,
+                        "clarification": AgentClarification(),
+                        "read_query": None,
                         "employees": [str(scenario_patch["employee_id"])],
                         "mutation_requested": True,
                         "operations": [],
@@ -1627,15 +1703,10 @@ class AgentService:
                     message_id=user_message["message_id"],
                     owner_token=owner_token,
                     tool_name="preview_scenario",
-                    inputs={
-                        "conversation_id": conversation_id,
-                        "target_week": target.week_start,
-                        "changes": list(route.changes),
-                        "operations": [item.model_dump(mode="json") for item in route.operations],
-                        "employee_ids": list(route.employees),
-                        "operation": route.operation,
-                        "expected_revision": suggestion.get("based_on_scenario_revision") if suggestion else None,
-                    },
+                    inputs=build_scenario_preview_inputs(
+                        route, conversation_id=conversation_id, target_week=target.week_start,
+                        expected_revision=suggestion.get("based_on_scenario_revision") if suggestion else None,
+                    ),
                     trace=trace,
                 )
                 tool_output = schedule_result
@@ -1783,20 +1854,17 @@ class AgentService:
                         # A failed first generation still establishes the
                         # conversation's scenario. Follow-up messages can then
                         # SET/ADD/REMOVE constraints even when no draft exists.
-                        if route.changes and not route.force_generate:
+                        if (route.changes or route.operations) and not route.force_generate:
                             schedule_result = self._run_tool(
                                 conversation_id=conversation_id,
                                 browser_workspace_id=browser_workspace_id,
                                 message_id=user_message["message_id"],
                                 owner_token=owner_token,
                                 tool_name="preview_scenario",
-                                inputs={
-                                    "conversation_id": conversation_id,
-                                    "target_week": target.week_start,
-                                    "changes": list(route.changes),
-                                    "employee_ids": list(route.employees),
-                                    "operation": "add",
-                                },
+                                inputs=build_scenario_preview_inputs(
+                                    route, conversation_id=conversation_id, target_week=target.week_start,
+                                    expected_revision=suggestion.get("based_on_scenario_revision") if suggestion else None,
+                                ),
                                 trace=trace,
                             )
                             tool_output = schedule_result
@@ -1989,24 +2057,28 @@ class AgentService:
             )
             schedule_result = None
             metadata = {}
-        except ValueError as exc:
+        except (ScenarioRevisionConflict, ScenarioInvalidatedError, ValidationError) as exc:
+            logging.getLogger("optishift.agent").exception("agent_condition_failed")
+            error = map_agent_error(exc)
             self._complete_failure(
-                conversation_id=conversation_id,
-                browser_workspace_id=browser_workspace_id,
-                client_message_id=client_message_id,
-                owner_token=owner_token,
-                user_message=user_message,
-                code="invalid_agent_action",
-                message=str(exc),
-                status_code=422,
-                intent=route.intent.value,
-                target_week=target.week_start,
-                tool_calls=trace,
+                conversation_id=conversation_id, browser_workspace_id=browser_workspace_id,
+                client_message_id=client_message_id, owner_token=owner_token, user_message=user_message,
+                code=error["code"], message=error["message"], status_code=error["status"],
+                intent=route.intent.value, target_week=target.week_start, tool_calls=trace,
             )
-            raise AssertionError("unreachable")
+        except ValueError as exc:
+            logging.getLogger("optishift.agent").exception("agent_condition_failed")
+            error = map_agent_error(exc)
+            self._complete_failure(
+                conversation_id=conversation_id, browser_workspace_id=browser_workspace_id,
+                client_message_id=client_message_id, owner_token=owner_token, user_message=user_message,
+                code=error["code"], message=error["message"], status_code=error["status"],
+                intent=route.intent.value, target_week=target.week_start, tool_calls=trace,
+            )
         except ExecutionTimeout:
             raise
         except Exception:
+            logging.getLogger("optishift.agent").exception("agent_operation_failed")
             recovered = self._recover_incomplete_turn(
                 conversation_id=conversation_id,
                 browser_workspace_id=browser_workspace_id,
@@ -2022,14 +2094,19 @@ class AgentService:
                 client_message_id=client_message_id,
                 owner_token=owner_token,
                 user_message=user_message,
-                code="agent_operation_failed",
-                message="Agent 操作未完成，请稍后重试。",
+                code="agent_internal_error",
+                message="排班服务暂时异常，请稍后重试。",
                 status_code=500,
                 intent=route.intent.value,
                 target_week=target.week_start,
                 tool_calls=trace,
             )
             raise AssertionError("unreachable")
+
+        conditions = canonical_conditions(route) if route.mutation_requested else []
+        if conditions:
+            metadata["conditions"] = conditions
+            response_content += "\n\n本次排班条件：\n" + format_conditions(conditions)
 
         display = current.get("display") if "current" in locals() else None
         confirmed = current.get("confirmed") if "current" in locals() else None

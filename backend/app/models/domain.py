@@ -327,6 +327,13 @@ class ScenarioPatch(StrictModel):
     operation: PatchOperation = PatchOperation.ADD
     days: list[Day] = Field(default_factory=list)
     change_type: ChangeType = ChangeType.LEAVE
+    shift: Shift | None = None
+
+    @model_validator(mode="after")
+    def require_shift_when_needed(self) -> "ScenarioPatch":
+        if self.change_type in {ChangeType.PREFERENCE, ChangeType.ASSIGN, ChangeType.UNASSIGN} and self.shift is None:
+            raise ValueError("该条件需要明确早班或晚班")
+        return self
 
     @field_validator("days")
     @classmethod
@@ -342,6 +349,8 @@ class ScenarioState(StrictModel):
     revision: int = Field(default=0, ge=0)
     patches: list[ScenarioPatch] = Field(default_factory=list)
     updated_at: datetime | None = None
+    invalidated: bool = False
+    message: str | None = None
 
 
 class ScenarioPreview(StrictModel):

@@ -306,6 +306,7 @@ export interface AgentSuggestion {
   proposed_changes?: ScheduleChange[]
   based_on_schedule_id?: string | null
   based_on_version?: number | null
+  scenario_patch?: { employee_id: string; operation: string; days: Day[]; change_type: string; shift?: ShiftType | null }
   action?: 'generate' | 'replan'
 }
 
@@ -343,6 +344,7 @@ export interface ConversationRecord {
 }
 
 export interface ConversationDetail {
+  scenario_notices?: Array<{ week_start: string; message: string; invalidated: boolean }>
   conversation: ConversationRecord
   messages: AgentMessage[]
   tool_calls?: AgentToolCall[]
@@ -408,7 +410,7 @@ export interface AgentExecutionEvent {
     intent?: string
     target_week?: string
     employees?: string[]
-    changes?: Array<{ employee_id: string; type: string; day: string }>
+    changes?: Array<{ employee_id: string; type: string; day: string; shift?: ShiftType | null; operation?: string }>
     error_type?: string
     latency_ms?: number
   }

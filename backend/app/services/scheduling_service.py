@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable
 from uuid import uuid4
 
+from ..models.scenario_changes import apply_scenario_patch, scenario_patches_to_schedule_changes
 from ..models import (
     Assignment,
     ForceRequest,
@@ -43,6 +44,7 @@ from .request_validator import validate_changes
 from .rules import load_rule_config
 
 logger = logging.getLogger("optishift.scheduling")
+DAY_LABELS = {"Mon": "周一", "Tue": "周二", "Wed": "周三", "Thu": "周四", "Fri": "周五", "Sat": "周六", "Sun": "周日"}
 
 
 class SolverOutputError(RuntimeError):
@@ -187,12 +189,7 @@ class SchedulingService:
         base_schedule: Schedule | None = None,
     ) -> dict[str, Any]:
         employee_list, _ = self.employees.list_with_revision()
-        changes: list[ScheduleChange] = []
-        for patch in patches:
-            if patch.operation is PatchOperation.CLEAR:
-                continue
-            for day in patch.days:
-                changes.append(ScheduleChange(employee_id=patch.employee_id, type=patch.change_type, day=day))
+        changes = scenario_patches_to_schedule_changes(patches)
         validate_changes(changes, employee_list)
         context = self.context_builder.build(
             week_start,
@@ -205,6 +202,8 @@ class SchedulingService:
         result = self.solver.solve(context, week_start=week_start, version=1)
         if result.status in {SolverStatus.OPTIMAL, SolverStatus.FEASIBLE} and result.schedule is not None:
             validation = normalize_validation(self.validator.validate(result.schedule, employee_list, context=context))
+            if not validation["valid"]:
+                raise SolverOutputError("Scenario preview failed independent validation")
             return {
                 "status": "scenario_preview",
                 "solver_status": result.status.value,
@@ -228,18 +227,9 @@ class SchedulingService:
             if patch.change_type.value not in {"leave", "unavailable"} or not patch.days:
                 continue
             for day in patch.days[:2]:
-                candidate_patches = [
-                    item.model_copy(
-                        update={"days": [value for value in item.days if value != day]}
-                    )
-                    for item in patches
-                ]
-                candidate_patches = [item for item in candidate_patches if item.days]
-                candidate_changes = [
-                    ScheduleChange(employee_id=item.employee_id, type=item.change_type, day=value)
-                    for item in candidate_patches
-                    for value in item.days
-                ]
+                repair = patch.model_copy(update={"operation": PatchOperation.REMOVE, "days": [day]})
+                candidate_patches = apply_scenario_patch(patches, repair)
+                candidate_changes = scenario_patches_to_schedule_changes(candidate_patches)
                 candidate_context = self.context_builder.build(
                     week_start,
                     base_schedule=base_schedule,
@@ -249,20 +239,20 @@ class SchedulingService:
                     allow_history_bootstrap=True,
                 )
                 candidate_result = self.solver.solve(candidate_context, week_start=week_start, version=1)
-                if candidate_result.status not in {SolverStatus.OPTIMAL, SolverStatus.FEASIBLE}:
+                if candidate_result.status not in {SolverStatus.OPTIMAL, SolverStatus.FEASIBLE, SolverStatus.INFEASIBLE}:
                     continue
+                feasible = candidate_result.status in {SolverStatus.OPTIMAL, SolverStatus.FEASIBLE}
+                if feasible and (candidate_result.schedule is None or not self.validator.validate(candidate_result.schedule, employee_list, context=candidate_context).valid):
+                    raise SolverOutputError("Repair candidate failed independent validation")
+                outcome = "严格 Solver 已验证可以生成完整排班。" if feasible else "严格 Solver 验证仍不可行，需要继续调整其他条件；此操作仅修改试排条件。"
                 suggestions.append({
                     "id": f"repair_{patch_index + 1}_{day.value.lower()}",
                     "suggestion_id": f"repair_{patch_index + 1}_{day.value.lower()}",
-                    "title": f"恢复 {patch.employee_id} {day.value} 可用",
-                    "description": f"移除 {patch.employee_id} 在 {day.value} 的临时限制后，严格 Solver 已验证可以生成完整排班。",
-                    "scenario_patch": {
-                        "employee_id": patch.employee_id,
-                        "operation": "remove",
-                        "days": [day.value],
-                        "change_type": patch.change_type.value,
-                    },
-                    "validation_result": {"status": "feasible", "strict_feasible": True},
+                    "title": f"恢复 {patch.employee_id} {DAY_LABELS[day.value]}可用",
+                    "description": f"移除 {patch.employee_id} 在 {day.value} 的临时限制后，{outcome}",
+                    "scenario_patch": repair.model_dump(mode="json"),
+                    "candidate_changes": [item.model_dump(mode="json") for item in candidate_changes],
+                    "validation_result": {"status": "feasible" if feasible else "infeasible", "strict_feasible": feasible},
                 })
                 if len(suggestions) >= 4:
                     break

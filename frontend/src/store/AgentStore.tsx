@@ -8,7 +8,6 @@ import type {
   AgentTurnResult,
   ApiProblem,
   ConversationSummary,
-  InfeasibleResult,
   TrustedAgentAction,
 } from '@/types'
 
@@ -26,7 +25,6 @@ interface PendingMessage {
 interface LoadConversationOptions {
   allowWhileSending?: boolean
   syncScheduleWeek?: boolean
-  restoreWorkbenchResult?: boolean
 }
 
 interface AgentStoreValue {
@@ -48,6 +46,7 @@ interface AgentStoreValue {
   showHistory(): Promise<void>
   hideHistory(): void
   newConversation(): Promise<void>
+  clearScenario(): Promise<void>
   loadConversation(conversationId: string, options?: LoadConversationOptions): Promise<void>
   sendMessage(content: string, trustedAction?: TrustedAgentAction): Promise<void>
   openWithPrompt(content: string, trustedAction?: TrustedAgentAction): Promise<void>
@@ -84,21 +83,6 @@ function persistedTurn(problem: ApiProblem): AgentTurnResult | null {
   return candidate.user_message && candidate.assistant_message && Array.isArray(candidate.tool_calls)
     ? candidate as AgentTurnResult
     : null
-}
-
-function latestInfeasibleMutation(messages: AgentMessage[], targetWeek: string): InfeasibleResult | null {
-  for (const message of [...messages].reverse()) {
-    if (
-      message.role !== 'assistant'
-      || message.target_week !== targetWeek
-      || !message.mutation_requested
-      || !['generate', 'replan', 'what_if'].includes(message.intent ?? '')
-    ) continue
-
-    const result = message.metadata_json?.infeasible_result
-    return result && (result.status === 'infeasible' || (result.status === 'scenario_preview' && !result.strict_feasible)) ? result : null
-  }
-  return null
 }
 
 export function AgentStoreProvider({ children }: { children: ReactNode }) {
@@ -167,7 +151,6 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
     const {
       allowWhileSending = false,
       syncScheduleWeek = true,
-      restoreWorkbenchResult = true,
     } = options
     if (isSending && !allowWhileSending) return
     const requestId = loadRequestRef.current + 1
@@ -177,7 +160,9 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
     try {
       const detail = await api.agent.getConversation(id, browserWorkspaceId)
       if (requestId !== loadRequestRef.current) return
+      if (syncScheduleWeek) scheduleStore.dismissInfeasibleResult()
       rememberConversation(id)
+      if (detail.scenario_notices?.length) setAgentError({ code: 'scenario_expired', message: '旧试排条件已失效，请重新发起本次试排。' })
       setConversationTitle(detail.conversation.title)
       setMessages(detail.messages)
       setExecutionEvents([])
@@ -196,10 +181,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
       if (syncScheduleWeek && targetWeek) {
         await scheduleStore.setActiveWeek(targetWeek)
         if (requestId !== loadRequestRef.current) return
-        if (restoreWorkbenchResult) {
-          const infeasible = latestInfeasibleMutation(detail.messages, targetWeek)
-          if (infeasible) await scheduleStore.applyScheduleResult(infeasible)
-        }
+
       }
     } catch (error) {
       if (requestId !== loadRequestRef.current) return
@@ -253,15 +235,15 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
         await scheduleStore.setActiveWeek(targetWeek)
       }
       await scheduleStore.applyScheduleResult(turn.schedule_result)
-    } else if (targetWeek && targetWeek !== scheduleStore.activeWeekStart) {
-      await scheduleStore.setActiveWeek(targetWeek)
+    } else {
+      scheduleStore.dismissInfeasibleResult()
+      if (targetWeek && targetWeek !== scheduleStore.activeWeekStart) await scheduleStore.setActiveWeek(targetWeek)
     }
     setPendingMessage(null)
     setAgentError(null)
     await loadConversation(id, {
       allowWhileSending: true,
       syncScheduleWeek: false,
-      restoreWorkbenchResult: false,
     }).catch(() => undefined)
     await refreshHistory().catch(() => undefined)
   }, [loadConversation, refreshHistory, scheduleStore])
@@ -322,12 +304,13 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
     setAgentError(null)
     try {
       await createConversation()
+      scheduleStore.dismissInfeasibleResult()
       setHistoryOpen(false)
       await refreshHistory().catch(() => undefined)
     } catch (error) {
       setAgentError(apiErrorMessage(error))
     }
-  }, [createConversation, isSending, refreshHistory])
+  }, [createConversation, isSending, refreshHistory, scheduleStore])
 
   const value = useMemo<AgentStoreValue>(() => ({
     browserWorkspaceId,
@@ -351,6 +334,16 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
     },
     hideHistory: () => setHistoryOpen(false),
     newConversation,
+    clearScenario: async () => {
+      if (sendingRef.current || !conversationIdRef.current) return
+      try {
+        await api.agent.clearScenario(conversationIdRef.current, browserWorkspaceId, scheduleStore.activeWeekStart, scheduleStore.infeasibleResult?.scenario_revision)
+        scheduleStore.dismissInfeasibleResult()
+        setAgentError(null)
+      } catch (error) {
+        setAgentError(apiErrorMessage(error))
+      }
+    },
     loadConversation,
     sendMessage,
     openWithPrompt: async (content, trustedAction) => {
@@ -361,7 +354,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
       if (pendingMessage) await executeMessage(pendingMessage)
     },
     dismissError: () => setAgentError(null),
-  }), [executionEvents, agentError, browserWorkspaceId, closeChat, conversationId, conversationTitle, conversations, executeMessage, isChatOpen, isHistoryOpen, isLoadingConversation, isSending, loadConversation, messages, newConversation, openChat, pendingMessage, refreshHistory, sendMessage, tracesByMessage])
+  }), [executionEvents, agentError, browserWorkspaceId, closeChat, conversationId, conversationTitle, conversations, executeMessage, isChatOpen, isHistoryOpen, isLoadingConversation, isSending, loadConversation, messages, newConversation, openChat, pendingMessage, refreshHistory, sendMessage, tracesByMessage, scheduleStore])
 
   return <AgentStore.Provider value={value}>{children}</AgentStore.Provider>
 }

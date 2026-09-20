@@ -222,7 +222,9 @@ export function ScheduleWorkbench() {
 
       {/* Infeasible Conflict Diagnostics View */}
       {store.infeasibleResult && (
-        <ConflictView result={store.infeasibleResult} employees={store.employees} />
+        <ConflictView result={store.infeasibleResult} employees={store.employees} busy={busy}
+          onDismiss={() => { store.dismissInfeasibleResult(); if (store.confirmedSchedule) setPlanSelection({ context: selectionContext, id: store.confirmedSchedule.schedule_id }) }}
+          onClear={() => { void agent.clearScenario() }} />
       )}
 
       {/* Week Data Loading Indicator */}

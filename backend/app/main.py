@@ -125,9 +125,20 @@ def problem(status: int, code: str, message: str, details=None) -> JSONResponse:
     )
 
 
+from pydantic import ValidationError
+from .services.agent_service import map_agent_error
+
+
+@app.exception_handler(ValidationError)
+async def model_validation_error(_request: Request, exc: ValidationError):
+    logger.exception("model_validation_failed")
+    error = map_agent_error(exc)
+    return problem(error["status"], error["code"], error["message"])
+
+
 @app.exception_handler(RequestValidationError)
 async def request_validation_error(_request: Request, exc: RequestValidationError):
-    return problem(422, "validation_error", "Request validation failed.", exc.errors())
+    return problem(422, "clarification_required", "请求内容不完整，请检查员工、日期和班次后重试。")
 
 
 @app.exception_handler(VersionConflictError)
@@ -224,12 +235,13 @@ async def business_validation(_request: Request, exc: BusinessValidationError):
 @app.exception_handler(InvalidScheduleStateError)
 @app.exception_handler(ValueError)
 async def invalid_operation(_request: Request, exc: Exception):
-    return problem(422, "validation_error", str(exc))
+    return problem(422, "validation_error", "请求条件无效，请检查后重试。")
 
 
 @app.exception_handler(SolverOutputError)
 async def solver_output_error(_request: Request, exc: SolverOutputError):
-    return problem(500, "solver_validation_error", str(exc))
+    logger.exception("solver_validation_failed")
+    return problem(500, "agent_internal_error", "排班服务暂时异常，请稍后重试。")
 
 
 @app.exception_handler(Exception)

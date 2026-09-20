@@ -13,6 +13,10 @@ from tests.evals.test_live_agent_eval import RecordingLLM
 from tests.read_fixtures import PREVIOUS_MESSAGES, database_snapshot
 
 CASES = [
+    {"name": "set_preserves_preference", "input": "把 E01 改成只周一请假，E02 周三晚班优先保持不变，再试排。", "kind": "set_keep"},
+    {"name": "only_leave_followup", "input": "那如果只让 E01 周一请假呢？", "kind": "only_leave"},
+    {"name": "two_preference_shifts", "input": "E02 周二早班优先 + 周三晚班优先，帮我试排一下", "kind": "two_preferences"},
+    {"name": "preference_missing_shift", "input": "E02 周三优先，帮我重新排一下", "kind": "missing_shift"},
     {"name": "e17_unspecified", "input": "把 E17 随便排到哪一天都行", "kind": "unspecified"},
     {"name": "e01_leave_replan", "input": "E01 周一请假，重新排一下", "kind": "leave"},
     {"name": "sunday_staffing", "input": "周日为什么安排了7个人？", "kind": "staffing"},
@@ -75,6 +79,19 @@ def evaluate_router(case, database, output_dir):
             assert result.force_generate and result.mutation_requested and "agent_force" in run.results
             assert [(s.rule_id, s.employee_id, s.day.value, s.shift.value) for s in result.requested_overrides] == [("R08", "E01", "Wed", "morning")]
             assert [(a.employee_id, a.day.value, a.shift.value) for a in result.forced_assignments] == [("E01", "Wed", "morning")]
+        elif kind == "set_keep":
+            assert result.intent == "what_if" and result.mutation_requested
+            assert [(o.employee_id, o.operation, o.day.value, o.shift.value if o.shift else None) for o in result.operations] == [("E01", "set", "Mon", None), ("E02", "add", "Wed", "evening")]
+        elif kind == "only_leave":
+            assert result.intent == "what_if" and result.mutation_requested
+            assert [(o.employee_id, o.operation, o.day.value) for o in result.operations] == [("E01", "set", "Mon")]
+        elif kind == "two_preferences":
+            assert result.mutation_requested
+            assert [(c.employee_id, c.day.value, c.type.value, c.shift.value) for c in result.changes] == [
+                ("E02", "Tue", "preference", "morning"), ("E02", "Wed", "preference", "evening")]
+            assert [(o.day.value, o.shift.value) for o in result.operations] == [("Tue", "morning"), ("Wed", "evening")]
+        elif kind == "missing_shift":
+            assert result.intent == "clarification" and not result.mutation_requested and not result.changes
         elif kind == "multi":
             assert result.mutation_requested
             assert [(c.employee_id, c.day.value, c.type.value, c.shift.value if c.shift else None) for c in result.changes] == [

@@ -327,7 +327,7 @@ test.describe.serial('持久化排班 Agent 验收', () => {
     await expect(page.getByText(/聊天不能直接确认排班/)).toBeVisible()
   })
 
-  test('场景 17：不可行结果刷新后保留冲突诊断且助手渲染 Markdown', async ({ page }) => {
+  test('场景 17：历史诊断保留在聊天，刷新不恢复工作台面板', async ({ page }) => {
     await openWorkbench(page, WEEK_41)
     const conversation = await page.evaluate(() => localStorage.getItem('optishift_conversation_id'))
     expect(conversation).toMatch(/^conv_/)
@@ -399,7 +399,7 @@ test.describe.serial('持久化排班 Agent 验收', () => {
 
     await page.reload()
     await expect(page.getByTestId('infeasible-summary')).toBeVisible()
-    await expect(page.getByText('覆盖缺口')).toBeVisible()
+    await expect(page.getByTestId('scenario-preview')).toHaveCount(0)
     await expect(page.getByText('这一周还没有排班')).not.toBeVisible()
     await page.unroute(`${API}/api/agent/conversations/${conversation}/messages/stream`)
     await page.unroute(`${API}/api/agent/conversations/${conversation}**`)

@@ -8,7 +8,7 @@ export function CandidatePlanCard({ plan, isSelected, onSelect, disabled }: {
   disabled: boolean
 }) {
   return (
-    <button type="button" aria-pressed={isSelected} disabled={disabled} onClick={() => onSelect(plan.id)}
+    <button data-testid={`plan-${plan.kind}`} type="button" aria-pressed={isSelected} disabled={disabled} onClick={() => onSelect(plan.id)}
       className={`relative w-full text-left p-2.5 rounded-xl border transition-all duration-150 flex items-start gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50 ${isSelected ? 'bg-blue-50/70 border-blue-500 shadow-xs ring-1 ring-blue-500/20' : 'bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/70'}`}>
       <div className="mt-0.5 shrink-0">
         <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-colors ${isSelected ? 'border-blue-600 bg-white ring-2 ring-blue-100' : 'border-slate-300 bg-white'}`}>

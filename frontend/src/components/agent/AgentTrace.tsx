@@ -33,11 +33,15 @@ export function AgentTrace({ calls, events = [], running = false }: {
         const failed = event.status === 'failed'
         const Icon = failed ? XCircle : active ? (running ? LoaderCircle : Circle) : CheckCircle2
         const days: Record<string, string> = { Mon: '周一', Tue: '周二', Wed: '周三', Thu: '周四', Fri: '周五', Sat: '周六', Sun: '周日' }
-        const changes = event.details.changes?.filter((change) => change.type === 'leave').map((change) => `${change.employee_id} ${days[change.day] ?? change.day}请假`).join('，')
+        const changes = event.details.changes?.map((change) => {
+          const kinds: Record<string, string> = { leave: '请假', unavailable: '不可用', available: '可用', preference: '优先', assign: '安排上班', unassign: '取消班次' }
+          const prefix = change.operation === 'remove' ? '移除条件：' : change.operation === 'set' ? '替换条件：' : change.operation === 'clear' ? '清空条件：' : ''
+          return `${prefix}${change.employee_id} ${days[change.day] ?? ''}${change.shift === 'morning' ? '早班' : change.shift === 'evening' ? '晚班' : ''}${kinds[change.type] ?? change.type}`
+        })
         return <li key={event.operation_id} className="flex items-start gap-2">
           <Icon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${failed ? 'text-red-500' : 'text-blue-600'} ${active && running ? 'animate-spin' : ''}`} />
           <div><p>{event.label}{active ? (running ? '…' : '（等待恢复进度）') : event.stage.startsWith('turn_') ? '' : failed ? (event.label.endsWith('失败') ? '' : '失败') : (event.label.endsWith('完成') ? '' : '完成')}{event.duration_ms != null && <span className="ml-1 text-slate-400">{event.duration_ms} ms</span>}</p>
-            {changes && <p className="mt-0.5 text-blue-700">{changes}</p>}
+            {!!changes?.length && <div data-testid="route-conditions" className="mt-0.5 text-blue-700"><p>本次排班条件：</p><ul>{changes.map((change, index) => <li key={index}>{change}</li>)}</ul></div>}
             {event.details.target_week && <p className="mt-0.5">目标周：{event.details.target_week}</p>}
             {event.details.error_type && <p className="mt-0.5 text-red-600">{({ read_timeout: '等待 AI 响应超时', connect_timeout: '连接 AI 服务超时', agent_turn_timeout: '本轮执行超过时间预算', solver_timeout: '排班求解超时' } as Record<string, string>)[event.details.error_type] ?? '当前步骤未完成'}</p>}
           </div>

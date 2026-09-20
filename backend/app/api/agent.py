@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import time
 from datetime import date
 from queue import Empty, Full, Queue
@@ -10,12 +11,12 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..repository import ConversationBusyError, ConversationNotFoundError, TurnLeaseLostError
+from ..repository import ConversationNotFoundError
 from ..services.agent_router import TrustedAgentAction
-from ..services.agent_service import AgentTurnError
+from ..services.agent_service import map_agent_error
 from .dependencies import agent_service
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
@@ -35,6 +36,24 @@ class SendMessageBody(AgentApiModel):
     content: str = Field(min_length=1, max_length=10_000)
     current_week_start: date | None = None
     trusted_action: TrustedAgentAction | None = None
+
+
+class ClearScenarioBody(AgentApiModel):
+    expected_revision: int | None = Field(default=None, ge=0)
+    browser_workspace_id: str = Field(min_length=1, max_length=128)
+    week_start: date
+
+
+@router.get("/conversations/{conversation_id}/scenario")
+def get_scenario(conversation_id: str, browser_workspace_id: str, week_start: date):
+    agent_service.get_conversation(conversation_id, browser_workspace_id)
+    return agent_service.tools.get_scenario(conversation_id=conversation_id, target_week=week_start)
+
+
+@router.delete("/conversations/{conversation_id}/scenario")
+def clear_scenario(conversation_id: str, body: ClearScenarioBody):
+    agent_service.clear_scenario(conversation_id, body.browser_workspace_id, body.week_start, body.expected_revision)
+    return {"status": "cleared", "week_start": body.week_start}
 
 
 @router.post("/conversations")
@@ -62,14 +81,20 @@ def get_conversation(
 
 @router.post("/conversations/{conversation_id}/messages")
 def send_message(conversation_id: str, body: SendMessageBody) -> dict[str, Any]:
-    return agent_service.send_message(
-        conversation_id=conversation_id,
-        browser_workspace_id=body.browser_workspace_id,
-        client_message_id=body.client_message_id,
-        content=body.content,
-        current_week_start=body.current_week_start,
-        trusted_action=body.trusted_action,
-    )
+    try:
+        return agent_service.send_message(
+            conversation_id=conversation_id,
+            browser_workspace_id=body.browser_workspace_id,
+            client_message_id=body.client_message_id,
+            content=body.content,
+            current_week_start=body.current_week_start,
+            trusted_action=body.trusted_action,
+        )
+    except Exception as exc:
+        logging.getLogger("optishift.agent").exception("agent_http_failed")
+        error = map_agent_error(exc)
+        return JSONResponse(status_code=error["status"], content=jsonable_encoder({"error": error}))
+
 
 
 @router.post("/conversations/{conversation_id}/messages/stream")
@@ -104,39 +129,9 @@ async def stream_message(conversation_id: str, body: SendMessageBody, request: R
                 event_sink=lambda event: publish("execution", event),
             )
             publish("result", result)
-        except AgentTurnError as exc:
-            publish(
-                "error",
-                {
-                    "code": exc.code,
-                    "message": str(exc),
-                    "status": exc.status_code,
-                    "details": {**(exc.turn_result or {}), **(exc.details or {})},
-                },
-            )
-        except (ConversationBusyError, TurnLeaseLostError):
-            publish(
-                "error",
-                {
-                    "code": "message_processing",
-                    "status": 409,
-                    "message": "请求仍在处理中，请使用同一请求标识重试。",
-                },
-            )
-        except ConversationNotFoundError:
-            publish(
-                "error",
-                {"code": "conversation_not_found", "status": 404, "message": "未找到当前对话。"},
-            )
-        except Exception:
-            publish(
-                "error",
-                {
-                    "code": "agent_operation_failed",
-                    "status": 500,
-                    "message": "处理未完成，请使用同一请求标识恢复。",
-                },
-            )
+        except Exception as exc:
+            logging.getLogger("optishift.agent").exception("agent_stream_failed")
+            publish("error", map_agent_error(exc))
         finally:
             request.app.state.agent_slots.release()
 

@@ -341,6 +341,11 @@ class AgentRouter:
                 return self._clarify("请明确要授权的规则、员工、日期、班次及允许缺口。", deterministic.employees)
             return self._validate_force_route(deterministic)
 
+        if explicit_reference(content) and deterministic.mutation_requested:
+            # A persisted suggestion already contains typed execution parameters.
+            # Parse only the explicit reference; never ask the model to reinvent it.
+            return deterministic
+
         if deterministic.intent == AgentIntent.ADVICE and deterministic.changes and not self._explicit_mutation(content):
             return deterministic
         wants_mutation = decision.mutation_requested or deterministic.mutation_requested or self._explicit_mutation(content)
@@ -361,6 +366,7 @@ class AgentRouter:
                     "Never invent unspecified days/shifts, including '随便排到哪一天'. Return clarification "
                     "when execution fields are missing. Pure schedule generation needs empty operations. "
                     "Read original text, employee master data and context; never inherit changes implicitly. "
+                    "Explicit conditions marked 保持不变 must remain add operations with their stated day and shift. "
                     "No force authorization, confirmation, read query or dates belong in this DTO."
                 ), user=user,
             )
@@ -437,6 +443,17 @@ class AgentRouter:
             # A following clause without a repeated employee ID may be outside
             # the parser's supported spans. Never silently drop its dates.
             return None
+        # A fully stated unchanged condition is grounded in this request, not
+        # inherited from history. Some providers omit it or copy a preceding SET.
+        preserved = [o for o in expected if any("保持不变" in span for span in spans.get(o.employee_id, []))]
+        operations = list(operations)
+        for keep in preserved:
+            matches = [i for i, o in enumerate(operations) if (o.employee_id, o.type, o.day, o.shift) == (keep.employee_id, keep.type, keep.day, keep.shift)]
+            if not matches:
+                operations.append(keep)
+            for index in matches:
+                if operations[index].operation in {"add", "set"}:
+                    operations[index] = keep
         normalized_operations: list[AgentScenarioOperation] = []
         for item in operations:
             normalized = item.model_copy(update={
@@ -643,6 +660,7 @@ class AgentRouter:
             "能排不",
             "行不行",
             "只请",
+            "只让",
             "仅请",
             "也请",
             "取消",
@@ -684,7 +702,7 @@ class AgentRouter:
             mutation_requested = False
         elif any(term in normalized for term in (
             "能排吗", "能排不", "这样呢", "行不行", "重新试", "试排", "what if",
-            "只请", "仅请", "也请", "取消", "撤销", "恢复可用", "不用请假",
+            "只请", "只让", "仅请", "也请", "取消", "撤销", "恢复可用", "不用请假",
             "清掉", "清除", "恢复全部", "clear",
         )):
             intent = AgentIntent.WHAT_IF
@@ -894,6 +912,15 @@ class AgentRouter:
             if clear:
                 result.extend(AgentScenarioOperation(operation="clear", employee_id=employee_id, day=d)
                               for d in (days or [None]))
+                continue
+            if re.search(r"偏好|优先|prefer", lowered) and re.search(r"早班|morning", lowered) and re.search(r"晚班|evening", lowered):
+                clauses = re.split(r"(?=(?:周|星期)[一二三四五六日天])", lowered)
+                for clause in clauses:
+                    clause_shift = Shift.MORNING if re.search(r"早班|morning", clause) else Shift.EVENING if re.search(r"晚班|evening", clause) else None
+                    if clause_shift:
+                        result.extend(AgentScenarioOperation(operation=operation, employee_id=employee_id,
+                            type=ChangeType.PREFERENCE, day=day, shift=clause_shift)
+                            for day in IntentParser.extract_days(clause))
                 continue
             shift = Shift.MORNING if re.search(r"早班|morning", lowered) else Shift.EVENING if re.search(r"晚班|evening", lowered) else None
             change_type = (

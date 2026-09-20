@@ -5,15 +5,15 @@ from datetime import date
 from typing import Any, Callable
 
 from ..execution import traced
+from ..models.scenario_changes import route_scenario_patches, scenario_patches_to_schedule_changes
 from ..models import (
-    ChangeType,
     ForceRequest,
-    PatchOperation,
     ScenarioPatch,
     Schedule,
     ScheduleChange,
 )
 from ..repository import EmployeeRepository, ScenarioRepository, ScheduleRepository
+from ..repository.scenarios import ScenarioInvalidatedError
 from .rules import public_rules
 from .read_query import ReadQueryPlan
 from .read_analysis import analyze_snapshot, counterfactual_snapshot, validate_snapshot
@@ -96,9 +96,10 @@ class AgentTools:
             from ..solver.primary_solver import PrimarySolver
             if conversation_id:
                 state = self.scenarios.get(conversation_id, target_week)
+                if state and state.invalidated:
+                    raise ScenarioInvalidatedError()
                 if state:
-                    context.requested_changes = [ScheduleChange(employee_id=p.employee_id, type=p.change_type, day=d)
-                                                 for p in state.patches for d in p.days]
+                    context.requested_changes = scenario_patches_to_schedule_changes(state.patches)
                     result["scenario_revision"] = state.revision
             try:
                 solved = PrimarySolver().solve(context, week_start=target_week)
@@ -121,10 +122,15 @@ class AgentTools:
             return {"status": "no_schedule", "target_week": target_week.isoformat(), "read_only": True}
         return counterfactual_snapshot(schedule, context, query)
 
+    def clear_scenario(self, *, conversation_id, browser_workspace_id, target_week, expected_revision=None):
+        self.scenarios.clear(conversation_id, browser_workspace_id, target_week, expected_revision)
+
     def get_scenario(self, *, conversation_id: str, target_week: date) -> dict[str, Any]:
         state = self.scenarios.get(conversation_id, target_week)
         return {
             "scenario_revision": state.revision if state else 0,
+            "invalidated": state.invalidated if state else False,
+            "message": state.message if state else None,
             "patches": [item.model_dump(mode="json") for item in state.patches] if state else [],
         }
 
@@ -142,40 +148,7 @@ class AgentTools:
         current = self.get_current_schedule(target_week=target_week)
         base = current.get("display")
         base_schedule = Schedule.model_validate(base["schedule"]) if base else None
-        if operations:
-            # Preserve the model's ordered, per-item operation semantics.  Do
-            # not regroup a mixed ADD/REMOVE/SET request into one global action.
-            patches = []
-            for item in operations:
-                item_operation = str(item.get("operation") or operation)
-                item_day = item.get("day")
-                item_type = ChangeType(item.get("type") or ChangeType.LEAVE.value)
-                if item_operation == "remove" and item_type is ChangeType.AVAILABLE:
-                    item_type = ChangeType.LEAVE
-                patches.append(ScenarioPatch(
-                    employee_id=str(item["employee_id"]),
-                    operation=item_operation,
-                    days=[item_day] if item_day is not None else [],
-                    change_type=item_type,
-                ))
-        else:
-            grouped: dict[tuple[str, ChangeType], list] = {}
-            for change in changes:
-                change_type = change.type
-                # AVAILABLE is the structured representation of removing a leave
-                # condition; keep the stored constraint type stable for the reducer.
-                if operation == "remove" and change_type.value == "available":
-                    change_type = ChangeType.LEAVE
-                grouped.setdefault((change.employee_id, change_type), []).append(change.day)
-            patches = [
-                ScenarioPatch(
-                    employee_id=employee_id,
-                    operation=operation,
-                    days=list(dict.fromkeys(days)),
-                    change_type=change_type,
-                )
-                for (employee_id, change_type), days in grouped.items()
-            ]
+        patches = route_scenario_patches(changes, operations, operation)
         if operation == "clear":
             patches.extend(
                 ScenarioPatch(employee_id=employee_id, operation=operation, days=[])
@@ -227,11 +200,7 @@ class AgentTools:
             raise ValueError("当前周没有可保存的场景试排")
         preview = self.scenarios.get_preview_result(conversation_id, target_week)
         if preview and preview.get("strict_feasible") and isinstance(preview.get("schedule"), dict):
-            changes = [
-                ScheduleChange(employee_id=patch.employee_id, type=patch.change_type, day=day)
-                for patch in state.patches
-                for day in patch.days
-            ]
+            changes = scenario_patches_to_schedule_changes(state.patches)
             return self.scheduling.promote_preview(
                 week_start=target_week,
                 preview=preview,
@@ -246,11 +215,7 @@ class AgentTools:
                 before_commit=_before_commit,
                 agent_turn_guard=_turn_guard,
             )
-        changes = [
-            ScheduleChange(employee_id=patch.employee_id, type=patch.change_type, day=day)
-            for patch in state.patches
-            for day in patch.days
-        ]
+        changes = scenario_patches_to_schedule_changes(state.patches)
         return self.scheduling.generate(
             week_start=target_week,
             changes=changes,
@@ -451,11 +416,9 @@ class AgentTools:
         _turn_guard: tuple[str, str, str] | None = None,
     ) -> dict[str, Any]:
         scenario = self.scenarios.get(source_conversation_id, target_week)
-        scenario_changes = [
-            ScheduleChange(employee_id=patch.employee_id, type=patch.change_type, day=day)
-            for patch in (scenario.patches if scenario else [])
-            for day in patch.days
-        ]
+        if scenario and scenario.invalidated:
+            raise ScenarioInvalidatedError()
+        scenario_changes = scenario_patches_to_schedule_changes(scenario.patches if scenario else [])
         return self.scheduling.force_generate(
             week_start=target_week,
             force_request=force_request,

@@ -40,9 +40,13 @@ def explicit_reference(content: str) -> str | None:
     text = _normalize_identifier_text(content).lower()
     if re.search(r"(?:不要|别|不必|不想).{0,8}(?:引用|建议)|(?:只|仅).{0,5}当前排班", text):
         return None
-    # Concrete schedule objects take precedence over references.
-    if IntentParser.extract_days(text) or re.search(r"(?<![A-Za-z0-9_])e\d+(?![A-Za-z0-9_])|早班|晚班|\b(?:morning|evening)\b|\d+\s*/\s*\d+|\d+\s*个人|\d{4}-\d{2}-\d{2}|\d+月\d+(?:日|号)", text):
+    repair = re.search(r"\brepair_\d+_(?:mon|tue|wed|thu|fri|sat|sun)\b", text)
+    concrete_text = text.replace(repair.group(0), "") if repair else text
+    # Concrete schedule objects take precedence; an ID suffix is not a date.
+    if IntentParser.extract_days(concrete_text) or re.search(r"(?<![A-Za-z0-9_])e\d+(?![A-Za-z0-9_])|早班|晚班|\b(?:morning|evening)\b|\d+\s*/\s*\d+|\d+\s*个人|\d{4}-\d{2}-\d{2}|\d+月\d+(?:日|号)", concrete_text):
         return None
+    if repair:
+        return repair.group(0)
     match = re.search(r"(?:第\s*([一二两三四五六七八九十\d]+)\s*(?:条|个)|suggestion[_ ]?(\d+))", text)
     if match:
         raw = match.group(1) or match.group(2)

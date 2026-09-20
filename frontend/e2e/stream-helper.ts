@@ -17,6 +17,7 @@ export async function observeAgentStream(page: Page) {
 }
 
 export async function readAgentStream(page: Page) {
+  await page.waitForFunction(() => Boolean((window as unknown as { agentStream?: Promise<string> }).agentStream))
   const text = await page.evaluate(() => (
     window as unknown as { agentStream: Promise<string> }
   ).agentStream)

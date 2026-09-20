@@ -372,6 +372,11 @@ export const api = {
   },
 
   agent: {
+    clearScenario(conversationId: string, browserWorkspaceId: string, weekStart: string, expectedRevision?: number) {
+      return request(`/api/agent/conversations/${encodeURIComponent(conversationId)}/scenario`, {
+        method: 'DELETE', body: { browser_workspace_id: browserWorkspaceId, week_start: weekStart, expected_revision: expectedRevision },
+      })
+    },
     streamMessage: streamAgentMessage,
     createConversation(browserWorkspaceId: string) {
       return request<Pick<ConversationRecord, 'conversation_id' | 'created_at'> & Partial<ConversationRecord>>('/api/agent/conversations', {

@@ -86,11 +86,11 @@ function reducer(state: WorkbenchState, action: Action): WorkbenchState {
   if (action.result.status === 'clarification_required') {
     return { ...state, clarification: action.result.clarification, conflicts: [], infeasibleResult: null, isRunning: false }
   }
-  if (action.result.status === 'infeasible' || (action.result.status === 'scenario_preview' && !action.result.strict_feasible)) {
+  if (action.result.status === 'infeasible' || action.result.status === 'scenario_preview') {
     return {
       ...state,
       conflicts: action.result.conflicts,
-      infeasibleResult: action.result,
+      infeasibleResult: action.result.status === 'scenario_preview' && !action.result.scenario_patches?.length ? null : action.result,
       clarification: null,
       draftSchedule: state.draftSchedule,
       result: state.result,
@@ -136,6 +136,7 @@ interface StoreValue extends WorkbenchState {
   updateEmployee(employeeId: string, patch: EmployeePatch): Promise<void>
   selectShift(shift: { day: Day; shift: ShiftType } | null): void
   selectEmployee(employeeId: string | null): void
+  dismissInfeasibleResult(): void
   dismissError(): void
   dismissNotice(): void
   dismissClarification(): void
@@ -354,6 +355,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     updateEmployee,
     selectShift: (selectedShift) => dispatch({ type: 'PATCH', patch: { selectedShift } }),
     selectEmployee: (selectedEmployeeId) => dispatch({ type: 'PATCH', patch: { selectedEmployeeId } }),
+    dismissInfeasibleResult: () => dispatch({ type: 'PATCH', patch: { infeasibleResult: null, conflicts: [] } }),
     dismissError: () => dispatch({ type: 'PATCH', patch: { error: null } }),
     dismissNotice: () => dispatch({ type: 'PATCH', patch: { notice: null } }),
     dismissClarification: () => dispatch({ type: 'PATCH', patch: { clarification: null } }),

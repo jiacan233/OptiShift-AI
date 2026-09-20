@@ -127,10 +127,11 @@ class ExecutionTrace:
                 ]
             elif key == "changes" and isinstance(value, list):
                 safe[key] = [
-                    {k: v for k, v in item.items() if k in {"employee_id", "day", "type"}}
+                    {k: v for k, v in item.items() if k in {"employee_id", "day", "type", "shift", "operation"}}
                     for item in value
                     if isinstance(item, dict)
-                    and item.get("day") in {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
+                    and (item.get("day") in {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"} or item.get("operation") == "clear")
+                    and item.get("shift") in {None, "morning", "evening"}
                     and item.get("type")
                     in {"leave", "unavailable", "available", "preference", "assign", "unassign"}
                     and str(item.get("employee_id", "")).isalnum()
@@ -209,10 +210,11 @@ def traced(stage: str):
             with execution_stage(stage) as details:
                 result = function(*args, **kwargs)
                 if stage == "agent_route":
+                    from .models.scenario_changes import canonical_conditions
                     details.update(
                         intent=result.intent.value,
                         employees=result.employees,
-                        changes=[c.model_dump(mode="json") for c in result.changes],
+                        changes=canonical_conditions(result),
                     )
                     if result.target_week:
                         details["target_week"] = result.target_week.isoformat()

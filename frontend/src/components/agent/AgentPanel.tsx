@@ -155,6 +155,10 @@ export function AgentPanel() {
                 <div className="space-y-4">
                   {agent.messages.map((message) => (
                     <MessageBubble key={message.message_id} message={message} trace={agent.tracesByMessage[message.message_id] ?? []} suggestionsDisabled={busy || !!schedule.draftSchedule} onViewPlan={() => { schedule.setPage('schedule'); agent.closeChat(); requestAnimationFrame(() => { const plan = document.getElementById('schedule-plans'); plan?.scrollIntoView({ behavior: 'smooth', block: 'start' }); plan?.focus({ preventScroll: true }) }) }} onApplySuggestion={(suggestion) => {
+                      if (suggestion.scenario_patch) {
+                        void agent.sendMessage(`按 ${suggestion.suggestion_id} 调整试排。`)
+                        return
+                      }
                       if (suggestion.action === 'generate' || !suggestion.based_on_schedule_id) {
                         void agent.sendMessage(`按 ${suggestion.suggestion_id} 生成草稿。`, { intent: 'generate', target_week: suggestion.target_week ?? schedule.activeWeekStart })
                         return

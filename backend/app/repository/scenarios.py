@@ -5,13 +5,20 @@ from uuid import uuid4
 from typing import Any
 
 from sqlalchemy import select
+from pydantic import ValidationError
 
 from ..database import Database, utc_now
 from ..models import ScenarioPatch, ScenarioState
-from ..models.orm import ConversationScenarioRecord
+from ..models.scenario_changes import apply_scenario_patch, apply_scenario_patches
+from ..models.orm import ConversationScenarioRecord, ConversationRecord
+from .conversations import ConversationBusyError, ConversationNotFoundError
 
 
 class ScenarioRevisionConflict(RuntimeError):
+    pass
+
+
+class ScenarioInvalidatedError(RuntimeError):
     pass
 
 
@@ -19,25 +26,73 @@ class ScenarioRepository:
     def __init__(self, database: Database) -> None:
         self.database = database
 
+    def clear(self, conversation_id: str, browser_workspace_id: str, week_start: date,
+              expected_revision: int | None = None) -> None:
+        with self.database.transaction(immediate=True) as session:
+            conversation = session.scalar(select(ConversationRecord).where(
+                ConversationRecord.conversation_id == conversation_id,
+                ConversationRecord.browser_workspace_id == browser_workspace_id,
+            ).with_for_update())
+            if conversation is None:
+                raise ConversationNotFoundError(conversation_id)
+            if conversation.active_turn_message_id:
+                raise ConversationBusyError(conversation_id)
+            record = session.scalar(select(ConversationScenarioRecord).where(
+                ConversationScenarioRecord.conversation_id == conversation_id,
+                ConversationScenarioRecord.week_start == week_start,
+            ).with_for_update())
+            if record and (record.temporary_constraints or record.last_preview_result or record.last_strict_result):
+                if expected_revision is not None and record.revision != expected_revision:
+                    raise ScenarioRevisionConflict()
+                record.temporary_constraints = []
+                record.last_preview_result = None
+                record.last_strict_result = None
+                record.revision += 1
+                record.updated_at = utc_now()
+            conversation.summary = None
+
     @staticmethod
     def _state(record: ConversationScenarioRecord) -> ScenarioState:
+        try:
+            patches = [ScenarioPatch.model_validate(item) for item in (record.temporary_constraints or [])]
+        except ValidationError:
+            # Invalidate only this temporary scenario, never guess a missing shift.
+            patches = []
+            record.temporary_constraints = []
+            record.last_preview_result = None
+            record.last_strict_result = {"invalidated": True}
+            record.revision += 1
+            record.updated_at = utc_now()
+        invalidated = bool((record.last_strict_result or {}).get("invalidated"))
         return ScenarioState(
             conversation_id=record.conversation_id,
             week_start=record.week_start,
             revision=record.revision,
-            patches=[ScenarioPatch.model_validate(item) for item in (record.temporary_constraints or [])],
+            patches=patches,
             updated_at=record.updated_at,
+            invalidated=invalidated,
+            message="旧试排条件已失效，请重新发起本次试排。" if invalidated else None,
         )
 
     def get(self, conversation_id: str, week_start: date) -> ScenarioState | None:
-        with self.database.transaction() as session:
+        with self.database.transaction(immediate=True) as session:
             record = session.scalar(select(ConversationScenarioRecord).where(
                 ConversationScenarioRecord.conversation_id == conversation_id,
                 ConversationScenarioRecord.week_start == week_start,
-            ))
+            ).with_for_update())
             return self._state(record) if record else None
 
+    def invalidated_states(self, conversation_id: str) -> list[ScenarioState]:
+        with self.database.transaction(immediate=True) as session:
+            records = session.scalars(select(ConversationScenarioRecord).where(
+                ConversationScenarioRecord.conversation_id == conversation_id,
+            ).with_for_update()).all()
+            return [state for record in records if (state := self._state(record)).invalidated]
+
     def get_preview_result(self, conversation_id: str, week_start: date) -> dict[str, Any] | None:
+        state = self.get(conversation_id, week_start)
+        if state and state.invalidated:
+            raise ScenarioInvalidatedError()
         with self.database.transaction() as session:
             record = session.scalar(select(ConversationScenarioRecord).where(
                 ConversationScenarioRecord.conversation_id == conversation_id,
@@ -60,46 +115,7 @@ class ScenarioRepository:
             expected_revision=expected_revision,
         )
 
-    @staticmethod
-    def _apply_patch(
-        patches: list[ScenarioPatch], patch: ScenarioPatch
-    ) -> list[ScenarioPatch]:
-        """Apply one operation to an in-memory snapshot."""
-        operation = patch.operation.value
-        affected = [item for item in patches if item.employee_id == patch.employee_id]
-        if operation == "clear":
-            if patch.days:
-                remaining: list[ScenarioPatch] = []
-                for item in patches:
-                    if item.employee_id != patch.employee_id:
-                        remaining.append(item)
-                        continue
-                    days = [day for day in item.days if day not in patch.days]
-                    if days:
-                        remaining.append(item.model_copy(update={"days": days}))
-                return remaining
-            return [item for item in patches if item.employee_id != patch.employee_id]
-
-        same_type = next(
-            (
-                item
-                for item in affected
-                if item.change_type == patch.change_type
-            ),
-            None,
-        )
-        current_days = list(same_type.days) if same_type else []
-        if operation == "set":
-            days = list(dict.fromkeys(patch.days))
-        elif operation == "remove":
-            days = [day for day in current_days if day not in patch.days]
-        else:
-            days = list(dict.fromkeys(current_days + list(patch.days)))
-
-        result = [item for item in patches if item is not same_type]
-        if days:
-            result.append(patch.model_copy(update={"operation": "add", "days": days}))
-        return result
+    _apply_patch = staticmethod(apply_scenario_patch)
 
     def upsert_patches(
         self,
@@ -110,6 +126,7 @@ class ScenarioRepository:
         expected_revision: int | None = None,
     ) -> ScenarioState:
         """Apply a complete change batch against one revision atomically."""
+        self.get(conversation_id, week_start)
         with self.database.transaction(immediate=True) as session:
             record = session.scalar(select(ConversationScenarioRecord).where(
                 ConversationScenarioRecord.conversation_id == conversation_id,
@@ -136,10 +153,11 @@ class ScenarioRepository:
                 ScenarioPatch.model_validate(item)
                 for item in (record.temporary_constraints or [])
             ]
-            for patch in incoming:
-                current = self._apply_patch(current, patch)
+            current = apply_scenario_patches(current, incoming)
             patches = current
             record.temporary_constraints = [item.model_dump(mode="json") for item in patches]
+            record.last_strict_result = None
+            record.last_preview_result = None
             record.revision += 1
             record.updated_at = utc_now()
             session.flush()
