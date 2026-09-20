@@ -15,6 +15,7 @@ from uuid import uuid4
 
 import httpx
 from jsonschema import Draft202012Validator
+from pydantic import ValidationError
 
 from ..config import positive_seconds
 from ..execution import ExecutionTimeout, current_execution
@@ -43,7 +44,7 @@ def is_schema_unsupported(error: AIUnavailableError) -> bool:
     message = error.provider_message or ""
     feature = r"(?:json[_ ]?schema|response[_ ]?format|structured[ _-]?outputs?|strict)"
     unsupported = (
-        r"(?:not\s+support(?:ed)?|unsupported|not\s+available|not\s+implemented|"
+        r"(?:not\s+support(?:ed)?|unsupported|unavailable|not\s+available|not\s+implemented|"
         r"does\s+not\s+support|unknown\s+(?:parameter|field))"
     )
     return bool(re.search(feature, message, re.I) and re.search(unsupported, message, re.I))
@@ -751,10 +752,89 @@ class AgentLLMClient:
         read_timeout_seconds: float | None = None,
         strict_output: bool = True,
     ) -> dict[str, Any]:
+        # Keep format negotiation and output retries inside the Provider boundary.
+        strict_output = strict_output and "deepseek" not in self.model.casefold() and not (
+            (urlsplit(self.base_url).hostname or "").casefold() == "api.deepseek.com"
+        )
+        budget = read_timeout_seconds
+        stage_budget = provider_stage_budget(stage)
+        if stage_budget is not None:
+            budget = min(budget, stage_budget) if budget is not None else stage_budget
+        started = time.monotonic()
+        validation_retries = 0
+        requests = 0
+        fallback_used = not strict_output
+        compatibility_deadline = None
+        while True:
+            remaining = None if budget is None else budget - (time.monotonic() - started)
+            if compatibility_deadline is not None:
+                fallback_remaining = compatibility_deadline - time.monotonic()
+                remaining = (
+                    min(remaining, fallback_remaining)
+                    if remaining is not None else fallback_remaining
+                )
+            if remaining is not None and remaining <= 0.01:
+                raise AIUnavailableError(
+                    "AI 结构化输出超过时间预算。", error_type="read_timeout", stage=stage,
+                )
+            try:
+                requests += 1
+                result = self._complete_json_once(
+                    system=system, user=user, schema_name=schema_name, schema=schema,
+                    stage=stage, read_timeout_seconds=remaining, strict_output=strict_output,
+                )
+                return result
+            except AIUnavailableError as exc:
+                if strict_output and is_schema_unsupported(exc):
+                    strict_output = False
+                    fallback_used = True
+                    compatibility_deadline = time.monotonic() + positive_seconds(
+                        "LLM_SCHEMA_RETRY_BUDGET_SECONDS", 10,
+                    )
+                    logger.info(
+                        "LLM JSON mode fallback stage=%s reason=%s", stage, exc.provider_message,
+                    )
+                    continue
+                if is_schema_unsupported(exc):
+                    # Do not let an outer router retry an already rejected JSON mode.
+                    raise AIUnavailableError(
+                        "AI Provider 不支持所需的 JSON 结构化输出。",
+                        error_type="structured_output_error", stage=stage,
+                        provider_status=exc.provider_status, provider_message=exc.provider_message,
+                    ) from exc
+                if exc.error_type in {"invalid_json", "structured_output_error"}:
+                    logger.warning(
+                        "LLM structured validation failed stage=%s retry=%s reason=%s",
+                        stage, validation_retries, exc.provider_message,
+                    )
+                    if validation_retries == 0:
+                        validation_retries += 1
+                        continue
+                raise
+            finally:
+                self.last_request_metrics.update(
+                    structured_request_count=requests, validation_retries=validation_retries,
+                    fallback_used=fallback_used,
+                )
+
+    def _complete_json_once(
+        self,
+        *,
+        system: str,
+        user: dict[str, Any],
+        schema_name: str,
+        schema: dict[str, Any],
+        stage: str = "structured_output",
+        read_timeout_seconds: float | None = None,
+        strict_output: bool = True,
+    ) -> dict[str, Any]:
         validate_strict_json_schema(schema)
         if not strict_output:
             system += (
-                " Return only a JSON object, with all fields and no extra fields, matching: "
+                " Return ONLY a JSON object conforming to the existing "
+                + str(schema.get("title", schema_name))
+                + " Schema below. Include all fields and no extra fields. "
+                "Do not return Markdown, explanations or plain text. JSON Schema: "
                 + json.dumps(schema, ensure_ascii=False, separators=(",", ":"))
             )
         response, latency_ms, provider_status = self._post(
@@ -780,7 +860,7 @@ class AgentLLMClient:
                         }
                     }
                     if strict_output
-                    else {}
+                    else {"response_format": {"type": "json_object"}}
                 ),
             },
             stage=stage,
@@ -792,27 +872,50 @@ class AgentLLMClient:
         except json.JSONDecodeError as exc:
             self._fail(
                 "AI Provider 返回了无法识别的响应。",
-                error_type="invalid_provider_response",
+                error_type="invalid_json",
                 provider_status=provider_status,
                 started=started,
                 cause=exc,
+                provider_message=str(exc),
                 stage=stage,
             )
         if not isinstance(parsed, dict):
             self._fail(
                 "AI Provider 返回了无法识别的响应。",
-                error_type="invalid_provider_response",
+                error_type="structured_output_error",
+                provider_message="JSON root must be an object",
                 provider_status=provider_status,
                 started=started,
                 stage=stage,
             )
-        if not Draft202012Validator(schema).is_valid(parsed):
+        # These are the existing router DTOs, imported lazily to avoid the router's
+        # module-level dependency on this client. Never alter or repair their data.
+        if schema.get("title") in {"AgentRoute", "RouterDecision", "MutationPlan", "ForcePlan"}:
+            from . import agent_router
+
+            model = getattr(agent_router, schema["title"])
+            try:
+                model.model_validate(parsed)
+            except ValidationError as exc:
+                details = json.dumps(exc.errors(include_input=False, include_url=False), default=str)
+                self._fail(
+                    "AI 结构化结果不符合预期格式。", error_type="structured_output_error",
+                    started=started, stage=stage, provider_status=provider_status,
+                    provider_message=details, cause=exc,
+                )
+        error = next(Draft202012Validator(schema).iter_errors(parsed), None)
+        if error is not None:
             self._fail(
                 "AI 结构化结果不符合预期格式。",
                 error_type="structured_output_error",
                 started=started,
                 stage=stage,
                 provider_status=provider_status,
+                provider_message=(
+                    f"Schema validation failed at {list(error.absolute_path)}: "
+                    f"constraint {error.validator}={error.validator_value!r}"
+                ),
+                cause=error,
             )
         return parsed
 

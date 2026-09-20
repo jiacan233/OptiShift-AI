@@ -8,7 +8,7 @@ import httpx
 import pytest
 
 from backend.app.execution import ExecutionTrace, current_execution
-from backend.app.services.agent_router import agent_route_json_schema
+from backend.app.services.agent_router import AgentRoute, agent_route_json_schema
 from backend.app.services.llm_client import (
     AgentLLMClient,
     AIUnavailableError,
@@ -43,6 +43,8 @@ def _response(content: str, status_code: int = 200) -> httpx.Response:
 def _client(monkeypatch: pytest.MonkeyPatch) -> AgentLLMClient:
     monkeypatch.setenv("LLM_ENABLED", "true")
     monkeypatch.setenv("LLM_API_KEY", "sk-test-secret")
+    monkeypatch.setenv("LLM_MODEL", "gpt-4.1-mini")
+    monkeypatch.setenv("LLM_BASE_URL", "https://api.openai.com/v1")
     monkeypatch.delenv("LLM_READ_TIMEOUT_SECONDS", raising=False)
     monkeypatch.delenv("LLM_HEALTH_READ_TIMEOUT_SECONDS", raising=False)
     return AgentLLMClient()
@@ -84,7 +86,107 @@ def test_complete_json_sends_strict_json_schema(monkeypatch: pytest.MonkeyPatch)
     response_format = payload["response_format"]
     assert response_format["type"] == "json_schema"
     assert response_format["json_schema"]["strict"] is True
+    assert payload["messages"][0]["content"] == "test"
     assert result == {"ok": True}
+
+
+def _route_completion(client):
+    return client.complete_json(
+        system="Route the current request.", user={"message": "hello"},
+        schema_name="agent_route", schema=agent_route_json_schema(),
+    )
+
+
+@pytest.mark.parametrize("detection", ["model", "host", "rejection"])
+def test_json_object_provider_returns_existing_agent_route(monkeypatch, detection):
+    client = _client(monkeypatch)
+    if detection == "model":
+        client.model = "deepseek-chat"
+    elif detection == "host":
+        client.base_url = "https://api.deepseek.com/v1"
+    route = AgentRoute(intent="ask").model_dump(mode="json")
+    requests = []
+
+    def post(_self, _url, **kwargs):
+        requests.append(kwargs["json"])
+        if detection == "rejection" and len(requests) == 1:
+            return _response("This response_format type is unavailable now", 400)
+        return _response(json.dumps(route))
+
+    monkeypatch.setattr(httpx.Client, "post", post)
+    assert AgentRoute.model_validate(_route_completion(client)).intent == "ask"
+    assert len(requests) == (2 if detection == "rejection" else 1)
+    assert requests[-1]["response_format"] == {"type": "json_object"}
+    prompt = requests[-1]["messages"][0]["content"]
+    assert "ONLY a JSON object" in prompt and "AgentRoute Schema" in prompt
+    assert json.dumps(agent_route_json_schema(), ensure_ascii=False, separators=(",", ":")) in prompt
+
+
+@pytest.mark.parametrize("model", ["gpt-4.1-mini", "deepseek-chat"])
+@pytest.mark.parametrize("recover", [False, True])
+@pytest.mark.parametrize("failure,reason", [
+    ("not JSON", "Expecting value"),
+    ('{"intent":"invalid"}', "enum"),
+    (json.dumps(AgentRoute(intent="ask").model_dump(mode="json") | {"target_week": "2026-02-30"}), "target_week"),
+    ("{}", "Field required"),
+    ("[]", "JSON root must be an object"),
+    ('{"intent":"ask"}', "constraint required"),
+])
+def test_structured_validation_retries_only_once(monkeypatch, caplog, model, recover, failure, reason):
+    client = _client(monkeypatch)
+    client.model = model
+    valid = AgentRoute(intent="ask").model_dump(mode="json")
+    requests = []
+
+    def post(_self, _url, **kwargs):
+        requests.append(kwargs["json"])
+        return _response(json.dumps(valid) if recover and len(requests) == 2 else failure)
+
+    monkeypatch.setattr(httpx.Client, "post", post)
+    if recover:
+        assert _route_completion(client) == valid
+    else:
+        with pytest.raises(AIUnavailableError) as error:
+            _route_completion(client)
+        assert error.value.error_type in {"invalid_json", "structured_output_error"}
+        assert error.value.__cause__ is not None or failure == "[]"
+    assert len(requests) == 2
+    assert reason in caplog.text
+    expected_format = "json_object" if model == "deepseek-chat" else "json_schema"
+    assert all(r["response_format"]["type"] == expected_format for r in requests)
+
+
+def test_deepseek_health_is_not_degraded(monkeypatch):
+    client = _client(monkeypatch)
+    client.model = "deepseek-chat"
+
+    def post(_self, _url, **kwargs):
+        if "response_format" in kwargs["json"]:
+            assert kwargs["json"]["response_format"] == {"type": "json_object"}
+            return _response('{"ok":true}')
+        return _response("OK")
+
+    monkeypatch.setattr(httpx.Client, "post", post)
+    assert client.health_check()["status"] == "ok"
+
+
+def test_format_negotiation_does_not_reset_validation_retry_limit(monkeypatch):
+    client = _client(monkeypatch)
+    requests = []
+
+    def post(_self, _url, **kwargs):
+        requests.append(kwargs["json"])
+        if len(requests) == 1:
+            return _response("This response_format type is unavailable now", 400)
+        return _response("not JSON")
+
+    monkeypatch.setattr(httpx.Client, "post", post)
+    with pytest.raises(AIUnavailableError, match="无法识别"):
+        _route_completion(client)
+    assert [r["response_format"]["type"] for r in requests] == [
+        "json_schema", "json_object", "json_object",
+    ]
+    assert client.last_request_metrics["validation_retries"] == 1
 
 
 def test_health_check_requires_basic_and_structured(monkeypatch: pytest.MonkeyPatch) -> None:
