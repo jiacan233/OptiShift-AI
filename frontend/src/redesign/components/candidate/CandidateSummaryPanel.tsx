@@ -1,4 +1,4 @@
-import { Check, Sparkles } from 'lucide-react'
+import { Check, LoaderCircle, Sparkles } from 'lucide-react'
 import { MarkdownMessage } from '@/components/agent/MarkdownMessage'
 import { CandidateMascot } from './CandidateMascot'
 import type { CandidatePlan } from './types'
@@ -50,7 +50,7 @@ export function CandidateSummaryPanel({ plan, busy, onConfirm, onCancel, onViewA
             <button type="button" disabled={!plan || busy} onClick={onViewAnalysis} className="px-2.5 py-1 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-blue-600 text-[11px] font-bold transition shadow-2xs disabled:opacity-40">查看更多分析</button>
             {isDraft ? <>
               <button type="button" disabled={busy} onClick={onCancel} className="px-2.5 py-1 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 text-[11px] font-bold disabled:opacity-40">取消草稿</button>
-              <button type="button" disabled={busy || !confirmable} onClick={onConfirm} className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-extrabold transition shadow-xs shadow-blue-500/20 disabled:opacity-40"><Check className="h-3 w-3" />{force ? '确认非合规强制方案' : '确认生效'}</button>
+              <button type="button" aria-busy={busy} disabled={busy || !confirmable} onClick={onConfirm} className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-extrabold transition shadow-xs shadow-blue-500/20 disabled:opacity-40">{busy ? <LoaderCircle className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}{busy ? '正在处理…' : force ? '确认非合规强制方案' : '确认生效'}</button>
             </> : plan?.kind === 'current' ? <span className="text-[11px] font-bold text-slate-500">当前正式版本</span> : <button type="button" disabled={busy || !plan || !onApplyPlan || !!stale} onClick={() => { if (plan?.kind === 'candidate') onApplyPlan?.(plan) }} className="px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-extrabold shadow-xs disabled:opacity-40">应用此方案</button>}
           </div>
         </div>

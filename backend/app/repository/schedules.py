@@ -33,6 +33,13 @@ class InvalidScheduleStateError(ValueError):
     pass
 
 
+class ConfirmationConflictError(InvalidScheduleStateError):
+    def __init__(self, code: str, message: str, details: Any = None) -> None:
+        self.code = code
+        self.details = details
+        super().__init__(message)
+
+
 class DraftPendingError(RuntimeError):
     def __init__(self, week_start: date, schedule_id: str, version: int) -> None:
         self.week_start = week_start
@@ -515,15 +522,23 @@ class ScheduleRepository:
             record["schedule"] = self._schedule_from_record(session, base)
             return record
 
-    def confirm(self, schedule_id: str, version: int) -> Schedule:
+    def confirm(
+        self, schedule_id: str, version: int, *,
+        validated_following: tuple[str, int] | None = None,
+    ) -> Schedule:
         with self.database.transaction() as session:
             candidate = session.get(ScheduleRecord, schedule_id)
-            if candidate is None or candidate.status != "draft":
+            if candidate is None or candidate.status not in {"draft", "confirmed"}:
                 raise DraftNotFoundError(schedule_id)
             week_start = candidate.week_start
-        self._ensure_week_lock(week_start)
+        # Serialize adjacent confirmations in chronological order, including a
+        # following week that did not exist when the service validated it.
+        weeks = [week_start + timedelta(days=offset) for offset in (-7, 0, 7)]
+        for week in weeks:
+            self._ensure_week_lock(week)
         with self.database.transaction(immediate=True) as session:
-            self._lock_week(session, week_start)
+            for week in weeks:
+                self._lock_week(session, week)
             statement = self._lock(
                 select(ScheduleRecord).where(
                     ScheduleRecord.schedule_id == schedule_id
@@ -531,10 +546,17 @@ class ScheduleRepository:
                 session,
             )
             draft = session.scalar(statement)
-            if draft is None or draft.status != "draft":
+            if draft is None or draft.status not in {"draft", "confirmed"}:
                 raise DraftNotFoundError(schedule_id)
             if draft.version != version:
                 raise VersionConflictError(draft.version, version, code="draft_version_conflict")
+            if draft.status == "confirmed":
+                # A lost response may be retried, but never reactivate history.
+                self._assert_current_week_base(
+                    session, week_start=week_start,
+                    base_schedule_id=schedule_id, base_version=version,
+                )
+                return self._schedule_from_record(session, draft)
             validation = draft.validation_json
             if not bool(validation.get("confirmable", validation.get("passed", validation.get("valid", False)))):
                 raise InvalidScheduleStateError("Only a confirmable draft can be confirmed")
@@ -548,9 +570,12 @@ class ScheduleRepository:
             dependent = self._current_confirmed_record(
                 session, draft.week_start + timedelta(days=7), lock=True
             )
-            if dependent is not None:
-                raise InvalidScheduleStateError(
-                    "A following-week schedule is already confirmed; replan it before changing this week"
+            actual_following = (dependent.schedule_id, dependent.version) if dependent else None
+            if actual_following != validated_following:
+                raise ConfirmationConflictError(
+                    "following_week_changed",
+                    "下一周正式排班已发生变化，请刷新后重新确认。",
+                    {"week_start": (week_start + timedelta(days=7)).isoformat()},
                 )
 
             draft.status = "confirmed"
