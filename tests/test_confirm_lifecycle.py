@@ -123,6 +123,73 @@ def test_double_confirm_retry_and_old_confirmed_version(client):
     assert client.get('/api/schedules/latest?status=confirmed').json()['schedule_id'] == next_draft['schedule_id']
 
 
+@pytest.mark.parametrize('phase', [
+    'preflight', 'dependency_check', 'validation_read', 'validation_snapshot',
+    'after_validation', 'before_commit',
+])
+def test_confirm_retry_at_each_race_boundary(client, monkeypatch, phase):
+    from backend.app.api.dependencies import scheduling_service as service
+
+    draft = _generate(client)
+    repo = service.schedules
+    winner = None
+    raced = False
+
+    def competing_confirm():
+        nonlocal winner, raced
+        if raced:
+            return
+        raced = True
+        winner = service.confirm(draft['schedule_id'], draft['version'])
+        # Once confirmed, a retry must return the saved result even if employee
+        # data changes before the losing request finishes its validation.
+        service.employees.update('E01', {'leave_days': [Day.MON]})
+
+    if phase in {'preflight', 'dependency_check', 'before_commit'}:
+        method = {
+            'preflight': 'assert_draft_fresh',
+            'dependency_check': '_assert_draft_dependencies',
+            'before_commit': 'confirm',
+        }[phase]
+        original = getattr(repo, method)
+
+        def race(*args, **kwargs):
+            competing_confirm()
+            return original(*args, **kwargs)
+
+        monkeypatch.setattr(repo, method, race)
+    elif phase in {'validation_read', 'validation_snapshot'}:
+        original = repo.get_record
+
+        def race(*args, **kwargs):
+            if phase == 'validation_read':
+                competing_confirm()
+            record = original(*args, **kwargs)
+            if phase == 'validation_snapshot':
+                competing_confirm()
+            return record
+
+        monkeypatch.setattr(repo, 'get_record', race)
+    else:
+        original = service.validate_stored
+
+        def race(*args, **kwargs):
+            validation = original(*args, **kwargs)
+            competing_confirm()
+            return validation
+
+        monkeypatch.setattr(service, 'validate_stored', race)
+
+    response = confirm(client, draft)
+    assert response.status_code == 200, response.text
+    assert winner is not None
+    assert response.json()['schedule'] == winner['schedule']
+    assert response.json()['validation']['confirmable'] is True
+    assert response.json()['validation']['violations'] == winner['validation']['violations']
+    assert len(repo.versions_for_week(draft_date(draft))) == 1
+    assert repo.current_draft_record_for_week(draft_date(draft)) is None
+
+
 @pytest.mark.parametrize('rule,prior_days,next_days', [
     ('R07', [(Day.SUN, Shift.EVENING)], [(Day.MON, Shift.MORNING)]),
     ('R06', [(d, Shift.MORNING) for d in [Day.THU, Day.FRI, Day.SAT, Day.SUN]],

@@ -347,15 +347,28 @@ class ScheduleRepository:
         validation["confirmable"] = bool(validation.get("confirmable", validation["rules_valid"])) and validation["freshness_valid"]
         return validation
 
-    def assert_draft_fresh(self, schedule_id: str, version: int) -> None:
-        """Preflight only; confirm repeats these checks inside its write transaction."""
+    def assert_draft_fresh(self, schedule_id: str, version: int) -> dict[str, Any]:
+        """Return a fresh draft or the current confirmed retry, never historical state.
+
+        Confirm repeats the identity/dependency checks inside its write transaction.
+        """
         with self.database.transaction() as session:
             draft = session.get(ScheduleRecord, schedule_id)
-            if draft is None or draft.status != "draft":
+            if draft is None or draft.status not in {"draft", "confirmed"}:
                 raise DraftNotFoundError(schedule_id)
             if draft.version != version:
                 raise VersionConflictError(draft.version, version, code="draft_version_conflict")
-            self._assert_draft_dependencies(session, draft, lock=False)
+            if draft.status == "confirmed":
+                self._assert_current_week_base(
+                    session, week_start=draft.week_start, base_schedule_id=schedule_id,
+                    base_version=version, lock=False,
+                )
+            else:
+                self._assert_draft_dependencies(session, draft, lock=False)
+            result = self._record_metadata(draft)
+            result["validation"] = self._validation_with_freshness(session, draft)
+            result["schedule"] = self._schedule_from_record(session, draft)
+            return result
 
     @traced("save_draft")
     def save_draft(

@@ -831,6 +831,11 @@ class SchedulingService:
         record = self.schedules.get_record(schedule_id)
         if record is None or "schedule" not in record:
             raise ScheduleNotFoundError(schedule_id)
+        # A competing Confirm may have committed after the service preflight.
+        # Its result is immutable; current-version identity is checked again by
+        # confirm before returning it, without revalidating an already saved result.
+        if enforce_employee_revision and record["status"] == "confirmed":
+            return record["validation"]
         schedule: Schedule = record["schedule"]
         employee_list, employee_revision = self.employees.list_with_revision()
         stored_revision = record["metadata"].get("employee_revision")
@@ -949,20 +954,31 @@ class SchedulingService:
         return validation
 
     def confirm(self, schedule_id: str, version: int) -> dict[str, Any]:
-        record = self.schedules.get_record(schedule_id)
-        if record is None or "schedule" not in record:
-            raise ScheduleNotFoundError(schedule_id)
-        if record["version"] != version:
-            raise VersionConflictError(record["version"], version, code="draft_version_conflict")
+        try:
+            return self._confirm(schedule_id, version)
+        except (VersionConflictError, InvalidScheduleStateError, ConfirmationConflictError):
+            # Preflight/validation can observe a draft while another request
+            # commits it. Recover only that exact confirmed result; the locked
+            # repository check still rejects wrong versions and historical rows.
+            record = self.schedules.get_record(schedule_id)
+            if record is None or record["status"] != "confirmed":
+                raise
+            self.schedules.confirm(schedule_id, version)
+            return self._stored_response(record)
+
+    def _confirm(self, schedule_id: str, version: int) -> dict[str, Any]:
+        record = self.schedules.assert_draft_fresh(schedule_id, version)
         if record["status"] == "confirmed":
             self.schedules.confirm(schedule_id, version)
             return self._stored_response(record)
-        self.schedules.assert_draft_fresh(schedule_id, version)
         validation = self.validate_stored(
             schedule_id,
             enforce_employee_revision=True,
         )
-        self.schedules.assert_draft_fresh(schedule_id, version)
+        record = self.schedules.assert_draft_fresh(schedule_id, version)
+        if record["status"] == "confirmed":
+            self.schedules.confirm(schedule_id, version)
+            return self._stored_response(record)
         if not validation["confirmable"]:
             raise ConfirmationConflictError(
                 "draft_invalid", "草稿已不符合当前规则，请取消后重新生成。", validation,
