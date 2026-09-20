@@ -2,6 +2,7 @@ import { Check, Sparkles } from 'lucide-react'
 import { MarkdownMessage } from '@/components/agent/MarkdownMessage'
 import { CandidateMascot } from './CandidateMascot'
 import type { CandidatePlan } from './types'
+import { problemMessage } from '@/lib/presentation'
 
 export function CandidateSummaryPanel({ plan, busy, onConfirm, onCancel, onViewAnalysis, onApplyPlan }: {
   plan: CandidatePlan | null
@@ -14,7 +15,8 @@ export function CandidateSummaryPanel({ plan, busy, onConfirm, onCancel, onViewA
   const result = plan?.result
   const explanation = typeof result?.explanation === 'string' ? result.explanation : result?.explanation?.text
   const validation = result?.validation
-  const stale = validation?.employee_data_stale || validation?.rules_data_stale
+  const stale = validation?.freshness_valid === false || validation?.employee_data_stale || validation?.rules_data_stale
+  const dependencyMessage = validation?.conflict ? problemMessage(validation.conflict.code, validation.conflict.message) : null
   const force = plan?.version?.compliance_status === 'authorized_violations' || result?.compliance_status === 'authorized_violations' || validation?.compliance_status === 'authorized_violations' || !!validation?.authorized_violations?.length
   const confirmable = !stale && (validation?.confirmable ?? validation?.passed ?? false)
   const isDraft = plan?.kind === 'draft'
@@ -22,7 +24,7 @@ export function CandidateSummaryPanel({ plan, busy, onConfirm, onCancel, onViewA
     `${plan.schedule.assignments.length} 条班次安排 · v${plan.schedule.version}`,
     ...(result ? [`偏好满足率 ${Math.round(result.metrics.preference_rate * 100)}% · 工作量差距 ${result.metrics.workload_gap} 班`] : []),
     ...(force && !validation ? [`非标准合规 · ${plan?.version?.authorized_violation_count ?? '待读取'} 项已授权规则冲突`] : []),
-    ...(validation ? [stale ? '员工资料或标准规则已变更，请取消后重新生成' : force ? `非标准合规 · ${validation.authorized_violations?.length ?? 0} 项已授权规则冲突` : validation.passed ? `规则校验 ${validation.passed_count}/${validation.total} 项通过` : '存在规则冲突，请查看校验明细'] : []),
+    ...(validation ? [force ? `非标准合规 · ${validation.authorized_violations?.length ?? 0} 项已授权规则冲突` : validation.passed ? `规则校验 ${validation.passed_count}/${validation.total} 项通过` : '存在规则冲突，请查看校验明细'] : []),
   ] : []
   return (
     <div className="bg-gradient-to-br from-blue-50/40 via-white to-purple-50/30 rounded-2xl p-3 border border-slate-200/80 shadow-2xs h-full flex flex-col justify-between relative overflow-hidden">
@@ -42,6 +44,7 @@ export function CandidateSummaryPanel({ plan, busy, onConfirm, onCancel, onViewA
           </div>
           {explanation && <details className="mt-2 text-xs text-slate-600"><summary className="cursor-pointer font-bold text-blue-600">查看生成说明</summary><div className="mt-2 leading-5"><MarkdownMessage content={explanation} /></div></details>}
           {plan && !explanation && <p className="mt-1 text-[10px] text-slate-400">暂无生成说明</p>}
+          {isDraft && stale && <p role="alert" className="mt-2 text-xs font-bold leading-5 text-amber-800">{dependencyMessage ?? '员工资料或标准规则已变更，本草稿已过期。'} 请取消草稿后重新生成本周草稿；规则通过不代表草稿仍可确认。</p>}
           {isDraft && <p className={`mt-2 text-[11px] leading-5 ${force || !confirmable ? 'text-amber-800' : 'text-slate-500'}`}>{force ? '确认后已授权违规仍会保留并随该版本生效。' : confirmable ? '确认后该排班版本正式生效。' : '草稿尚不能确认，请查看规则校验或取消后重新生成。'}</p>}
           <div className="flex flex-wrap items-center gap-2 mt-2.5">
             <button type="button" disabled={!plan || busy} onClick={onViewAnalysis} className="px-2.5 py-1 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-blue-600 text-[11px] font-bold transition shadow-2xs disabled:opacity-40">查看更多分析</button>

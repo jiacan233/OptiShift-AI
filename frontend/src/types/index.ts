@@ -82,6 +82,11 @@ export interface RuleCheck {
 
 export interface ValidationResult {
   passed: boolean
+  rules_valid?: boolean
+  freshness_valid?: boolean
+  freshness_state?: 'fresh' | 'stale'
+  freshness_reason?: string | null
+  conflict?: { code: string; message: string; details: Record<string, unknown> } | null
   employee_data_stale?: boolean
   rules_data_stale?: boolean
   valid?: boolean

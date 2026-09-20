@@ -300,16 +300,19 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   const confirmDraft = useCallback(async () => {
     const draft = state.draftSchedule
-    if (!draft) return
+    if (!draft || state.result?.validation.confirmable === false) return
     dispatch({ type: 'PATCH', patch: { isRunning: true, error: null } })
     try {
       const result = await api.schedules.confirm(draft.schedule_id, draft.version)
       await applyScheduleResult(result)
       dispatch({ type: 'PATCH', patch: { notice: `排班 v${result.status === 'confirmed' || result.status === 'feasible' ? result.version : draft.version} 已确认并生效。` } })
     } catch (error) {
+      if (['history_dependency_conflict', 'current_week_base_conflict', 'draft_version_conflict'].includes(apiErrorMessage(error).code)) {
+        await loadWeek(draft.week_start)
+      }
       dispatch({ type: 'PATCH', patch: { isRunning: false, error: apiErrorMessage(error) } })
     }
-  }, [applyScheduleResult, state.draftSchedule])
+  }, [applyScheduleResult, loadWeek, state.draftSchedule, state.result])
 
   const cancelDraft = useCallback(async () => {
     const draft = state.draftSchedule
