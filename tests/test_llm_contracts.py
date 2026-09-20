@@ -211,7 +211,9 @@ def test_health_check_requires_basic_and_structured(monkeypatch: pytest.MonkeyPa
     assert result["checks"]["basic_chat"]["status"] == "ok"
     assert result["checks"]["structured_output"]["status"] == "ok"
     assert len(requests) == 2
-    assert [timeout.read for timeout in timeouts] == [30, 30]
+    assert timeouts[0].read == 30
+    # Structured calls subtract elapsed time from the shared retry budget.
+    assert 0 < timeouts[1].read <= 30
     assert client.timeout.read == 120
 
 
