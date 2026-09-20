@@ -1,0 +1,52 @@
+A PASS 
+B PASS 
+C PASS 
+D1 PASS 
+D2 PASS 
+D3 PASS 
+E PASS 
+X1 PASS 
+F PASS 
+X2 PASS 
+G FAIL Error: expect(locator).toHaveCount(expected) failed
+
+Locator:  getByTestId('markdown-message')
+Expected: 0
+Received: 1
+Timeout:  5000ms
+
+Call log:
+  - Expect "toHaveCount" getByTestId('markdown-message') with timeout 5000ms
+  - waiting for getByTestId('markdown-message')
+    2 × locator resolved to 4 elements
+      - unexpected value "4"
+    12 × locator resolved to 1 element
+       - unexpected value "1"
+
+    at captureRawStack (D:\ee\code\OptiShift-AI\frontend\node_modules\playwright-core\lib\coreBundle.js:8588:17)
+    at callMatcherAsStep (D:\ee\code\OptiShift-AI\frontend\node_modules\playwright\lib\matchers\expect.js:13310:57)
+    at Object.toHaveCount (D:\ee\code\OptiShift-AI\frontend\node_modules\playwright\lib\matchers\expect.js:13302:23)
+    at D:\ee\code\OptiShift-AI\scripts\scenario_acceptance.cjs:145:149
+    at async run (D:\ee\code\OptiShift-AI\scripts\scenario_acceptance.cjs:118:11)
+    at async main (D:\ee\code\OptiShift-AI\scripts\scenario_acceptance.cjs:140:3)
+C01 PASS 
+H FAIL Error: expect(received).toMatchObject(expected)
+
+- Expected  - 1
++ Received  + 1
+
+@@ -1,7 +1,7 @@
+  Object {
+-   "assistantBubbles": 1,
++   "assistantBubbles": 0,
+    "assistantRecords": 1,
+    "draftCards": 1,
+    "draftRecords": 1,
+    "newVersionRecords": 1,
+    "replayTriggered": true,
+    at captureRawStack (D:\ee\code\OptiShift-AI\frontend\node_modules\playwright-core\lib\coreBundle.js:8588:17)
+    at callMatcherAsStep (D:\ee\code\OptiShift-AI\frontend\node_modules\playwright\lib\matchers\expect.js:13310:57)
+    at Object.toMatchObject (D:\ee\code\OptiShift-AI\frontend\node_modules\playwright\lib\matchers\expect.js:13302:23)
+    at D:\ee\code\OptiShift-AI\scripts\scenario_acceptance.cjs:181:24
+    at async run (D:\ee\code\OptiShift-AI\scripts\scenario_acceptance.cjs:118:11)
+    at async main (D:\ee\code\OptiShift-AI\scripts\scenario_acceptance.cjs:152:3)

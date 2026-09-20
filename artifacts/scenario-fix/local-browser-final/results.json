@@ -1,0 +1,580 @@
+{
+  "started": "2026-09-20T08:29:36.508Z",
+  "web": "http://127.0.0.1:8018",
+  "cases": [
+    {
+      "case": "A",
+      "conversation_id": "conv_8581b95d4ef84cad9e6bf3e66d71f411",
+      "started": "2026-09-20T08:29:38.980Z",
+      "status": "PASS"
+    },
+    {
+      "case": "B",
+      "conversation_id": "conv_cb523cd7ef7c4d298d415740cb3f8671",
+      "started": "2026-09-20T08:29:55.251Z",
+      "status": "PASS"
+    },
+    {
+      "case": "C",
+      "conversation_id": "conv_694b1bad6c274f42af7264995107af09",
+      "started": "2026-09-20T08:30:21.185Z",
+      "status": "PASS"
+    },
+    {
+      "case": "D1",
+      "conversation_id": "conv_5af4c205bab5460ba107b0fb07ea6f86",
+      "started": "2026-09-20T08:30:55.573Z",
+      "status": "PASS"
+    },
+    {
+      "case": "D2",
+      "conversation_id": "conv_ab235aca9e704ce59740f23e45e44b1f",
+      "started": "2026-09-20T08:31:09.704Z",
+      "status": "PASS"
+    },
+    {
+      "case": "D3",
+      "conversation_id": "conv_1c76573e6e4c438faebfad354da2b097",
+      "started": "2026-09-20T08:31:27.433Z",
+      "status": "PASS"
+    },
+    {
+      "case": "E",
+      "conversation_id": "conv_680a2939820b490bac9f8792034b1222",
+      "started": "2026-09-20T08:31:41.558Z",
+      "status": "PASS"
+    },
+    {
+      "case": "X1",
+      "conversation_id": "conv_e276b6c5f845406ba1e211aeae737eff",
+      "started": "2026-09-20T08:31:57.175Z",
+      "status": "FAIL",
+      "error": "Error: expect(received).toBeTruthy()\n\nReceived: undefined\n    at captureRawStack (D:\\ee\\code\\OptiShift-AI\\frontend\\node_modules\\playwright-core\\lib\\coreBundle.js:8588:17)\n    at callMatcherAsStep (D:\\ee\\code\\OptiShift-AI\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:13310:57)\n    at Object.toBeTruthy (D:\\ee\\code\\OptiShift-AI\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:13302:23)\n    at D:\\ee\\code\\OptiShift-AI\\scripts\\scenario_acceptance.cjs:136:209\n    at async run (D:\\ee\\code\\OptiShift-AI\\scripts\\scenario_acceptance.cjs:117:11)\n    at async main (D:\\ee\\code\\OptiShift-AI\\scripts\\scenario_acceptance.cjs:136:3)"
+    },
+    {
+      "case": "F",
+      "conversation_id": "conv_050be151dfbb4e63b7a2b1834898ea40",
+      "started": "2026-09-20T08:32:16.928Z",
+      "status": "FAIL",
+      "error": "TypeError: Cannot read properties of null (reading 'status')\n    at D:\\ee\\code\\OptiShift-AI\\scripts\\scenario_acceptance.cjs:137:118\n    at async run (D:\\ee\\code\\OptiShift-AI\\scripts\\scenario_acceptance.cjs:117:11)\n    at async main (D:\\ee\\code\\OptiShift-AI\\scripts\\scenario_acceptance.cjs:137:3)"
+    },
+    {
+      "case": "X2",
+      "conversation_id": "conv_4028626462b8430083338169c2f693ba",
+      "started": "2026-09-20T08:32:42.923Z",
+      "status": "FAIL",
+      "error": "TypeError: Cannot read properties of null (reading 'status')\n    at D:\\ee\\code\\OptiShift-AI\\scripts\\scenario_acceptance.cjs:138:169\n    at async run (D:\\ee\\code\\OptiShift-AI\\scripts\\scenario_acceptance.cjs:117:11)\n    at async main (D:\\ee\\code\\OptiShift-AI\\scripts\\scenario_acceptance.cjs:138:3)"
+    },
+    {
+      "case": "G",
+      "conversation_id": "conv_46072381f87a4135860d9248ad431c13",
+      "started": "2026-09-20T08:33:15.485Z",
+      "status": "PASS"
+    },
+    {
+      "case": "C01",
+      "conversation_id": "conv_b1833eb6a2d6428ebe55789048d63020",
+      "started": "2026-09-20T08:33:53.671Z",
+      "status": "PASS"
+    },
+    {
+      "case": "H",
+      "conversation_id": "conv_876d44f4637343b6b1571dbb71c72731",
+      "started": "2026-09-20T08:34:15.854Z",
+      "status": "PASS"
+    }
+  ],
+  "cleanup": [
+    {
+      "type": "scenario",
+      "conversation_id": "conv_8581b95d4ef84cad9e6bf3e66d71f411",
+      "week": "2026-10-05",
+      "revision": 0,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_cb523cd7ef7c4d298d415740cb3f8671",
+      "week": "2026-10-05",
+      "revision": 0,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_694b1bad6c274f42af7264995107af09",
+      "week": "2026-10-05",
+      "revision": 1,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_5af4c205bab5460ba107b0fb07ea6f86",
+      "week": "2026-10-05",
+      "revision": 1,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_ab235aca9e704ce59740f23e45e44b1f",
+      "week": "2026-10-05",
+      "revision": 1,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_1c76573e6e4c438faebfad354da2b097",
+      "week": "2026-10-05",
+      "revision": 1,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_680a2939820b490bac9f8792034b1222",
+      "week": "2026-10-05",
+      "revision": 0,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_e276b6c5f845406ba1e211aeae737eff",
+      "week": "2026-10-05",
+      "revision": 1,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_050be151dfbb4e63b7a2b1834898ea40",
+      "week": "2026-10-05",
+      "revision": 1,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_4028626462b8430083338169c2f693ba",
+      "week": "2026-10-05",
+      "revision": 1,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_46072381f87a4135860d9248ad431c13",
+      "week": "2026-10-05",
+      "revision": 4,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_b1833eb6a2d6428ebe55789048d63020",
+      "week": "2026-10-05",
+      "revision": 1,
+      "status": "cleared"
+    },
+    {
+      "type": "draft",
+      "schedule_id": "sch_ad293ba8fec1",
+      "version": 6,
+      "client_message_id": "cm_99dd85f2d09d4c359d9f8e96bac9e899",
+      "conversation_id": "conv_876d44f4637343b6b1571dbb71c72731",
+      "status": "cancelled"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_876d44f4637343b6b1571dbb71c72731",
+      "week": "2026-10-05",
+      "revision": 0,
+      "status": "cleared"
+    }
+  ],
+  "conversations": [
+    {
+      "cid": "conv_8581b95d4ef84cad9e6bf3e66d71f411",
+      "workspace": "bw_7767f2d9994046428397a2fd6abd4d35",
+      "case": "A"
+    },
+    {
+      "cid": "conv_cb523cd7ef7c4d298d415740cb3f8671",
+      "workspace": "bw_001a9e313a284c59847869b0f0f63802",
+      "case": "B"
+    },
+    {
+      "cid": "conv_694b1bad6c274f42af7264995107af09",
+      "workspace": "bw_88ab8628077b46609bc3a341a5dab1ce",
+      "case": "C"
+    },
+    {
+      "cid": "conv_5af4c205bab5460ba107b0fb07ea6f86",
+      "workspace": "bw_34c3308f571d48e489b0fb4404377e01",
+      "case": "D1"
+    },
+    {
+      "cid": "conv_ab235aca9e704ce59740f23e45e44b1f",
+      "workspace": "bw_62aa2f799fee423e8b3751c4ac8ae5c2",
+      "case": "D2"
+    },
+    {
+      "cid": "conv_1c76573e6e4c438faebfad354da2b097",
+      "workspace": "bw_895e52d5cd3d44a5bd4bd8bddd48cc52",
+      "case": "D3"
+    },
+    {
+      "cid": "conv_680a2939820b490bac9f8792034b1222",
+      "workspace": "bw_9db8c0cc124249b98b4b25c540008476",
+      "case": "E"
+    },
+    {
+      "cid": "conv_e276b6c5f845406ba1e211aeae737eff",
+      "workspace": "bw_813da55ea6264b128a983976833d6db6",
+      "case": "X1"
+    },
+    {
+      "cid": "conv_050be151dfbb4e63b7a2b1834898ea40",
+      "workspace": "bw_6cd8f735448a43b98ba3bd0ce28c42cf",
+      "case": "F"
+    },
+    {
+      "cid": "conv_4028626462b8430083338169c2f693ba",
+      "workspace": "bw_004d0ee2d52042dc9cadbf0291132c37",
+      "case": "X2"
+    },
+    {
+      "cid": "conv_46072381f87a4135860d9248ad431c13",
+      "workspace": "bw_0cf67dc6ff0c41c2a2ac4c2876011126",
+      "case": "G"
+    },
+    {
+      "cid": "conv_b1833eb6a2d6428ebe55789048d63020",
+      "workspace": "bw_878e83a5e0df4c5688e1c3872e1d2584",
+      "case": "C01"
+    },
+    {
+      "cid": "conv_876d44f4637343b6b1571dbb71c72731",
+      "workspace": "bw_0b1cb379bc534e7ba5677bb1d03d0878",
+      "case": "H"
+    }
+  ],
+  "drafts": [
+    {
+      "schedule_id": "sch_ad293ba8fec1",
+      "version": 6,
+      "client_message_id": "cm_99dd85f2d09d4c359d9f8e96bac9e899",
+      "conversation_id": "conv_876d44f4637343b6b1571dbb71c72731"
+    }
+  ],
+  "scenarios": [
+    {
+      "conversation_id": "conv_8581b95d4ef84cad9e6bf3e66d71f411",
+      "week": "2026-10-05",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_cb523cd7ef7c4d298d415740cb3f8671",
+      "week": "2026-10-05",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_694b1bad6c274f42af7264995107af09",
+      "week": "2026-10-05",
+      "scenario_revision": 1,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon"
+          ],
+          "change_type": "leave",
+          "shift": null
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_5af4c205bab5460ba107b0fb07ea6f86",
+      "week": "2026-10-05",
+      "scenario_revision": 1,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon",
+            "Tue"
+          ],
+          "change_type": "leave",
+          "shift": null
+        },
+        {
+          "employee_id": "E02",
+          "operation": "add",
+          "days": [
+            "Wed"
+          ],
+          "change_type": "preference",
+          "shift": "evening"
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_ab235aca9e704ce59740f23e45e44b1f",
+      "week": "2026-10-05",
+      "scenario_revision": 1,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon",
+            "Tue"
+          ],
+          "change_type": "leave",
+          "shift": null
+        },
+        {
+          "employee_id": "E02",
+          "operation": "add",
+          "days": [
+            "Wed"
+          ],
+          "change_type": "preference",
+          "shift": "evening"
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_1c76573e6e4c438faebfad354da2b097",
+      "week": "2026-10-05",
+      "scenario_revision": 1,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon",
+            "Tue"
+          ],
+          "change_type": "leave",
+          "shift": null
+        },
+        {
+          "employee_id": "E02",
+          "operation": "add",
+          "days": [
+            "Wed"
+          ],
+          "change_type": "preference",
+          "shift": "evening"
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_680a2939820b490bac9f8792034b1222",
+      "week": "2026-10-05",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_e276b6c5f845406ba1e211aeae737eff",
+      "week": "2026-10-05",
+      "scenario_revision": 1,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon"
+          ],
+          "change_type": "leave",
+          "shift": null
+        },
+        {
+          "employee_id": "E02",
+          "operation": "add",
+          "days": [
+            "Mon"
+          ],
+          "change_type": "leave",
+          "shift": null
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_050be151dfbb4e63b7a2b1834898ea40",
+      "week": "2026-10-05",
+      "scenario_revision": 1,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon"
+          ],
+          "change_type": "leave",
+          "shift": null
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_4028626462b8430083338169c2f693ba",
+      "week": "2026-10-05",
+      "scenario_revision": 1,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon",
+            "Tue"
+          ],
+          "change_type": "leave",
+          "shift": null
+        },
+        {
+          "employee_id": "E02",
+          "operation": "add",
+          "days": [
+            "Wed"
+          ],
+          "change_type": "preference",
+          "shift": "evening"
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_46072381f87a4135860d9248ad431c13",
+      "week": "2026-10-05",
+      "scenario_revision": 4,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon"
+          ],
+          "change_type": "leave",
+          "shift": null
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_b1833eb6a2d6428ebe55789048d63020",
+      "week": "2026-10-05",
+      "scenario_revision": 1,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon",
+            "Tue"
+          ],
+          "change_type": "leave",
+          "shift": null
+        },
+        {
+          "employee_id": "E02",
+          "operation": "add",
+          "days": [
+            "Wed"
+          ],
+          "change_type": "preference",
+          "shift": "evening"
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_876d44f4637343b6b1571dbb71c72731",
+      "week": "2026-10-05",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    }
+  ],
+  "baseline": {
+    "schedule_id": "sch_55898ae95446",
+    "version": 5,
+    "hash": "815ff49548c47019d9a393e347f76225ebd835dcdd97b93c0b719f1525b45ee1",
+    "versions": [
+      {
+        "schedule_id": "sch_55898ae95446",
+        "version": 5,
+        "status": "confirmed",
+        "created_at": "2026-09-19T05:40:06",
+        "parent_schedule_id": null,
+        "base_schedule_id": null,
+        "base_version": null,
+        "compliance_status": "compliant",
+        "authorized_violation_count": 0,
+        "violations": []
+      }
+    ]
+  },
+  "employees": [
+    "E01",
+    "E02",
+    "E03",
+    "E04",
+    "E05",
+    "E06",
+    "E07",
+    "E08",
+    "E09",
+    "E10",
+    "E11",
+    "E12",
+    "E13",
+    "E14",
+    "E15",
+    "E16",
+    "E17",
+    "E18",
+    "E19",
+    "E20"
+  ],
+  "sse": {
+    "terminalDropped": true,
+    "replayTriggered": true,
+    "sameIdUsed": true,
+    "streamId": "cm_99dd85f2d09d4c359d9f8e96bac9e899",
+    "replayId": "cm_99dd85f2d09d4c359d9f8e96bac9e899",
+    "assistantBubbles": 1,
+    "draftCards": 1,
+    "assistantRecords": 1,
+    "userRecords": 1,
+    "draftRecords": 1,
+    "schedule_id": "sch_ad293ba8fec1",
+    "version": 6
+  },
+  "final": {
+    "schedule_id": "sch_55898ae95446",
+    "version": 5,
+    "hash": "815ff49548c47019d9a393e347f76225ebd835dcdd97b93c0b719f1525b45ee1",
+    "draft": null
+  },
+  "ended": "2026-09-20T08:34:32.188Z"
+}

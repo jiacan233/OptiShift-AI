@@ -1,0 +1,4669 @@
+{
+  "employees": [
+    {
+      "id": "E01",
+      "role": "manager",
+      "skills": [
+        "manager",
+        "beverage",
+        "cashier",
+        "inventory"
+      ],
+      "available_days": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "leave_days": [
+        "Wed"
+      ],
+      "preferred_shift": "morning"
+    },
+    {
+      "id": "E02",
+      "role": "vice_manager",
+      "skills": [
+        "manager",
+        "beverage",
+        "cashier"
+      ],
+      "available_days": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "leave_days": [],
+      "preferred_shift": "evening"
+    },
+    {
+      "id": "E03",
+      "role": "shift_leader",
+      "skills": [
+        "manager",
+        "beverage",
+        "cashier"
+      ],
+      "available_days": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri"
+      ],
+      "leave_days": [],
+      "preferred_shift": null
+    },
+    {
+      "id": "E04",
+      "role": "shift_leader",
+      "skills": [
+        "manager",
+        "beverage",
+        "inventory"
+      ],
+      "available_days": [
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "leave_days": [],
+      "preferred_shift": "morning"
+    },
+    {
+      "id": "E05",
+      "role": "senior_clerk",
+      "skills": [
+        "manager",
+        "beverage",
+        "cashier"
+      ],
+      "available_days": [
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "leave_days": [],
+      "preferred_shift": "evening"
+    },
+    {
+      "id": "E06",
+      "role": "clerk",
+      "skills": [
+        "beverage",
+        "cashier"
+      ],
+      "available_days": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "leave_days": [
+        "Tue"
+      ],
+      "preferred_shift": "morning"
+    },
+    {
+      "id": "E07",
+      "role": "clerk",
+      "skills": [
+        "beverage",
+        "cashier"
+      ],
+      "available_days": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "leave_days": [],
+      "preferred_shift": "evening"
+    },
+    {
+      "id": "E08",
+      "role": "clerk",
+      "skills": [
+        "beverage",
+        "cashier",
+        "inventory"
+      ],
+      "available_days": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat"
+      ],
+      "leave_days": [],
+      "preferred_shift": null
+    },
+    {
+      "id": "E09",
+      "role": "clerk",
+      "skills": [
+        "beverage"
+      ],
+      "available_days": [
+        "Mon",
+        "Wed",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "leave_days": [],
+      "preferred_shift": "morning"
+    },
+    {
+      "id": "E10",
+      "role": "clerk",
+      "skills": [
+        "beverage",
+        "cashier"
+      ],
+      "available_days": [
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "leave_days": [],
+      "preferred_shift": null
+    },
+    {
+      "id": "E11",
+      "role": "clerk",
+      "skills": [
+        "cashier",
+        "inventory"
+      ],
+      "available_days": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "leave_days": [],
+      "preferred_shift": "evening"
+    },
+    {
+      "id": "E12",
+      "role": "clerk",
+      "skills": [
+        "beverage",
+        "cashier"
+      ],
+      "available_days": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri"
+      ],
+      "leave_days": [],
+      "preferred_shift": "morning"
+    },
+    {
+      "id": "E13",
+      "role": "part_time",
+      "skills": [
+        "beverage"
+      ],
+      "available_days": [
+        "Sat",
+        "Sun"
+      ],
+      "leave_days": [],
+      "preferred_shift": "morning"
+    },
+    {
+      "id": "E14",
+      "role": "part_time",
+      "skills": [
+        "beverage",
+        "cashier"
+      ],
+      "available_days": [
+        "Sat",
+        "Sun"
+      ],
+      "leave_days": [],
+      "preferred_shift": "evening"
+    },
+    {
+      "id": "E15",
+      "role": "part_time",
+      "skills": [
+        "cashier"
+      ],
+      "available_days": [
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "leave_days": [],
+      "preferred_shift": null
+    },
+    {
+      "id": "E16",
+      "role": "part_time",
+      "skills": [
+        "beverage"
+      ],
+      "available_days": [
+        "Wed",
+        "Thu",
+        "Sat",
+        "Sun"
+      ],
+      "leave_days": [],
+      "preferred_shift": null
+    },
+    {
+      "id": "E17",
+      "role": "clerk",
+      "skills": [
+        "beverage",
+        "cashier",
+        "inventory"
+      ],
+      "available_days": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "leave_days": [
+        "Mon"
+      ],
+      "preferred_shift": null
+    },
+    {
+      "id": "E18",
+      "role": "clerk",
+      "skills": [
+        "beverage",
+        "cashier"
+      ],
+      "available_days": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri"
+      ],
+      "leave_days": [],
+      "preferred_shift": "evening"
+    },
+    {
+      "id": "E19",
+      "role": "part_time",
+      "skills": [
+        "beverage",
+        "cashier"
+      ],
+      "available_days": [
+        "Sat",
+        "Sun"
+      ],
+      "leave_days": [],
+      "preferred_shift": null
+    },
+    {
+      "id": "E20",
+      "role": "clerk",
+      "skills": [
+        "beverage",
+        "inventory"
+      ],
+      "available_days": [
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "leave_days": [
+        "Thu"
+      ],
+      "preferred_shift": "morning"
+    }
+  ],
+  "weeks": [
+    {
+      "week_start": "2026-09-28",
+      "confirmed_schedule": {
+        "schedule_id": "sch_aebfa4f08806",
+        "version": 4,
+        "parent_schedule_id": "sch_c7883ea3a8cf",
+        "status": "confirmed",
+        "week_start": "2026-09-28",
+        "assignments": [
+          {
+            "employee_id": "E01",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Mon",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Mon",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Mon",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Mon",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E01",
+            "day": "Mon",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Mon",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Mon",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Mon",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E01",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E01",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E01",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Wed",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Wed",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Wed",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Wed",
+            "shift": "morning"
+          }
+        ],
+        "created_at": "2026-09-17T02:19:24"
+      },
+      "draft_schedule": null,
+      "display_schedule": {
+        "schedule_id": "sch_aebfa4f08806",
+        "version": 4,
+        "parent_schedule_id": "sch_c7883ea3a8cf",
+        "status": "confirmed",
+        "week_start": "2026-09-28",
+        "assignments": [
+          {
+            "employee_id": "E01",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Mon",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Mon",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Mon",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Mon",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E01",
+            "day": "Mon",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Mon",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Mon",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Mon",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E01",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E01",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E01",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Wed",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Wed",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Wed",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Wed",
+            "shift": "morning"
+          }
+        ],
+        "created_at": "2026-09-17T02:19:24"
+      },
+      "versions": [
+        {
+          "schedule_id": "sch_220434e9a150",
+          "version": 5,
+          "status": "cancelled",
+          "created_at": "2026-09-20T07:25:03",
+          "parent_schedule_id": "sch_aebfa4f08806",
+          "base_schedule_id": "sch_aebfa4f08806",
+          "base_version": 4,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_7a6847714869",
+          "version": 5,
+          "status": "cancelled",
+          "created_at": "2026-09-20T07:18:26",
+          "parent_schedule_id": "sch_aebfa4f08806",
+          "base_schedule_id": "sch_aebfa4f08806",
+          "base_version": 4,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_76391ebb8cbc",
+          "version": 5,
+          "status": "cancelled",
+          "created_at": "2026-09-19T15:15:15",
+          "parent_schedule_id": "sch_aebfa4f08806",
+          "base_schedule_id": "sch_aebfa4f08806",
+          "base_version": 4,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_a485fcecd7f5",
+          "version": 5,
+          "status": "cancelled",
+          "created_at": "2026-09-19T14:03:30",
+          "parent_schedule_id": "sch_aebfa4f08806",
+          "base_schedule_id": "sch_aebfa4f08806",
+          "base_version": 4,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_44556b085d16",
+          "version": 5,
+          "status": "cancelled",
+          "created_at": "2026-09-19T14:01:56",
+          "parent_schedule_id": "sch_aebfa4f08806",
+          "base_schedule_id": "sch_aebfa4f08806",
+          "base_version": 4,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_8518d2223127",
+          "version": 5,
+          "status": "cancelled",
+          "created_at": "2026-09-19T08:24:54",
+          "parent_schedule_id": "sch_aebfa4f08806",
+          "base_schedule_id": "sch_aebfa4f08806",
+          "base_version": 4,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_c139c628ebe1",
+          "version": 5,
+          "status": "cancelled",
+          "created_at": "2026-09-18T07:16:48",
+          "parent_schedule_id": "sch_aebfa4f08806",
+          "base_schedule_id": "sch_aebfa4f08806",
+          "base_version": 4,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_2b569745a177",
+          "version": 5,
+          "status": "cancelled",
+          "created_at": "2026-09-17T04:58:45",
+          "parent_schedule_id": "sch_aebfa4f08806",
+          "base_schedule_id": "sch_aebfa4f08806",
+          "base_version": 4,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_aebfa4f08806",
+          "version": 4,
+          "status": "confirmed",
+          "created_at": "2026-09-17T02:19:24",
+          "parent_schedule_id": "sch_c7883ea3a8cf",
+          "base_schedule_id": "sch_c7883ea3a8cf",
+          "base_version": 3,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_a2387b8e668a",
+          "version": 4,
+          "status": "cancelled",
+          "created_at": "2026-09-17T02:19:09",
+          "parent_schedule_id": "sch_c7883ea3a8cf",
+          "base_schedule_id": "sch_c7883ea3a8cf",
+          "base_version": 3,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_f4348ef60002",
+          "version": 4,
+          "status": "cancelled",
+          "created_at": "2026-09-17T02:19:07",
+          "parent_schedule_id": "sch_c7883ea3a8cf",
+          "base_schedule_id": "sch_c7883ea3a8cf",
+          "base_version": 3,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_c7883ea3a8cf",
+          "version": 3,
+          "status": "confirmed",
+          "created_at": "2026-09-17T02:15:37",
+          "parent_schedule_id": "sch_08c2344fc424",
+          "base_schedule_id": "sch_08c2344fc424",
+          "base_version": 2,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_08c2344fc424",
+          "version": 2,
+          "status": "confirmed",
+          "created_at": "2026-09-17T01:34:54",
+          "parent_schedule_id": "sch_4af31006bafc",
+          "base_schedule_id": "sch_4af31006bafc",
+          "base_version": 1,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_4af31006bafc",
+          "version": 1,
+          "status": "confirmed",
+          "created_at": "2026-09-17T01:34:54",
+          "parent_schedule_id": null,
+          "base_schedule_id": null,
+          "base_version": null,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        }
+      ],
+      "result": {
+        "status": "confirmed",
+        "schedule_id": "sch_aebfa4f08806",
+        "version": 4,
+        "schedule_status": "confirmed",
+        "solver_status": "feasible",
+        "schedule": {
+          "schedule_id": "sch_aebfa4f08806",
+          "version": 4,
+          "parent_schedule_id": "sch_c7883ea3a8cf",
+          "status": "confirmed",
+          "week_start": "2026-09-28",
+          "assignments": [
+            {
+              "employee_id": "E01",
+              "day": "Fri",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E06",
+              "day": "Fri",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E08",
+              "day": "Fri",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E10",
+              "day": "Fri",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E12",
+              "day": "Fri",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E14",
+              "day": "Fri",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E03",
+              "day": "Fri",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E05",
+              "day": "Fri",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E07",
+              "day": "Fri",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E11",
+              "day": "Fri",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E13",
+              "day": "Fri",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E15",
+              "day": "Fri",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E04",
+              "day": "Mon",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E08",
+              "day": "Mon",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E10",
+              "day": "Mon",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E16",
+              "day": "Mon",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E01",
+              "day": "Mon",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E09",
+              "day": "Mon",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E11",
+              "day": "Mon",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E15",
+              "day": "Mon",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E04",
+              "day": "Sat",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E06",
+              "day": "Sat",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E08",
+              "day": "Sat",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E12",
+              "day": "Sat",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E14",
+              "day": "Sat",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E16",
+              "day": "Sat",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E03",
+              "day": "Sat",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E05",
+              "day": "Sat",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E07",
+              "day": "Sat",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E09",
+              "day": "Sat",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E11",
+              "day": "Sat",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E13",
+              "day": "Sat",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E15",
+              "day": "Sat",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E04",
+              "day": "Sun",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E06",
+              "day": "Sun",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E08",
+              "day": "Sun",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E12",
+              "day": "Sun",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E14",
+              "day": "Sun",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E16",
+              "day": "Sun",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E01",
+              "day": "Sun",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E03",
+              "day": "Sun",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E05",
+              "day": "Sun",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E07",
+              "day": "Sun",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E09",
+              "day": "Sun",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E15",
+              "day": "Sun",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E04",
+              "day": "Thu",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E06",
+              "day": "Thu",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E10",
+              "day": "Thu",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E12",
+              "day": "Thu",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E03",
+              "day": "Thu",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E07",
+              "day": "Thu",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E11",
+              "day": "Thu",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E13",
+              "day": "Thu",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E15",
+              "day": "Thu",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E04",
+              "day": "Tue",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E08",
+              "day": "Tue",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E10",
+              "day": "Tue",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E12",
+              "day": "Tue",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E14",
+              "day": "Tue",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E16",
+              "day": "Tue",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E01",
+              "day": "Tue",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E05",
+              "day": "Tue",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E07",
+              "day": "Tue",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E09",
+              "day": "Tue",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E11",
+              "day": "Tue",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E13",
+              "day": "Tue",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E01",
+              "day": "Wed",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E06",
+              "day": "Wed",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E10",
+              "day": "Wed",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E14",
+              "day": "Wed",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E16",
+              "day": "Wed",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E03",
+              "day": "Wed",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E05",
+              "day": "Wed",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E09",
+              "day": "Wed",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E13",
+              "day": "Wed",
+              "shift": "morning"
+            }
+          ],
+          "created_at": "2026-09-17T02:19:24"
+        },
+        "validation": {
+          "total": 10,
+          "valid": true,
+          "checks": [
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "H01"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R01"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R02"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R03"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R04"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R05"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R06"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R07"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R08"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R09"
+            }
+          ],
+          "passed": true,
+          "violations": [],
+          "total_count": 10,
+          "passed_count": 10,
+          "hard_constraints": {
+            "H01": {
+              "passed": true,
+              "violations": []
+            },
+            "R01": {
+              "passed": true,
+              "violations": []
+            },
+            "R02": {
+              "passed": true,
+              "violations": []
+            },
+            "R03": {
+              "passed": true,
+              "violations": []
+            },
+            "R04": {
+              "passed": true,
+              "violations": []
+            },
+            "R05": {
+              "passed": true,
+              "violations": []
+            },
+            "R06": {
+              "passed": true,
+              "violations": []
+            },
+            "R07": {
+              "passed": true,
+              "violations": []
+            },
+            "R08": {
+              "passed": true,
+              "violations": []
+            },
+            "R09": {
+              "passed": true,
+              "violations": []
+            }
+          }
+        },
+        "diff": {
+          "added": [],
+          "shifts": [],
+          "removed": [],
+          "unchanged": [
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "employee_id": "E01"
+            },
+            {
+              "day": "Mon",
+              "shift": "morning",
+              "employee_id": "E01"
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "employee_id": "E01"
+            },
+            {
+              "day": "Tue",
+              "shift": "morning",
+              "employee_id": "E01"
+            },
+            {
+              "day": "Wed",
+              "shift": "evening",
+              "employee_id": "E01"
+            },
+            {
+              "day": "Fri",
+              "shift": "morning",
+              "employee_id": "E03"
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "employee_id": "E03"
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "employee_id": "E03"
+            },
+            {
+              "day": "Thu",
+              "shift": "morning",
+              "employee_id": "E03"
+            },
+            {
+              "day": "Wed",
+              "shift": "morning",
+              "employee_id": "E03"
+            },
+            {
+              "day": "Mon",
+              "shift": "evening",
+              "employee_id": "E04"
+            },
+            {
+              "day": "Sat",
+              "shift": "evening",
+              "employee_id": "E04"
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "employee_id": "E04"
+            },
+            {
+              "day": "Thu",
+              "shift": "evening",
+              "employee_id": "E04"
+            },
+            {
+              "day": "Tue",
+              "shift": "evening",
+              "employee_id": "E04"
+            },
+            {
+              "day": "Fri",
+              "shift": "morning",
+              "employee_id": "E05"
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "employee_id": "E05"
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "employee_id": "E05"
+            },
+            {
+              "day": "Tue",
+              "shift": "morning",
+              "employee_id": "E05"
+            },
+            {
+              "day": "Wed",
+              "shift": "morning",
+              "employee_id": "E05"
+            },
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "employee_id": "E06"
+            },
+            {
+              "day": "Sat",
+              "shift": "evening",
+              "employee_id": "E06"
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "employee_id": "E06"
+            },
+            {
+              "day": "Thu",
+              "shift": "evening",
+              "employee_id": "E06"
+            },
+            {
+              "day": "Wed",
+              "shift": "evening",
+              "employee_id": "E06"
+            },
+            {
+              "day": "Fri",
+              "shift": "morning",
+              "employee_id": "E07"
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "employee_id": "E07"
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "employee_id": "E07"
+            },
+            {
+              "day": "Thu",
+              "shift": "morning",
+              "employee_id": "E07"
+            },
+            {
+              "day": "Tue",
+              "shift": "morning",
+              "employee_id": "E07"
+            },
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "employee_id": "E08"
+            },
+            {
+              "day": "Mon",
+              "shift": "evening",
+              "employee_id": "E08"
+            },
+            {
+              "day": "Sat",
+              "shift": "evening",
+              "employee_id": "E08"
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "employee_id": "E08"
+            },
+            {
+              "day": "Tue",
+              "shift": "evening",
+              "employee_id": "E08"
+            },
+            {
+              "day": "Mon",
+              "shift": "morning",
+              "employee_id": "E09"
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "employee_id": "E09"
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "employee_id": "E09"
+            },
+            {
+              "day": "Tue",
+              "shift": "morning",
+              "employee_id": "E09"
+            },
+            {
+              "day": "Wed",
+              "shift": "morning",
+              "employee_id": "E09"
+            },
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "employee_id": "E10"
+            },
+            {
+              "day": "Mon",
+              "shift": "evening",
+              "employee_id": "E10"
+            },
+            {
+              "day": "Thu",
+              "shift": "evening",
+              "employee_id": "E10"
+            },
+            {
+              "day": "Tue",
+              "shift": "evening",
+              "employee_id": "E10"
+            },
+            {
+              "day": "Wed",
+              "shift": "evening",
+              "employee_id": "E10"
+            },
+            {
+              "day": "Fri",
+              "shift": "morning",
+              "employee_id": "E11"
+            },
+            {
+              "day": "Mon",
+              "shift": "morning",
+              "employee_id": "E11"
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "employee_id": "E11"
+            },
+            {
+              "day": "Thu",
+              "shift": "morning",
+              "employee_id": "E11"
+            },
+            {
+              "day": "Tue",
+              "shift": "morning",
+              "employee_id": "E11"
+            },
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "employee_id": "E12"
+            },
+            {
+              "day": "Sat",
+              "shift": "evening",
+              "employee_id": "E12"
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "employee_id": "E12"
+            },
+            {
+              "day": "Thu",
+              "shift": "evening",
+              "employee_id": "E12"
+            },
+            {
+              "day": "Tue",
+              "shift": "evening",
+              "employee_id": "E12"
+            },
+            {
+              "day": "Fri",
+              "shift": "morning",
+              "employee_id": "E13"
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "employee_id": "E13"
+            },
+            {
+              "day": "Thu",
+              "shift": "morning",
+              "employee_id": "E13"
+            },
+            {
+              "day": "Tue",
+              "shift": "morning",
+              "employee_id": "E13"
+            },
+            {
+              "day": "Wed",
+              "shift": "morning",
+              "employee_id": "E13"
+            },
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "employee_id": "E14"
+            },
+            {
+              "day": "Sat",
+              "shift": "evening",
+              "employee_id": "E14"
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "employee_id": "E14"
+            },
+            {
+              "day": "Tue",
+              "shift": "evening",
+              "employee_id": "E14"
+            },
+            {
+              "day": "Wed",
+              "shift": "evening",
+              "employee_id": "E14"
+            },
+            {
+              "day": "Fri",
+              "shift": "morning",
+              "employee_id": "E15"
+            },
+            {
+              "day": "Mon",
+              "shift": "morning",
+              "employee_id": "E15"
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "employee_id": "E15"
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "employee_id": "E15"
+            },
+            {
+              "day": "Thu",
+              "shift": "morning",
+              "employee_id": "E15"
+            },
+            {
+              "day": "Mon",
+              "shift": "evening",
+              "employee_id": "E16"
+            },
+            {
+              "day": "Sat",
+              "shift": "evening",
+              "employee_id": "E16"
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "employee_id": "E16"
+            },
+            {
+              "day": "Tue",
+              "shift": "evening",
+              "employee_id": "E16"
+            },
+            {
+              "day": "Wed",
+              "shift": "evening",
+              "employee_id": "E16"
+            }
+          ],
+          "changed_shifts": 0,
+          "hard_violations": 0,
+          "unchanged_shifts": 14,
+          "affected_employees": []
+        },
+        "impact": {
+          "total_shifts": 14,
+          "direct_changes": [],
+          "related_changes": [],
+          "unchanged_shifts": 14
+        },
+        "metrics": {
+          "change_count": 0,
+          "workload_gap": 5,
+          "changed_shifts": 0,
+          "history_status": "history_available",
+          "hard_violations": 0,
+          "preference_rate": 0.9733333333333334,
+          "assignment_count": 75,
+          "affected_employees": 0,
+          "changed_assignments": 0,
+          "preference_satisfied": 73,
+          "solve_duration_seconds": 0.14077794500000002,
+          "preference_opportunities": 75
+        },
+        "explanation": {
+          "text": "Generated 75 assignments for the week of 2026-09-28. 10/10 hard checks pass. 73 assignments match employee shift preferences.",
+          "source": "deterministic_template",
+          "llm_fallback": true
+        },
+        "rule_config": null,
+        "lifecycle_status": "confirmed",
+        "compliance_status": "compliant",
+        "confirmable": true,
+        "violations": [],
+        "authorized_violations": [],
+        "unauthorized_violations": [],
+        "protected_violations": [],
+        "integrity_violations": []
+      }
+    },
+    {
+      "week_start": "2026-10-05",
+      "confirmed_schedule": {
+        "schedule_id": "sch_55898ae95446",
+        "version": 5,
+        "parent_schedule_id": "sch_7836dc9598ad",
+        "status": "confirmed",
+        "week_start": "2026-10-05",
+        "assignments": [
+          {
+            "employee_id": "E01",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Mon",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Mon",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Mon",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Mon",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E01",
+            "day": "Mon",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Mon",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Mon",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Mon",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E01",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E01",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E01",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Wed",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Wed",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Wed",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Wed",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Wed",
+            "shift": "morning"
+          }
+        ],
+        "created_at": "2026-09-19T05:40:06"
+      },
+      "draft_schedule": null,
+      "display_schedule": {
+        "schedule_id": "sch_55898ae95446",
+        "version": 5,
+        "parent_schedule_id": "sch_7836dc9598ad",
+        "status": "confirmed",
+        "week_start": "2026-10-05",
+        "assignments": [
+          {
+            "employee_id": "E01",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Fri",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Fri",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Mon",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Mon",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Mon",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Mon",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E01",
+            "day": "Mon",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Mon",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Mon",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Mon",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Sat",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Sat",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Sun",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E01",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Sun",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Thu",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E07",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Thu",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E04",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E08",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E12",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Tue",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E01",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E11",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Tue",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E01",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E06",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E10",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E14",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E16",
+            "day": "Wed",
+            "shift": "evening"
+          },
+          {
+            "employee_id": "E03",
+            "day": "Wed",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E05",
+            "day": "Wed",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E09",
+            "day": "Wed",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E13",
+            "day": "Wed",
+            "shift": "morning"
+          },
+          {
+            "employee_id": "E15",
+            "day": "Wed",
+            "shift": "morning"
+          }
+        ],
+        "created_at": "2026-09-19T05:40:06"
+      },
+      "versions": [
+        {
+          "schedule_id": "sch_d1c5e0b75a27",
+          "version": 6,
+          "status": "cancelled",
+          "created_at": "2026-09-20T07:33:11",
+          "parent_schedule_id": "sch_55898ae95446",
+          "base_schedule_id": "sch_55898ae95446",
+          "base_version": 5,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_cf4b087a79c2",
+          "version": 6,
+          "status": "cancelled",
+          "created_at": "2026-09-20T07:31:53",
+          "parent_schedule_id": "sch_55898ae95446",
+          "base_schedule_id": "sch_55898ae95446",
+          "base_version": 5,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_3881b10bbb92",
+          "version": 6,
+          "status": "cancelled",
+          "created_at": "2026-09-20T07:26:54",
+          "parent_schedule_id": "sch_55898ae95446",
+          "base_schedule_id": "sch_55898ae95446",
+          "base_version": 5,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_f2efacac4599",
+          "version": 6,
+          "status": "cancelled",
+          "created_at": "2026-09-20T04:40:52",
+          "parent_schedule_id": "sch_55898ae95446",
+          "base_schedule_id": "sch_55898ae95446",
+          "base_version": 5,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_46782bfff1d6",
+          "version": 6,
+          "status": "cancelled",
+          "created_at": "2026-09-20T04:40:08",
+          "parent_schedule_id": "sch_55898ae95446",
+          "base_schedule_id": "sch_55898ae95446",
+          "base_version": 5,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_3be15f9cb496",
+          "version": 6,
+          "status": "cancelled",
+          "created_at": "2026-09-20T03:52:10",
+          "parent_schedule_id": "sch_55898ae95446",
+          "base_schedule_id": "sch_55898ae95446",
+          "base_version": 5,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_bec4b3c6a21f",
+          "version": 6,
+          "status": "cancelled",
+          "created_at": "2026-09-19T21:47:17",
+          "parent_schedule_id": "sch_55898ae95446",
+          "base_schedule_id": "sch_55898ae95446",
+          "base_version": 5,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_55898ae95446",
+          "version": 5,
+          "status": "confirmed",
+          "created_at": "2026-09-19T05:40:06",
+          "parent_schedule_id": "sch_7836dc9598ad",
+          "base_schedule_id": "sch_7836dc9598ad",
+          "base_version": 4,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_7836dc9598ad",
+          "version": 4,
+          "status": "confirmed",
+          "created_at": "2026-09-19T05:39:26",
+          "parent_schedule_id": "sch_c71a4eb68fd4",
+          "base_schedule_id": "sch_c71a4eb68fd4",
+          "base_version": 3,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_c71a4eb68fd4",
+          "version": 3,
+          "status": "confirmed",
+          "created_at": "2026-09-18T19:06:19",
+          "parent_schedule_id": "sch_35147f29b125",
+          "base_schedule_id": "sch_35147f29b125",
+          "base_version": 2,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_35147f29b125",
+          "version": 2,
+          "status": "confirmed",
+          "created_at": "2026-09-18T16:04:16",
+          "parent_schedule_id": "sch_0be34875c195",
+          "base_schedule_id": "sch_0be34875c195",
+          "base_version": 1,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        },
+        {
+          "schedule_id": "sch_0be34875c195",
+          "version": 1,
+          "status": "confirmed",
+          "created_at": "2026-09-18T14:06:14",
+          "parent_schedule_id": null,
+          "base_schedule_id": null,
+          "base_version": null,
+          "compliance_status": "compliant",
+          "authorized_violation_count": 0,
+          "violations": []
+        }
+      ],
+      "result": {
+        "status": "confirmed",
+        "schedule_id": "sch_55898ae95446",
+        "version": 5,
+        "schedule_status": "confirmed",
+        "solver_status": "optimal",
+        "schedule": {
+          "schedule_id": "sch_55898ae95446",
+          "version": 5,
+          "parent_schedule_id": "sch_7836dc9598ad",
+          "status": "confirmed",
+          "week_start": "2026-10-05",
+          "assignments": [
+            {
+              "employee_id": "E01",
+              "day": "Fri",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E06",
+              "day": "Fri",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E08",
+              "day": "Fri",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E10",
+              "day": "Fri",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E12",
+              "day": "Fri",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E14",
+              "day": "Fri",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E03",
+              "day": "Fri",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E05",
+              "day": "Fri",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E07",
+              "day": "Fri",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E11",
+              "day": "Fri",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E13",
+              "day": "Fri",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E15",
+              "day": "Fri",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E04",
+              "day": "Mon",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E08",
+              "day": "Mon",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E10",
+              "day": "Mon",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E14",
+              "day": "Mon",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E01",
+              "day": "Mon",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E07",
+              "day": "Mon",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E11",
+              "day": "Mon",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E13",
+              "day": "Mon",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E04",
+              "day": "Sat",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E06",
+              "day": "Sat",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E08",
+              "day": "Sat",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E12",
+              "day": "Sat",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E14",
+              "day": "Sat",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E16",
+              "day": "Sat",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E03",
+              "day": "Sat",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E07",
+              "day": "Sat",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E09",
+              "day": "Sat",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E11",
+              "day": "Sat",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E13",
+              "day": "Sat",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E15",
+              "day": "Sat",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E04",
+              "day": "Sun",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E06",
+              "day": "Sun",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E08",
+              "day": "Sun",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E10",
+              "day": "Sun",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E12",
+              "day": "Sun",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E14",
+              "day": "Sun",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E16",
+              "day": "Sun",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E01",
+              "day": "Sun",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E03",
+              "day": "Sun",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E05",
+              "day": "Sun",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E07",
+              "day": "Sun",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E09",
+              "day": "Sun",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E13",
+              "day": "Sun",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E15",
+              "day": "Sun",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E04",
+              "day": "Thu",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E06",
+              "day": "Thu",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E10",
+              "day": "Thu",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E12",
+              "day": "Thu",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E16",
+              "day": "Thu",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E03",
+              "day": "Thu",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E05",
+              "day": "Thu",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E07",
+              "day": "Thu",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E09",
+              "day": "Thu",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E11",
+              "day": "Thu",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E04",
+              "day": "Tue",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E08",
+              "day": "Tue",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E12",
+              "day": "Tue",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E16",
+              "day": "Tue",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E01",
+              "day": "Tue",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E05",
+              "day": "Tue",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E09",
+              "day": "Tue",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E11",
+              "day": "Tue",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E15",
+              "day": "Tue",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E01",
+              "day": "Wed",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E06",
+              "day": "Wed",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E10",
+              "day": "Wed",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E14",
+              "day": "Wed",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E16",
+              "day": "Wed",
+              "shift": "evening"
+            },
+            {
+              "employee_id": "E03",
+              "day": "Wed",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E05",
+              "day": "Wed",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E09",
+              "day": "Wed",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E13",
+              "day": "Wed",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E15",
+              "day": "Wed",
+              "shift": "morning"
+            }
+          ],
+          "created_at": "2026-09-19T05:40:06"
+        },
+        "validation": {
+          "total": 10,
+          "valid": true,
+          "checks": [
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "H01",
+              "classification": "SATISFIED"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R01",
+              "classification": "SATISFIED"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R02",
+              "classification": "SATISFIED"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R03",
+              "classification": "SATISFIED"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R04",
+              "classification": "SATISFIED"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R05",
+              "classification": "SATISFIED"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R06",
+              "classification": "SATISFIED"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R07",
+              "classification": "SATISFIED"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R08",
+              "classification": "SATISFIED"
+            },
+            {
+              "passed": true,
+              "details": {
+                "violations": []
+              },
+              "message": "Passed",
+              "rule_id": "R09",
+              "classification": "SATISFIED"
+            }
+          ],
+          "passed": true,
+          "coverage": [
+            {
+              "day": "Mon",
+              "shift": "morning",
+              "actual": 1,
+              "passed": true,
+              "rule_id": "R01",
+              "expected": 1
+            },
+            {
+              "day": "Mon",
+              "shift": "morning",
+              "actual": 4,
+              "passed": true,
+              "rule_id": "R02",
+              "expected": 2
+            },
+            {
+              "day": "Mon",
+              "shift": "morning",
+              "actual": 4,
+              "passed": true,
+              "rule_id": "R03",
+              "expected": 1
+            },
+            {
+              "day": "Mon",
+              "shift": "morning",
+              "actual": 4,
+              "passed": true,
+              "rule_id": "R04",
+              "expected": 4
+            },
+            {
+              "day": "Mon",
+              "shift": "evening",
+              "actual": 1,
+              "passed": true,
+              "rule_id": "R01",
+              "expected": 1
+            },
+            {
+              "day": "Mon",
+              "shift": "evening",
+              "actual": 4,
+              "passed": true,
+              "rule_id": "R02",
+              "expected": 2
+            },
+            {
+              "day": "Mon",
+              "shift": "evening",
+              "actual": 3,
+              "passed": true,
+              "rule_id": "R03",
+              "expected": 1
+            },
+            {
+              "day": "Mon",
+              "shift": "evening",
+              "actual": 4,
+              "passed": true,
+              "rule_id": "R04",
+              "expected": 4
+            },
+            {
+              "day": "Tue",
+              "shift": "morning",
+              "actual": 1,
+              "passed": true,
+              "rule_id": "R01",
+              "expected": 1
+            },
+            {
+              "day": "Tue",
+              "shift": "morning",
+              "actual": 5,
+              "passed": true,
+              "rule_id": "R02",
+              "expected": 2
+            },
+            {
+              "day": "Tue",
+              "shift": "morning",
+              "actual": 5,
+              "passed": true,
+              "rule_id": "R03",
+              "expected": 1
+            },
+            {
+              "day": "Tue",
+              "shift": "morning",
+              "actual": 5,
+              "passed": true,
+              "rule_id": "R04",
+              "expected": 4
+            },
+            {
+              "day": "Tue",
+              "shift": "evening",
+              "actual": 1,
+              "passed": true,
+              "rule_id": "R01",
+              "expected": 1
+            },
+            {
+              "day": "Tue",
+              "shift": "evening",
+              "actual": 4,
+              "passed": true,
+              "rule_id": "R02",
+              "expected": 2
+            },
+            {
+              "day": "Tue",
+              "shift": "evening",
+              "actual": 3,
+              "passed": true,
+              "rule_id": "R03",
+              "expected": 1
+            },
+            {
+              "day": "Tue",
+              "shift": "evening",
+              "actual": 4,
+              "passed": true,
+              "rule_id": "R04",
+              "expected": 4
+            },
+            {
+              "day": "Wed",
+              "shift": "morning",
+              "actual": 1,
+              "passed": true,
+              "rule_id": "R01",
+              "expected": 1
+            },
+            {
+              "day": "Wed",
+              "shift": "morning",
+              "actual": 5,
+              "passed": true,
+              "rule_id": "R02",
+              "expected": 2
+            },
+            {
+              "day": "Wed",
+              "shift": "morning",
+              "actual": 5,
+              "passed": true,
+              "rule_id": "R03",
+              "expected": 1
+            },
+            {
+              "day": "Wed",
+              "shift": "morning",
+              "actual": 5,
+              "passed": true,
+              "rule_id": "R04",
+              "expected": 4
+            },
+            {
+              "day": "Wed",
+              "shift": "evening",
+              "actual": 1,
+              "passed": true,
+              "rule_id": "R01",
+              "expected": 1
+            },
+            {
+              "day": "Wed",
+              "shift": "evening",
+              "actual": 5,
+              "passed": true,
+              "rule_id": "R02",
+              "expected": 2
+            },
+            {
+              "day": "Wed",
+              "shift": "evening",
+              "actual": 5,
+              "passed": true,
+              "rule_id": "R03",
+              "expected": 1
+            },
+            {
+              "day": "Wed",
+              "shift": "evening",
+              "actual": 5,
+              "passed": true,
+              "rule_id": "R04",
+              "expected": 4
+            },
+            {
+              "day": "Thu",
+              "shift": "morning",
+              "actual": 1,
+              "passed": true,
+              "rule_id": "R01",
+              "expected": 1
+            },
+            {
+              "day": "Thu",
+              "shift": "morning",
+              "actual": 5,
+              "passed": true,
+              "rule_id": "R02",
+              "expected": 2
+            },
+            {
+              "day": "Thu",
+              "shift": "morning",
+              "actual": 5,
+              "passed": true,
+              "rule_id": "R03",
+              "expected": 1
+            },
+            {
+              "day": "Thu",
+              "shift": "morning",
+              "actual": 5,
+              "passed": true,
+              "rule_id": "R04",
+              "expected": 4
+            },
+            {
+              "day": "Thu",
+              "shift": "evening",
+              "actual": 1,
+              "passed": true,
+              "rule_id": "R01",
+              "expected": 1
+            },
+            {
+              "day": "Thu",
+              "shift": "evening",
+              "actual": 5,
+              "passed": true,
+              "rule_id": "R02",
+              "expected": 2
+            },
+            {
+              "day": "Thu",
+              "shift": "evening",
+              "actual": 4,
+              "passed": true,
+              "rule_id": "R03",
+              "expected": 1
+            },
+            {
+              "day": "Thu",
+              "shift": "evening",
+              "actual": 5,
+              "passed": true,
+              "rule_id": "R04",
+              "expected": 4
+            },
+            {
+              "day": "Fri",
+              "shift": "morning",
+              "actual": 1,
+              "passed": true,
+              "rule_id": "R01",
+              "expected": 1
+            },
+            {
+              "day": "Fri",
+              "shift": "morning",
+              "actual": 6,
+              "passed": true,
+              "rule_id": "R02",
+              "expected": 2
+            },
+            {
+              "day": "Fri",
+              "shift": "morning",
+              "actual": 6,
+              "passed": true,
+              "rule_id": "R03",
+              "expected": 1
+            },
+            {
+              "day": "Fri",
+              "shift": "morning",
+              "actual": 6,
+              "passed": true,
+              "rule_id": "R04",
+              "expected": 4
+            },
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "actual": 1,
+              "passed": true,
+              "rule_id": "R01",
+              "expected": 1
+            },
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "actual": 6,
+              "passed": true,
+              "rule_id": "R02",
+              "expected": 2
+            },
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "actual": 6,
+              "passed": true,
+              "rule_id": "R03",
+              "expected": 1
+            },
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "actual": 6,
+              "passed": true,
+              "rule_id": "R04",
+              "expected": 4
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "actual": 1,
+              "passed": true,
+              "rule_id": "R01",
+              "expected": 1
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "actual": 6,
+              "passed": true,
+              "rule_id": "R02",
+              "expected": 2
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "actual": 6,
+              "passed": true,
+              "rule_id": "R03",
+              "expected": 1
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "actual": 6,
+              "passed": true,
+              "rule_id": "R04",
+              "expected": 6
+            },
+            {
+              "day": "Sat",
+              "shift": "evening",
+              "actual": 1,
+              "passed": true,
+              "rule_id": "R01",
+              "expected": 1
+            },
+            {
+              "day": "Sat",
+              "shift": "evening",
+              "actual": 6,
+              "passed": true,
+              "rule_id": "R02",
+              "expected": 2
+            },
+            {
+              "day": "Sat",
+              "shift": "evening",
+              "actual": 5,
+              "passed": true,
+              "rule_id": "R03",
+              "expected": 1
+            },
+            {
+              "day": "Sat",
+              "shift": "evening",
+              "actual": 6,
+              "passed": true,
+              "rule_id": "R04",
+              "expected": 6
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "actual": 2,
+              "passed": true,
+              "rule_id": "R01",
+              "expected": 1
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "actual": 7,
+              "passed": true,
+              "rule_id": "R02",
+              "expected": 2
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "actual": 7,
+              "passed": true,
+              "rule_id": "R03",
+              "expected": 1
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "actual": 7,
+              "passed": true,
+              "rule_id": "R04",
+              "expected": 6
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "actual": 1,
+              "passed": true,
+              "rule_id": "R01",
+              "expected": 1
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "actual": 7,
+              "passed": true,
+              "rule_id": "R02",
+              "expected": 2
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "actual": 6,
+              "passed": true,
+              "rule_id": "R03",
+              "expected": 1
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "actual": 7,
+              "passed": true,
+              "rule_id": "R04",
+              "expected": 6
+            }
+          ],
+          "violations": [],
+          "confirmable": true,
+          "total_count": 10,
+          "passed_count": 10,
+          "hard_constraints": {
+            "H01": {
+              "passed": true,
+              "violations": []
+            },
+            "R01": {
+              "passed": true,
+              "violations": []
+            },
+            "R02": {
+              "passed": true,
+              "violations": []
+            },
+            "R03": {
+              "passed": true,
+              "violations": []
+            },
+            "R04": {
+              "passed": true,
+              "violations": []
+            },
+            "R05": {
+              "passed": true,
+              "violations": []
+            },
+            "R06": {
+              "passed": true,
+              "violations": []
+            },
+            "R07": {
+              "passed": true,
+              "violations": []
+            },
+            "R08": {
+              "passed": true,
+              "violations": []
+            },
+            "R09": {
+              "passed": true,
+              "violations": []
+            }
+          },
+          "compliance_status": "compliant",
+          "integrity_violations": [],
+          "protected_violations": [],
+          "authorized_violations": [],
+          "unauthorized_violations": []
+        },
+        "diff": {
+          "added": [
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "employee_id": "E01"
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "employee_id": "E11"
+            }
+          ],
+          "shifts": [
+            {
+              "day": "Fri",
+              "added": [
+                "E01"
+              ],
+              "shift": "evening",
+              "removed": [
+                "E02"
+              ],
+              "unchanged": [
+                "E06",
+                "E08",
+                "E10",
+                "E12",
+                "E14"
+              ]
+            },
+            {
+              "day": "Sat",
+              "added": [
+                "E11"
+              ],
+              "shift": "morning",
+              "removed": [
+                "E01"
+              ],
+              "unchanged": [
+                "E03",
+                "E07",
+                "E09",
+                "E13",
+                "E15"
+              ]
+            },
+            {
+              "day": "Wed",
+              "added": [],
+              "shift": "morning",
+              "removed": [
+                "E11"
+              ],
+              "unchanged": [
+                "E03",
+                "E05",
+                "E09",
+                "E13",
+                "E15"
+              ]
+            }
+          ],
+          "removed": [
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "employee_id": "E01"
+            },
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "employee_id": "E02"
+            },
+            {
+              "day": "Wed",
+              "shift": "morning",
+              "employee_id": "E11"
+            }
+          ],
+          "unchanged": [
+            {
+              "day": "Mon",
+              "shift": "morning",
+              "employee_id": "E01"
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "employee_id": "E01"
+            },
+            {
+              "day": "Tue",
+              "shift": "morning",
+              "employee_id": "E01"
+            },
+            {
+              "day": "Wed",
+              "shift": "evening",
+              "employee_id": "E01"
+            },
+            {
+              "day": "Fri",
+              "shift": "morning",
+              "employee_id": "E03"
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "employee_id": "E03"
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "employee_id": "E03"
+            },
+            {
+              "day": "Thu",
+              "shift": "morning",
+              "employee_id": "E03"
+            },
+            {
+              "day": "Wed",
+              "shift": "morning",
+              "employee_id": "E03"
+            },
+            {
+              "day": "Mon",
+              "shift": "evening",
+              "employee_id": "E04"
+            },
+            {
+              "day": "Sat",
+              "shift": "evening",
+              "employee_id": "E04"
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "employee_id": "E04"
+            },
+            {
+              "day": "Thu",
+              "shift": "evening",
+              "employee_id": "E04"
+            },
+            {
+              "day": "Tue",
+              "shift": "evening",
+              "employee_id": "E04"
+            },
+            {
+              "day": "Fri",
+              "shift": "morning",
+              "employee_id": "E05"
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "employee_id": "E05"
+            },
+            {
+              "day": "Thu",
+              "shift": "morning",
+              "employee_id": "E05"
+            },
+            {
+              "day": "Tue",
+              "shift": "morning",
+              "employee_id": "E05"
+            },
+            {
+              "day": "Wed",
+              "shift": "morning",
+              "employee_id": "E05"
+            },
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "employee_id": "E06"
+            },
+            {
+              "day": "Sat",
+              "shift": "evening",
+              "employee_id": "E06"
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "employee_id": "E06"
+            },
+            {
+              "day": "Thu",
+              "shift": "evening",
+              "employee_id": "E06"
+            },
+            {
+              "day": "Wed",
+              "shift": "evening",
+              "employee_id": "E06"
+            },
+            {
+              "day": "Fri",
+              "shift": "morning",
+              "employee_id": "E07"
+            },
+            {
+              "day": "Mon",
+              "shift": "morning",
+              "employee_id": "E07"
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "employee_id": "E07"
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "employee_id": "E07"
+            },
+            {
+              "day": "Thu",
+              "shift": "morning",
+              "employee_id": "E07"
+            },
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "employee_id": "E08"
+            },
+            {
+              "day": "Mon",
+              "shift": "evening",
+              "employee_id": "E08"
+            },
+            {
+              "day": "Sat",
+              "shift": "evening",
+              "employee_id": "E08"
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "employee_id": "E08"
+            },
+            {
+              "day": "Tue",
+              "shift": "evening",
+              "employee_id": "E08"
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "employee_id": "E09"
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "employee_id": "E09"
+            },
+            {
+              "day": "Thu",
+              "shift": "morning",
+              "employee_id": "E09"
+            },
+            {
+              "day": "Tue",
+              "shift": "morning",
+              "employee_id": "E09"
+            },
+            {
+              "day": "Wed",
+              "shift": "morning",
+              "employee_id": "E09"
+            },
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "employee_id": "E10"
+            },
+            {
+              "day": "Mon",
+              "shift": "evening",
+              "employee_id": "E10"
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "employee_id": "E10"
+            },
+            {
+              "day": "Thu",
+              "shift": "evening",
+              "employee_id": "E10"
+            },
+            {
+              "day": "Wed",
+              "shift": "evening",
+              "employee_id": "E10"
+            },
+            {
+              "day": "Fri",
+              "shift": "morning",
+              "employee_id": "E11"
+            },
+            {
+              "day": "Mon",
+              "shift": "morning",
+              "employee_id": "E11"
+            },
+            {
+              "day": "Thu",
+              "shift": "morning",
+              "employee_id": "E11"
+            },
+            {
+              "day": "Tue",
+              "shift": "morning",
+              "employee_id": "E11"
+            },
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "employee_id": "E12"
+            },
+            {
+              "day": "Sat",
+              "shift": "evening",
+              "employee_id": "E12"
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "employee_id": "E12"
+            },
+            {
+              "day": "Thu",
+              "shift": "evening",
+              "employee_id": "E12"
+            },
+            {
+              "day": "Tue",
+              "shift": "evening",
+              "employee_id": "E12"
+            },
+            {
+              "day": "Fri",
+              "shift": "morning",
+              "employee_id": "E13"
+            },
+            {
+              "day": "Mon",
+              "shift": "morning",
+              "employee_id": "E13"
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "employee_id": "E13"
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "employee_id": "E13"
+            },
+            {
+              "day": "Wed",
+              "shift": "morning",
+              "employee_id": "E13"
+            },
+            {
+              "day": "Fri",
+              "shift": "evening",
+              "employee_id": "E14"
+            },
+            {
+              "day": "Mon",
+              "shift": "evening",
+              "employee_id": "E14"
+            },
+            {
+              "day": "Sat",
+              "shift": "evening",
+              "employee_id": "E14"
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "employee_id": "E14"
+            },
+            {
+              "day": "Wed",
+              "shift": "evening",
+              "employee_id": "E14"
+            },
+            {
+              "day": "Fri",
+              "shift": "morning",
+              "employee_id": "E15"
+            },
+            {
+              "day": "Sat",
+              "shift": "morning",
+              "employee_id": "E15"
+            },
+            {
+              "day": "Sun",
+              "shift": "morning",
+              "employee_id": "E15"
+            },
+            {
+              "day": "Tue",
+              "shift": "morning",
+              "employee_id": "E15"
+            },
+            {
+              "day": "Wed",
+              "shift": "morning",
+              "employee_id": "E15"
+            },
+            {
+              "day": "Sat",
+              "shift": "evening",
+              "employee_id": "E16"
+            },
+            {
+              "day": "Sun",
+              "shift": "evening",
+              "employee_id": "E16"
+            },
+            {
+              "day": "Thu",
+              "shift": "evening",
+              "employee_id": "E16"
+            },
+            {
+              "day": "Tue",
+              "shift": "evening",
+              "employee_id": "E16"
+            },
+            {
+              "day": "Wed",
+              "shift": "evening",
+              "employee_id": "E16"
+            }
+          ],
+          "changed_shifts": 3,
+          "hard_violations": 0,
+          "unchanged_shifts": 11,
+          "affected_employees": [
+            "E01",
+            "E02",
+            "E11"
+          ]
+        },
+        "impact": {
+          "total_shifts": 14,
+          "direct_changes": [
+            "E02"
+          ],
+          "related_changes": [
+            "E01",
+            "E11"
+          ],
+          "unchanged_shifts": 11
+        },
+        "metrics": {
+          "change_count": 5,
+          "workload_gap": 5,
+          "changed_shifts": 3,
+          "history_status": "history_available",
+          "hard_violations": 0,
+          "preference_rate": 0.9733333333333334,
+          "assignment_count": 75,
+          "affected_employees": 3,
+          "changed_assignments": 5,
+          "preference_satisfied": 73,
+          "solve_duration_seconds": 0.109051349,
+          "preference_opportunities": 75
+        },
+        "explanation": {
+          "text": "Generated 75 assignments for the week of 2026-10-05. All 10 hard checks pass, and 73 assignments match employee shift preferences.",
+          "source": "llm_polished",
+          "llm_fallback": false
+        },
+        "rule_config": {
+          "objective": {
+            "preference_reward": 5,
+            "workload_gap_penalty": 2,
+            "schedule_change_penalty": 8
+          },
+          "random_seed": 42,
+          "max_time_seconds": 10.0,
+          "cashier_per_shift": 1,
+          "manager_per_shift": 1,
+          "weekday_min_staff": 4,
+          "weekend_min_staff": 6,
+          "beverage_per_shift": 2,
+          "num_search_workers": 1,
+          "max_shifts_per_week": 5,
+          "max_consecutive_days": 5
+        },
+        "lifecycle_status": "confirmed",
+        "compliance_status": "compliant",
+        "confirmable": true,
+        "violations": [],
+        "authorized_violations": [],
+        "unauthorized_violations": [],
+        "protected_violations": [],
+        "integrity_violations": []
+      }
+    }
+  ]
+}

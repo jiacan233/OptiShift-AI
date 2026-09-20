@@ -13,6 +13,7 @@ from ..models import Assignment, HistoryStatus, Schedule
 from ..models.orm import (
     AssignmentRecord,
     ConversationRecord,
+    ConversationDialogueRecord,
     ConversationScenarioRecord,
     ScheduleRecord,
     SystemMetadataRecord,
@@ -321,6 +322,14 @@ class ScheduleRepository:
                     or conversation.active_turn_owner_token != owner_token
                 ):
                     raise TurnLeaseLostError(message_id)
+                if "dialogue_revision" in metadata_payload:
+                    dialogue = session.scalar(select(ConversationDialogueRecord).where(
+                        ConversationDialogueRecord.conversation_id == conversation_id,
+                        ConversationDialogueRecord.week_start == schedule.week_start,
+                    ).with_for_update())
+                    if dialogue is None or dialogue.revision != metadata_payload["dialogue_revision"]:
+                        from .scenarios import ScenarioRevisionConflict
+                        raise ScenarioRevisionConflict("排班计算期间条件已变化，不能保存旧结果。")
             pending = self._current_draft_record(
                 session, schedule.week_start, lock=True
             )

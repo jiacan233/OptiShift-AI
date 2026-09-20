@@ -1,0 +1,5371 @@
+{
+  "name": "busiest_employee",
+  "status": "passed",
+  "model": "gpt-5.6-sol",
+  "started_at": "2026-09-20T08:39:03.696300+00:00",
+  "duration_seconds": 11.859999999869615,
+  "prompt_version": "agent-read-v2",
+  "dry_run": true,
+  "database_unchanged": true,
+  "raw_model_outputs": [
+    {
+      "stage": "agent_route_lite",
+      "raw_content": "{\"clarification_required\":false,\"domain\":\"scheduling\",\"employees\":[],\"force_or_override_intent\":false,\"intent\":\"ask\",\"mutation_requested\":false,\"question_type\":\"employee_workload\",\"speech_act\":\"question\"}",
+      "latency_ms": 6028,
+      "provider_status": 200
+    },
+    {
+      "stage": "agent_route_lite",
+      "output": {
+        "clarification_required": false,
+        "domain": "scheduling",
+        "employees": [],
+        "force_or_override_intent": false,
+        "intent": "ask",
+        "mutation_requested": false,
+        "question_type": "employee_workload",
+        "speech_act": "question"
+      },
+      "duration_ms": 6032
+    },
+    {
+      "stage": "response_compose",
+      "raw_content": "{\"sentence_ids\":[\"fact_1\",\"fact_2\",\"fact_0\"]}",
+      "latency_ms": 5801,
+      "provider_status": 200
+    },
+    {
+      "stage": "response_compose",
+      "output": {
+        "sentence_ids": [
+          "fact_1",
+          "fact_2",
+          "fact_0"
+        ]
+      },
+      "duration_ms": 5813
+    }
+  ],
+  "raw_plan_failures": [],
+  "router_latency_ms": 6032,
+  "fallback_used": false,
+  "schema_bytes": 1277,
+  "router_stages": [
+    {
+      "stage": "agent_route_lite",
+      "parser_name": "agent_route_lite",
+      "model": "gpt-5.6-sol",
+      "schema_name": "agent_route_lite",
+      "schema_bytes": 1277,
+      "message_count": 2,
+      "request_bytes": 3514,
+      "fallback_used": false,
+      "error_type": null,
+      "latency_ms": 6032,
+      "parser_latency_ms": 6032
+    }
+  ],
+  "query_plan": {
+    "question_type": "employee_workload",
+    "target_week": "2026-10-05",
+    "day": null,
+    "shift": null,
+    "employee_ids": [],
+    "scope": "per_day",
+    "requested_facts": [
+      "workload"
+    ],
+    "comparison": "none",
+    "reference_mode": "none",
+    "whether_counterfactual_needed": false,
+    "version": null,
+    "clarification": null
+  },
+  "route": {
+    "intent": "explain",
+    "domain": "scheduling",
+    "speech_act": "question",
+    "classification_source": "lite_router+deterministic",
+    "read_query": {
+      "question_type": "employee_workload",
+      "target_week": null,
+      "day": null,
+      "shift": null,
+      "employee_ids": [],
+      "scope": "per_day",
+      "requested_facts": [
+        "workload"
+      ],
+      "comparison": "none",
+      "reference_mode": "none",
+      "whether_counterfactual_needed": false,
+      "version": null,
+      "clarification": null
+    },
+    "mutation_requested": false,
+    "target_week": null,
+    "target_iso_year": null,
+    "target_iso_week": null,
+    "employees": [],
+    "changes": [],
+    "operations": [],
+    "operation": "add",
+    "minimize_changes": false,
+    "override_requested": false,
+    "force_generate": false,
+    "requested_overrides": [],
+    "forced_assignments": [],
+    "authorization_reason": null,
+    "reference": {
+      "type": "none",
+      "suggestion_id": null
+    },
+    "clarification": {
+      "required": false,
+      "question": null
+    }
+  },
+  "tool_calls": [
+    {
+      "tool_name": "get_current_schedule",
+      "input": {
+        "target_week": "2026-10-05",
+        "version": null
+      },
+      "output": {
+        "target_week": "2026-10-05",
+        "confirmed": {
+          "schedule_id": "sch_eval_v2",
+          "lineage_id": "eval",
+          "version": 2,
+          "parent_schedule_id": null,
+          "base_schedule_id": null,
+          "base_version": null,
+          "status": "confirmed",
+          "compliance_status": "invalid",
+          "week_start": "2026-10-05",
+          "validation": {},
+          "metadata": {},
+          "created_at": "2026-09-20T08:38:51.815994",
+          "confirmed_at": "2026-09-20T08:38:51.815994",
+          "cancelled_at": null,
+          "schedule": {
+            "schedule_id": "sch_eval_v2",
+            "version": 2,
+            "parent_schedule_id": null,
+            "status": "confirmed",
+            "week_start": "2026-10-05",
+            "assignments": [
+              {
+                "employee_id": "E07",
+                "day": "Fri",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E08",
+                "day": "Fri",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E11",
+                "day": "Fri",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E12",
+                "day": "Fri",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E01",
+                "day": "Fri",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E04",
+                "day": "Fri",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E05",
+                "day": "Fri",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E15",
+                "day": "Fri",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E07",
+                "day": "Mon",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E08",
+                "day": "Mon",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E09",
+                "day": "Mon",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E10",
+                "day": "Mon",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E02",
+                "day": "Mon",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E03",
+                "day": "Mon",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E04",
+                "day": "Mon",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E05",
+                "day": "Mon",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E07",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E08",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E09",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E10",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E13",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E14",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E01",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E02",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E03",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E06",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E15",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E16",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E07",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E08",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E09",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E10",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E11",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E12",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E01",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E02",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E03",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E04",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E05",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E06",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E15",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E09",
+                "day": "Thu",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E10",
+                "day": "Thu",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E13",
+                "day": "Thu",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E14",
+                "day": "Thu",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E02",
+                "day": "Thu",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E03",
+                "day": "Thu",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E06",
+                "day": "Thu",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E16",
+                "day": "Thu",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E11",
+                "day": "Tue",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E12",
+                "day": "Tue",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E13",
+                "day": "Tue",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E14",
+                "day": "Tue",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E01",
+                "day": "Tue",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E02",
+                "day": "Tue",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E06",
+                "day": "Tue",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E16",
+                "day": "Tue",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E07",
+                "day": "Wed",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E08",
+                "day": "Wed",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E11",
+                "day": "Wed",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E12",
+                "day": "Wed",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E01",
+                "day": "Wed",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E04",
+                "day": "Wed",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E05",
+                "day": "Wed",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E15",
+                "day": "Wed",
+                "shift": "morning"
+              }
+            ],
+            "created_at": "2026-09-20T08:38:51.815994"
+          }
+        },
+        "draft": null,
+        "display": {
+          "schedule_id": "sch_eval_v2",
+          "lineage_id": "eval",
+          "version": 2,
+          "parent_schedule_id": null,
+          "base_schedule_id": null,
+          "base_version": null,
+          "status": "confirmed",
+          "compliance_status": "invalid",
+          "week_start": "2026-10-05",
+          "validation": {},
+          "metadata": {},
+          "created_at": "2026-09-20T08:38:51.815994",
+          "confirmed_at": "2026-09-20T08:38:51.815994",
+          "cancelled_at": null,
+          "schedule": {
+            "schedule_id": "sch_eval_v2",
+            "version": 2,
+            "parent_schedule_id": null,
+            "status": "confirmed",
+            "week_start": "2026-10-05",
+            "assignments": [
+              {
+                "employee_id": "E07",
+                "day": "Fri",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E08",
+                "day": "Fri",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E11",
+                "day": "Fri",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E12",
+                "day": "Fri",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E01",
+                "day": "Fri",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E04",
+                "day": "Fri",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E05",
+                "day": "Fri",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E15",
+                "day": "Fri",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E07",
+                "day": "Mon",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E08",
+                "day": "Mon",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E09",
+                "day": "Mon",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E10",
+                "day": "Mon",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E02",
+                "day": "Mon",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E03",
+                "day": "Mon",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E04",
+                "day": "Mon",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E05",
+                "day": "Mon",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E07",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E08",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E09",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E10",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E13",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E14",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E01",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E02",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E03",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E06",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E15",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E16",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E07",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E08",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E09",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E10",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E11",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E12",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E01",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E02",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E03",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E04",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E05",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E06",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E15",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E09",
+                "day": "Thu",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E10",
+                "day": "Thu",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E13",
+                "day": "Thu",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E14",
+                "day": "Thu",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E02",
+                "day": "Thu",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E03",
+                "day": "Thu",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E06",
+                "day": "Thu",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E16",
+                "day": "Thu",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E11",
+                "day": "Tue",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E12",
+                "day": "Tue",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E13",
+                "day": "Tue",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E14",
+                "day": "Tue",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E01",
+                "day": "Tue",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E02",
+                "day": "Tue",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E06",
+                "day": "Tue",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E16",
+                "day": "Tue",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E07",
+                "day": "Wed",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E08",
+                "day": "Wed",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E11",
+                "day": "Wed",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E12",
+                "day": "Wed",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E01",
+                "day": "Wed",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E04",
+                "day": "Wed",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E05",
+                "day": "Wed",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E15",
+                "day": "Wed",
+                "shift": "morning"
+              }
+            ],
+            "created_at": "2026-09-20T08:38:51.815994"
+          }
+        }
+      },
+      "status": "completed"
+    },
+    {
+      "tool_name": "analyze_staffing",
+      "input": {
+        "target_week": "2026-10-05",
+        "plan": {
+          "question_type": "employee_workload",
+          "target_week": "2026-10-05",
+          "day": null,
+          "shift": null,
+          "employee_ids": [],
+          "scope": "per_day",
+          "requested_facts": [
+            "workload"
+          ],
+          "comparison": "none",
+          "reference_mode": "none",
+          "whether_counterfactual_needed": false,
+          "version": null,
+          "clarification": null
+        },
+        "snapshot": {
+          "schedule_id": "sch_eval_v2",
+          "lineage_id": "eval",
+          "version": 2,
+          "parent_schedule_id": null,
+          "base_schedule_id": null,
+          "base_version": null,
+          "status": "confirmed",
+          "compliance_status": "invalid",
+          "week_start": "2026-10-05",
+          "validation": {},
+          "metadata": {},
+          "created_at": "2026-09-20T08:38:51.815994",
+          "confirmed_at": "2026-09-20T08:38:51.815994",
+          "cancelled_at": null,
+          "schedule": {
+            "schedule_id": "sch_eval_v2",
+            "version": 2,
+            "parent_schedule_id": null,
+            "status": "confirmed",
+            "week_start": "2026-10-05",
+            "assignments": [
+              {
+                "employee_id": "E07",
+                "day": "Fri",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E08",
+                "day": "Fri",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E11",
+                "day": "Fri",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E12",
+                "day": "Fri",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E01",
+                "day": "Fri",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E04",
+                "day": "Fri",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E05",
+                "day": "Fri",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E15",
+                "day": "Fri",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E07",
+                "day": "Mon",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E08",
+                "day": "Mon",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E09",
+                "day": "Mon",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E10",
+                "day": "Mon",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E02",
+                "day": "Mon",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E03",
+                "day": "Mon",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E04",
+                "day": "Mon",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E05",
+                "day": "Mon",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E07",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E08",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E09",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E10",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E13",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E14",
+                "day": "Sat",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E01",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E02",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E03",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E06",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E15",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E16",
+                "day": "Sat",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E07",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E08",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E09",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E10",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E11",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E12",
+                "day": "Sun",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E01",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E02",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E03",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E04",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E05",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E06",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E15",
+                "day": "Sun",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E09",
+                "day": "Thu",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E10",
+                "day": "Thu",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E13",
+                "day": "Thu",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E14",
+                "day": "Thu",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E02",
+                "day": "Thu",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E03",
+                "day": "Thu",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E06",
+                "day": "Thu",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E16",
+                "day": "Thu",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E11",
+                "day": "Tue",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E12",
+                "day": "Tue",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E13",
+                "day": "Tue",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E14",
+                "day": "Tue",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E01",
+                "day": "Tue",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E02",
+                "day": "Tue",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E06",
+                "day": "Tue",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E16",
+                "day": "Tue",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E07",
+                "day": "Wed",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E08",
+                "day": "Wed",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E11",
+                "day": "Wed",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E12",
+                "day": "Wed",
+                "shift": "evening"
+              },
+              {
+                "employee_id": "E01",
+                "day": "Wed",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E04",
+                "day": "Wed",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E05",
+                "day": "Wed",
+                "shift": "morning"
+              },
+              {
+                "employee_id": "E15",
+                "day": "Wed",
+                "shift": "morning"
+              }
+            ],
+            "created_at": "2026-09-20T08:38:51.815994"
+          }
+        }
+      },
+      "output": {
+        "status": "analyzed",
+        "target_week": "2026-10-05",
+        "schedule_id": "sch_eval_v2",
+        "version": 2,
+        "schedule_status": "confirmed",
+        "source": "display_schedule",
+        "slots": [
+          {
+            "day": "Mon",
+            "shift": "morning",
+            "actual_staff": 4,
+            "minimum_staff": 4,
+            "excess_staff": 0,
+            "assignments": [
+              {
+                "employee_id": "E02",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E03",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E04",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E05",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              }
+            ],
+            "manager": {
+              "actual": 2,
+              "required": 1,
+              "passed": true
+            },
+            "beverage": {
+              "actual": 4,
+              "required": 2,
+              "passed": true
+            },
+            "cashier": {
+              "actual": 4,
+              "required": 1,
+              "passed": true
+            },
+            "validation": {
+              "coverage": [
+                {
+                  "rule_id": "R01",
+                  "day": "Mon",
+                  "shift": "morning",
+                  "expected": 1,
+                  "actual": 2,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R02",
+                  "day": "Mon",
+                  "shift": "morning",
+                  "expected": 2,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R03",
+                  "day": "Mon",
+                  "shift": "morning",
+                  "expected": 1,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R04",
+                  "day": "Mon",
+                  "shift": "morning",
+                  "expected": 4,
+                  "actual": 4,
+                  "passed": true
+                }
+              ]
+            }
+          },
+          {
+            "day": "Mon",
+            "shift": "evening",
+            "actual_staff": 4,
+            "minimum_staff": 4,
+            "excess_staff": 0,
+            "assignments": [
+              {
+                "employee_id": "E07",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E08",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E09",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E10",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              }
+            ],
+            "manager": {
+              "actual": 2,
+              "required": 1,
+              "passed": true
+            },
+            "beverage": {
+              "actual": 4,
+              "required": 2,
+              "passed": true
+            },
+            "cashier": {
+              "actual": 4,
+              "required": 1,
+              "passed": true
+            },
+            "validation": {
+              "coverage": [
+                {
+                  "rule_id": "R01",
+                  "day": "Mon",
+                  "shift": "evening",
+                  "expected": 1,
+                  "actual": 2,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R02",
+                  "day": "Mon",
+                  "shift": "evening",
+                  "expected": 2,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R03",
+                  "day": "Mon",
+                  "shift": "evening",
+                  "expected": 1,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R04",
+                  "day": "Mon",
+                  "shift": "evening",
+                  "expected": 4,
+                  "actual": 4,
+                  "passed": true
+                }
+              ]
+            }
+          },
+          {
+            "day": "Tue",
+            "shift": "morning",
+            "actual_staff": 4,
+            "minimum_staff": 4,
+            "excess_staff": 0,
+            "assignments": [
+              {
+                "employee_id": "E01",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E02",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E06",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E16",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              }
+            ],
+            "manager": {
+              "actual": 2,
+              "required": 1,
+              "passed": true
+            },
+            "beverage": {
+              "actual": 4,
+              "required": 2,
+              "passed": true
+            },
+            "cashier": {
+              "actual": 4,
+              "required": 1,
+              "passed": true
+            },
+            "validation": {
+              "coverage": [
+                {
+                  "rule_id": "R01",
+                  "day": "Tue",
+                  "shift": "morning",
+                  "expected": 1,
+                  "actual": 2,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R02",
+                  "day": "Tue",
+                  "shift": "morning",
+                  "expected": 2,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R03",
+                  "day": "Tue",
+                  "shift": "morning",
+                  "expected": 1,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R04",
+                  "day": "Tue",
+                  "shift": "morning",
+                  "expected": 4,
+                  "actual": 4,
+                  "passed": true
+                }
+              ]
+            }
+          },
+          {
+            "day": "Tue",
+            "shift": "evening",
+            "actual_staff": 4,
+            "minimum_staff": 4,
+            "excess_staff": 0,
+            "assignments": [
+              {
+                "employee_id": "E11",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E12",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E13",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E14",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              }
+            ],
+            "manager": {
+              "actual": 1,
+              "required": 1,
+              "passed": true
+            },
+            "beverage": {
+              "actual": 4,
+              "required": 2,
+              "passed": true
+            },
+            "cashier": {
+              "actual": 4,
+              "required": 1,
+              "passed": true
+            },
+            "validation": {
+              "coverage": [
+                {
+                  "rule_id": "R01",
+                  "day": "Tue",
+                  "shift": "evening",
+                  "expected": 1,
+                  "actual": 1,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R02",
+                  "day": "Tue",
+                  "shift": "evening",
+                  "expected": 2,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R03",
+                  "day": "Tue",
+                  "shift": "evening",
+                  "expected": 1,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R04",
+                  "day": "Tue",
+                  "shift": "evening",
+                  "expected": 4,
+                  "actual": 4,
+                  "passed": true
+                }
+              ]
+            }
+          },
+          {
+            "day": "Wed",
+            "shift": "morning",
+            "actual_staff": 4,
+            "minimum_staff": 4,
+            "excess_staff": 0,
+            "assignments": [
+              {
+                "employee_id": "E01",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E04",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E05",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E15",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              }
+            ],
+            "manager": {
+              "actual": 2,
+              "required": 1,
+              "passed": true
+            },
+            "beverage": {
+              "actual": 4,
+              "required": 2,
+              "passed": true
+            },
+            "cashier": {
+              "actual": 4,
+              "required": 1,
+              "passed": true
+            },
+            "validation": {
+              "coverage": [
+                {
+                  "rule_id": "R01",
+                  "day": "Wed",
+                  "shift": "morning",
+                  "expected": 1,
+                  "actual": 2,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R02",
+                  "day": "Wed",
+                  "shift": "morning",
+                  "expected": 2,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R03",
+                  "day": "Wed",
+                  "shift": "morning",
+                  "expected": 1,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R04",
+                  "day": "Wed",
+                  "shift": "morning",
+                  "expected": 4,
+                  "actual": 4,
+                  "passed": true
+                }
+              ]
+            }
+          },
+          {
+            "day": "Wed",
+            "shift": "evening",
+            "actual_staff": 4,
+            "minimum_staff": 4,
+            "excess_staff": 0,
+            "assignments": [
+              {
+                "employee_id": "E07",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E08",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E11",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E12",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              }
+            ],
+            "manager": {
+              "actual": 2,
+              "required": 1,
+              "passed": true
+            },
+            "beverage": {
+              "actual": 4,
+              "required": 2,
+              "passed": true
+            },
+            "cashier": {
+              "actual": 4,
+              "required": 1,
+              "passed": true
+            },
+            "validation": {
+              "coverage": [
+                {
+                  "rule_id": "R01",
+                  "day": "Wed",
+                  "shift": "evening",
+                  "expected": 1,
+                  "actual": 2,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R02",
+                  "day": "Wed",
+                  "shift": "evening",
+                  "expected": 2,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R03",
+                  "day": "Wed",
+                  "shift": "evening",
+                  "expected": 1,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R04",
+                  "day": "Wed",
+                  "shift": "evening",
+                  "expected": 4,
+                  "actual": 4,
+                  "passed": true
+                }
+              ]
+            }
+          },
+          {
+            "day": "Thu",
+            "shift": "morning",
+            "actual_staff": 4,
+            "minimum_staff": 4,
+            "excess_staff": 0,
+            "assignments": [
+              {
+                "employee_id": "E02",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E03",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E06",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E16",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              }
+            ],
+            "manager": {
+              "actual": 1,
+              "required": 1,
+              "passed": true
+            },
+            "beverage": {
+              "actual": 4,
+              "required": 2,
+              "passed": true
+            },
+            "cashier": {
+              "actual": 4,
+              "required": 1,
+              "passed": true
+            },
+            "validation": {
+              "coverage": [
+                {
+                  "rule_id": "R01",
+                  "day": "Thu",
+                  "shift": "morning",
+                  "expected": 1,
+                  "actual": 1,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R02",
+                  "day": "Thu",
+                  "shift": "morning",
+                  "expected": 2,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R03",
+                  "day": "Thu",
+                  "shift": "morning",
+                  "expected": 1,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R04",
+                  "day": "Thu",
+                  "shift": "morning",
+                  "expected": 4,
+                  "actual": 4,
+                  "passed": true
+                }
+              ]
+            }
+          },
+          {
+            "day": "Thu",
+            "shift": "evening",
+            "actual_staff": 4,
+            "minimum_staff": 4,
+            "excess_staff": 0,
+            "assignments": [
+              {
+                "employee_id": "E09",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E10",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E13",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E14",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              }
+            ],
+            "manager": {
+              "actual": 1,
+              "required": 1,
+              "passed": true
+            },
+            "beverage": {
+              "actual": 4,
+              "required": 2,
+              "passed": true
+            },
+            "cashier": {
+              "actual": 4,
+              "required": 1,
+              "passed": true
+            },
+            "validation": {
+              "coverage": [
+                {
+                  "rule_id": "R01",
+                  "day": "Thu",
+                  "shift": "evening",
+                  "expected": 1,
+                  "actual": 1,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R02",
+                  "day": "Thu",
+                  "shift": "evening",
+                  "expected": 2,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R03",
+                  "day": "Thu",
+                  "shift": "evening",
+                  "expected": 1,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R04",
+                  "day": "Thu",
+                  "shift": "evening",
+                  "expected": 4,
+                  "actual": 4,
+                  "passed": true
+                }
+              ]
+            }
+          },
+          {
+            "day": "Fri",
+            "shift": "morning",
+            "actual_staff": 4,
+            "minimum_staff": 4,
+            "excess_staff": 0,
+            "assignments": [
+              {
+                "employee_id": "E01",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E04",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E05",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E15",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              }
+            ],
+            "manager": {
+              "actual": 2,
+              "required": 1,
+              "passed": true
+            },
+            "beverage": {
+              "actual": 4,
+              "required": 2,
+              "passed": true
+            },
+            "cashier": {
+              "actual": 4,
+              "required": 1,
+              "passed": true
+            },
+            "validation": {
+              "coverage": [
+                {
+                  "rule_id": "R01",
+                  "day": "Fri",
+                  "shift": "morning",
+                  "expected": 1,
+                  "actual": 2,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R02",
+                  "day": "Fri",
+                  "shift": "morning",
+                  "expected": 2,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R03",
+                  "day": "Fri",
+                  "shift": "morning",
+                  "expected": 1,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R04",
+                  "day": "Fri",
+                  "shift": "morning",
+                  "expected": 4,
+                  "actual": 4,
+                  "passed": true
+                }
+              ]
+            }
+          },
+          {
+            "day": "Fri",
+            "shift": "evening",
+            "actual_staff": 4,
+            "minimum_staff": 4,
+            "excess_staff": 0,
+            "assignments": [
+              {
+                "employee_id": "E07",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E08",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E11",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E12",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              }
+            ],
+            "manager": {
+              "actual": 2,
+              "required": 1,
+              "passed": true
+            },
+            "beverage": {
+              "actual": 4,
+              "required": 2,
+              "passed": true
+            },
+            "cashier": {
+              "actual": 4,
+              "required": 1,
+              "passed": true
+            },
+            "validation": {
+              "coverage": [
+                {
+                  "rule_id": "R01",
+                  "day": "Fri",
+                  "shift": "evening",
+                  "expected": 1,
+                  "actual": 2,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R02",
+                  "day": "Fri",
+                  "shift": "evening",
+                  "expected": 2,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R03",
+                  "day": "Fri",
+                  "shift": "evening",
+                  "expected": 1,
+                  "actual": 4,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R04",
+                  "day": "Fri",
+                  "shift": "evening",
+                  "expected": 4,
+                  "actual": 4,
+                  "passed": true
+                }
+              ]
+            }
+          },
+          {
+            "day": "Sat",
+            "shift": "morning",
+            "actual_staff": 6,
+            "minimum_staff": 6,
+            "excess_staff": 0,
+            "assignments": [
+              {
+                "employee_id": "E01",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E02",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E03",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E06",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E15",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E16",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              }
+            ],
+            "manager": {
+              "actual": 2,
+              "required": 1,
+              "passed": true
+            },
+            "beverage": {
+              "actual": 6,
+              "required": 2,
+              "passed": true
+            },
+            "cashier": {
+              "actual": 6,
+              "required": 1,
+              "passed": true
+            },
+            "validation": {
+              "coverage": [
+                {
+                  "rule_id": "R01",
+                  "day": "Sat",
+                  "shift": "morning",
+                  "expected": 1,
+                  "actual": 2,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R02",
+                  "day": "Sat",
+                  "shift": "morning",
+                  "expected": 2,
+                  "actual": 6,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R03",
+                  "day": "Sat",
+                  "shift": "morning",
+                  "expected": 1,
+                  "actual": 6,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R04",
+                  "day": "Sat",
+                  "shift": "morning",
+                  "expected": 6,
+                  "actual": 6,
+                  "passed": true
+                }
+              ]
+            }
+          },
+          {
+            "day": "Sat",
+            "shift": "evening",
+            "actual_staff": 6,
+            "minimum_staff": 6,
+            "excess_staff": 0,
+            "assignments": [
+              {
+                "employee_id": "E07",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E08",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E09",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E10",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E13",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E14",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              }
+            ],
+            "manager": {
+              "actual": 2,
+              "required": 1,
+              "passed": true
+            },
+            "beverage": {
+              "actual": 6,
+              "required": 2,
+              "passed": true
+            },
+            "cashier": {
+              "actual": 6,
+              "required": 1,
+              "passed": true
+            },
+            "validation": {
+              "coverage": [
+                {
+                  "rule_id": "R01",
+                  "day": "Sat",
+                  "shift": "evening",
+                  "expected": 1,
+                  "actual": 2,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R02",
+                  "day": "Sat",
+                  "shift": "evening",
+                  "expected": 2,
+                  "actual": 6,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R03",
+                  "day": "Sat",
+                  "shift": "evening",
+                  "expected": 1,
+                  "actual": 6,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R04",
+                  "day": "Sat",
+                  "shift": "evening",
+                  "expected": 6,
+                  "actual": 6,
+                  "passed": true
+                }
+              ]
+            }
+          },
+          {
+            "day": "Sun",
+            "shift": "morning",
+            "actual_staff": 7,
+            "minimum_staff": 6,
+            "excess_staff": 1,
+            "assignments": [
+              {
+                "employee_id": "E01",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E02",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E03",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E04",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E05",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E06",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E15",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              }
+            ],
+            "manager": {
+              "actual": 3,
+              "required": 1,
+              "passed": true
+            },
+            "beverage": {
+              "actual": 7,
+              "required": 2,
+              "passed": true
+            },
+            "cashier": {
+              "actual": 7,
+              "required": 1,
+              "passed": true
+            },
+            "validation": {
+              "coverage": [
+                {
+                  "rule_id": "R01",
+                  "day": "Sun",
+                  "shift": "morning",
+                  "expected": 1,
+                  "actual": 3,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R02",
+                  "day": "Sun",
+                  "shift": "morning",
+                  "expected": 2,
+                  "actual": 7,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R03",
+                  "day": "Sun",
+                  "shift": "morning",
+                  "expected": 1,
+                  "actual": 7,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R04",
+                  "day": "Sun",
+                  "shift": "morning",
+                  "expected": 6,
+                  "actual": 7,
+                  "passed": true
+                }
+              ]
+            }
+          },
+          {
+            "day": "Sun",
+            "shift": "evening",
+            "actual_staff": 6,
+            "minimum_staff": 6,
+            "excess_staff": 0,
+            "assignments": [
+              {
+                "employee_id": "E07",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E08",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E09",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              },
+              {
+                "employee_id": "E10",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E11",
+                "role": "full_time",
+                "skills": [
+                  "beverage",
+                  "cashier"
+                ]
+              },
+              {
+                "employee_id": "E12",
+                "role": "manager",
+                "skills": [
+                  "beverage",
+                  "cashier",
+                  "manager"
+                ]
+              }
+            ],
+            "manager": {
+              "actual": 3,
+              "required": 1,
+              "passed": true
+            },
+            "beverage": {
+              "actual": 6,
+              "required": 2,
+              "passed": true
+            },
+            "cashier": {
+              "actual": 6,
+              "required": 1,
+              "passed": true
+            },
+            "validation": {
+              "coverage": [
+                {
+                  "rule_id": "R01",
+                  "day": "Sun",
+                  "shift": "evening",
+                  "expected": 1,
+                  "actual": 3,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R02",
+                  "day": "Sun",
+                  "shift": "evening",
+                  "expected": 2,
+                  "actual": 6,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R03",
+                  "day": "Sun",
+                  "shift": "evening",
+                  "expected": 1,
+                  "actual": 6,
+                  "passed": true
+                },
+                {
+                  "rule_id": "R04",
+                  "day": "Sun",
+                  "shift": "evening",
+                  "expected": 6,
+                  "actual": 6,
+                  "passed": true
+                }
+              ]
+            }
+          }
+        ],
+        "employees": [],
+        "workload": {
+          "E01": 5,
+          "E02": 5,
+          "E03": 4,
+          "E04": 4,
+          "E05": 4,
+          "E06": 4,
+          "E07": 5,
+          "E08": 5,
+          "E09": 4,
+          "E10": 4,
+          "E11": 4,
+          "E12": 4,
+          "E13": 3,
+          "E14": 3,
+          "E15": 4,
+          "E16": 3
+        },
+        "rules": {
+          "manager_per_shift": 1,
+          "beverage_per_shift": 2,
+          "cashier_per_shift": 1,
+          "weekday_min_staff": 4,
+          "weekend_min_staff": 6,
+          "max_shifts_per_week": 5,
+          "max_consecutive_days": 5,
+          "max_time_seconds": 10.0,
+          "random_seed": 42,
+          "num_search_workers": 1,
+          "objective": {
+            "preference_reward": 5,
+            "workload_gap_penalty": 2,
+            "schedule_change_penalty": 8
+          }
+        },
+        "rules_source": "current_rule_config",
+        "validation": {
+          "coverage": [
+            {
+              "rule_id": "R01",
+              "day": "Mon",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Mon",
+              "shift": "morning",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Mon",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Mon",
+              "shift": "morning",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R01",
+              "day": "Mon",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Mon",
+              "shift": "evening",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Mon",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Mon",
+              "shift": "evening",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R01",
+              "day": "Tue",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Tue",
+              "shift": "morning",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Tue",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Tue",
+              "shift": "morning",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R01",
+              "day": "Tue",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 1,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Tue",
+              "shift": "evening",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Tue",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Tue",
+              "shift": "evening",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R01",
+              "day": "Wed",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Wed",
+              "shift": "morning",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Wed",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Wed",
+              "shift": "morning",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R01",
+              "day": "Wed",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Wed",
+              "shift": "evening",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Wed",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Wed",
+              "shift": "evening",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R01",
+              "day": "Thu",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 1,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Thu",
+              "shift": "morning",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Thu",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Thu",
+              "shift": "morning",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R01",
+              "day": "Thu",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 1,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Thu",
+              "shift": "evening",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Thu",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Thu",
+              "shift": "evening",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R01",
+              "day": "Fri",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Fri",
+              "shift": "morning",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Fri",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Fri",
+              "shift": "morning",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R01",
+              "day": "Fri",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Fri",
+              "shift": "evening",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Fri",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Fri",
+              "shift": "evening",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R01",
+              "day": "Sat",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Sat",
+              "shift": "morning",
+              "expected": 2,
+              "actual": 6,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Sat",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 6,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Sat",
+              "shift": "morning",
+              "expected": 6,
+              "actual": 6,
+              "passed": true
+            },
+            {
+              "rule_id": "R01",
+              "day": "Sat",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Sat",
+              "shift": "evening",
+              "expected": 2,
+              "actual": 6,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Sat",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 6,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Sat",
+              "shift": "evening",
+              "expected": 6,
+              "actual": 6,
+              "passed": true
+            },
+            {
+              "rule_id": "R01",
+              "day": "Sun",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 3,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Sun",
+              "shift": "morning",
+              "expected": 2,
+              "actual": 7,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Sun",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 7,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Sun",
+              "shift": "morning",
+              "expected": 6,
+              "actual": 7,
+              "passed": true
+            },
+            {
+              "rule_id": "R01",
+              "day": "Sun",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 3,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Sun",
+              "shift": "evening",
+              "expected": 2,
+              "actual": 6,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Sun",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 6,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Sun",
+              "shift": "evening",
+              "expected": 6,
+              "actual": 6,
+              "passed": true
+            }
+          ],
+          "valid": true,
+          "hard_constraints": {
+            "H01": {
+              "passed": true,
+              "violations": []
+            },
+            "R01": {
+              "passed": true,
+              "violations": []
+            },
+            "R02": {
+              "passed": true,
+              "violations": []
+            },
+            "R03": {
+              "passed": true,
+              "violations": []
+            },
+            "R04": {
+              "passed": true,
+              "violations": []
+            },
+            "R05": {
+              "passed": true,
+              "violations": []
+            },
+            "R06": {
+              "passed": true,
+              "violations": []
+            },
+            "R07": {
+              "passed": true,
+              "violations": []
+            },
+            "R08": {
+              "passed": true,
+              "violations": []
+            },
+            "R09": {
+              "passed": true,
+              "violations": []
+            }
+          },
+          "violations": [],
+          "passed_count": 10,
+          "total_count": 10,
+          "history_status": "known_empty",
+          "unknown_rules": []
+        },
+        "read_only": true
+      },
+      "status": "completed"
+    }
+  ],
+  "facts": {
+    "status": "analyzed",
+    "target_week": "2026-10-05",
+    "schedule_id": "sch_eval_v2",
+    "version": 2,
+    "schedule_status": "confirmed",
+    "source": "display_schedule",
+    "slots": [
+      {
+        "day": "Mon",
+        "shift": "morning",
+        "actual_staff": 4,
+        "minimum_staff": 4,
+        "excess_staff": 0,
+        "assignments": [
+          {
+            "employee_id": "E02",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E03",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E04",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E05",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          }
+        ],
+        "manager": {
+          "actual": 2,
+          "required": 1,
+          "passed": true
+        },
+        "beverage": {
+          "actual": 4,
+          "required": 2,
+          "passed": true
+        },
+        "cashier": {
+          "actual": 4,
+          "required": 1,
+          "passed": true
+        },
+        "validation": {
+          "coverage": [
+            {
+              "rule_id": "R01",
+              "day": "Mon",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Mon",
+              "shift": "morning",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Mon",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Mon",
+              "shift": "morning",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            }
+          ]
+        }
+      },
+      {
+        "day": "Mon",
+        "shift": "evening",
+        "actual_staff": 4,
+        "minimum_staff": 4,
+        "excess_staff": 0,
+        "assignments": [
+          {
+            "employee_id": "E07",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E08",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E09",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E10",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          }
+        ],
+        "manager": {
+          "actual": 2,
+          "required": 1,
+          "passed": true
+        },
+        "beverage": {
+          "actual": 4,
+          "required": 2,
+          "passed": true
+        },
+        "cashier": {
+          "actual": 4,
+          "required": 1,
+          "passed": true
+        },
+        "validation": {
+          "coverage": [
+            {
+              "rule_id": "R01",
+              "day": "Mon",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Mon",
+              "shift": "evening",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Mon",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Mon",
+              "shift": "evening",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            }
+          ]
+        }
+      },
+      {
+        "day": "Tue",
+        "shift": "morning",
+        "actual_staff": 4,
+        "minimum_staff": 4,
+        "excess_staff": 0,
+        "assignments": [
+          {
+            "employee_id": "E01",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E02",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E06",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E16",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          }
+        ],
+        "manager": {
+          "actual": 2,
+          "required": 1,
+          "passed": true
+        },
+        "beverage": {
+          "actual": 4,
+          "required": 2,
+          "passed": true
+        },
+        "cashier": {
+          "actual": 4,
+          "required": 1,
+          "passed": true
+        },
+        "validation": {
+          "coverage": [
+            {
+              "rule_id": "R01",
+              "day": "Tue",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Tue",
+              "shift": "morning",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Tue",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Tue",
+              "shift": "morning",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            }
+          ]
+        }
+      },
+      {
+        "day": "Tue",
+        "shift": "evening",
+        "actual_staff": 4,
+        "minimum_staff": 4,
+        "excess_staff": 0,
+        "assignments": [
+          {
+            "employee_id": "E11",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E12",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E13",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E14",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          }
+        ],
+        "manager": {
+          "actual": 1,
+          "required": 1,
+          "passed": true
+        },
+        "beverage": {
+          "actual": 4,
+          "required": 2,
+          "passed": true
+        },
+        "cashier": {
+          "actual": 4,
+          "required": 1,
+          "passed": true
+        },
+        "validation": {
+          "coverage": [
+            {
+              "rule_id": "R01",
+              "day": "Tue",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 1,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Tue",
+              "shift": "evening",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Tue",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Tue",
+              "shift": "evening",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            }
+          ]
+        }
+      },
+      {
+        "day": "Wed",
+        "shift": "morning",
+        "actual_staff": 4,
+        "minimum_staff": 4,
+        "excess_staff": 0,
+        "assignments": [
+          {
+            "employee_id": "E01",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E04",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E05",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E15",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          }
+        ],
+        "manager": {
+          "actual": 2,
+          "required": 1,
+          "passed": true
+        },
+        "beverage": {
+          "actual": 4,
+          "required": 2,
+          "passed": true
+        },
+        "cashier": {
+          "actual": 4,
+          "required": 1,
+          "passed": true
+        },
+        "validation": {
+          "coverage": [
+            {
+              "rule_id": "R01",
+              "day": "Wed",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Wed",
+              "shift": "morning",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Wed",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Wed",
+              "shift": "morning",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            }
+          ]
+        }
+      },
+      {
+        "day": "Wed",
+        "shift": "evening",
+        "actual_staff": 4,
+        "minimum_staff": 4,
+        "excess_staff": 0,
+        "assignments": [
+          {
+            "employee_id": "E07",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E08",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E11",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E12",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          }
+        ],
+        "manager": {
+          "actual": 2,
+          "required": 1,
+          "passed": true
+        },
+        "beverage": {
+          "actual": 4,
+          "required": 2,
+          "passed": true
+        },
+        "cashier": {
+          "actual": 4,
+          "required": 1,
+          "passed": true
+        },
+        "validation": {
+          "coverage": [
+            {
+              "rule_id": "R01",
+              "day": "Wed",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Wed",
+              "shift": "evening",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Wed",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Wed",
+              "shift": "evening",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            }
+          ]
+        }
+      },
+      {
+        "day": "Thu",
+        "shift": "morning",
+        "actual_staff": 4,
+        "minimum_staff": 4,
+        "excess_staff": 0,
+        "assignments": [
+          {
+            "employee_id": "E02",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E03",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E06",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E16",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          }
+        ],
+        "manager": {
+          "actual": 1,
+          "required": 1,
+          "passed": true
+        },
+        "beverage": {
+          "actual": 4,
+          "required": 2,
+          "passed": true
+        },
+        "cashier": {
+          "actual": 4,
+          "required": 1,
+          "passed": true
+        },
+        "validation": {
+          "coverage": [
+            {
+              "rule_id": "R01",
+              "day": "Thu",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 1,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Thu",
+              "shift": "morning",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Thu",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Thu",
+              "shift": "morning",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            }
+          ]
+        }
+      },
+      {
+        "day": "Thu",
+        "shift": "evening",
+        "actual_staff": 4,
+        "minimum_staff": 4,
+        "excess_staff": 0,
+        "assignments": [
+          {
+            "employee_id": "E09",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E10",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E13",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E14",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          }
+        ],
+        "manager": {
+          "actual": 1,
+          "required": 1,
+          "passed": true
+        },
+        "beverage": {
+          "actual": 4,
+          "required": 2,
+          "passed": true
+        },
+        "cashier": {
+          "actual": 4,
+          "required": 1,
+          "passed": true
+        },
+        "validation": {
+          "coverage": [
+            {
+              "rule_id": "R01",
+              "day": "Thu",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 1,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Thu",
+              "shift": "evening",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Thu",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Thu",
+              "shift": "evening",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            }
+          ]
+        }
+      },
+      {
+        "day": "Fri",
+        "shift": "morning",
+        "actual_staff": 4,
+        "minimum_staff": 4,
+        "excess_staff": 0,
+        "assignments": [
+          {
+            "employee_id": "E01",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E04",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E05",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E15",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          }
+        ],
+        "manager": {
+          "actual": 2,
+          "required": 1,
+          "passed": true
+        },
+        "beverage": {
+          "actual": 4,
+          "required": 2,
+          "passed": true
+        },
+        "cashier": {
+          "actual": 4,
+          "required": 1,
+          "passed": true
+        },
+        "validation": {
+          "coverage": [
+            {
+              "rule_id": "R01",
+              "day": "Fri",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Fri",
+              "shift": "morning",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Fri",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Fri",
+              "shift": "morning",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            }
+          ]
+        }
+      },
+      {
+        "day": "Fri",
+        "shift": "evening",
+        "actual_staff": 4,
+        "minimum_staff": 4,
+        "excess_staff": 0,
+        "assignments": [
+          {
+            "employee_id": "E07",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E08",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E11",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E12",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          }
+        ],
+        "manager": {
+          "actual": 2,
+          "required": 1,
+          "passed": true
+        },
+        "beverage": {
+          "actual": 4,
+          "required": 2,
+          "passed": true
+        },
+        "cashier": {
+          "actual": 4,
+          "required": 1,
+          "passed": true
+        },
+        "validation": {
+          "coverage": [
+            {
+              "rule_id": "R01",
+              "day": "Fri",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Fri",
+              "shift": "evening",
+              "expected": 2,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Fri",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 4,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Fri",
+              "shift": "evening",
+              "expected": 4,
+              "actual": 4,
+              "passed": true
+            }
+          ]
+        }
+      },
+      {
+        "day": "Sat",
+        "shift": "morning",
+        "actual_staff": 6,
+        "minimum_staff": 6,
+        "excess_staff": 0,
+        "assignments": [
+          {
+            "employee_id": "E01",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E02",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E03",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E06",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E15",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E16",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          }
+        ],
+        "manager": {
+          "actual": 2,
+          "required": 1,
+          "passed": true
+        },
+        "beverage": {
+          "actual": 6,
+          "required": 2,
+          "passed": true
+        },
+        "cashier": {
+          "actual": 6,
+          "required": 1,
+          "passed": true
+        },
+        "validation": {
+          "coverage": [
+            {
+              "rule_id": "R01",
+              "day": "Sat",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Sat",
+              "shift": "morning",
+              "expected": 2,
+              "actual": 6,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Sat",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 6,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Sat",
+              "shift": "morning",
+              "expected": 6,
+              "actual": 6,
+              "passed": true
+            }
+          ]
+        }
+      },
+      {
+        "day": "Sat",
+        "shift": "evening",
+        "actual_staff": 6,
+        "minimum_staff": 6,
+        "excess_staff": 0,
+        "assignments": [
+          {
+            "employee_id": "E07",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E08",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E09",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E10",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E13",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E14",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          }
+        ],
+        "manager": {
+          "actual": 2,
+          "required": 1,
+          "passed": true
+        },
+        "beverage": {
+          "actual": 6,
+          "required": 2,
+          "passed": true
+        },
+        "cashier": {
+          "actual": 6,
+          "required": 1,
+          "passed": true
+        },
+        "validation": {
+          "coverage": [
+            {
+              "rule_id": "R01",
+              "day": "Sat",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 2,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Sat",
+              "shift": "evening",
+              "expected": 2,
+              "actual": 6,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Sat",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 6,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Sat",
+              "shift": "evening",
+              "expected": 6,
+              "actual": 6,
+              "passed": true
+            }
+          ]
+        }
+      },
+      {
+        "day": "Sun",
+        "shift": "morning",
+        "actual_staff": 7,
+        "minimum_staff": 6,
+        "excess_staff": 1,
+        "assignments": [
+          {
+            "employee_id": "E01",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E02",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E03",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E04",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E05",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E06",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E15",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          }
+        ],
+        "manager": {
+          "actual": 3,
+          "required": 1,
+          "passed": true
+        },
+        "beverage": {
+          "actual": 7,
+          "required": 2,
+          "passed": true
+        },
+        "cashier": {
+          "actual": 7,
+          "required": 1,
+          "passed": true
+        },
+        "validation": {
+          "coverage": [
+            {
+              "rule_id": "R01",
+              "day": "Sun",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 3,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Sun",
+              "shift": "morning",
+              "expected": 2,
+              "actual": 7,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Sun",
+              "shift": "morning",
+              "expected": 1,
+              "actual": 7,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Sun",
+              "shift": "morning",
+              "expected": 6,
+              "actual": 7,
+              "passed": true
+            }
+          ]
+        }
+      },
+      {
+        "day": "Sun",
+        "shift": "evening",
+        "actual_staff": 6,
+        "minimum_staff": 6,
+        "excess_staff": 0,
+        "assignments": [
+          {
+            "employee_id": "E07",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E08",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E09",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          },
+          {
+            "employee_id": "E10",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E11",
+            "role": "full_time",
+            "skills": [
+              "beverage",
+              "cashier"
+            ]
+          },
+          {
+            "employee_id": "E12",
+            "role": "manager",
+            "skills": [
+              "beverage",
+              "cashier",
+              "manager"
+            ]
+          }
+        ],
+        "manager": {
+          "actual": 3,
+          "required": 1,
+          "passed": true
+        },
+        "beverage": {
+          "actual": 6,
+          "required": 2,
+          "passed": true
+        },
+        "cashier": {
+          "actual": 6,
+          "required": 1,
+          "passed": true
+        },
+        "validation": {
+          "coverage": [
+            {
+              "rule_id": "R01",
+              "day": "Sun",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 3,
+              "passed": true
+            },
+            {
+              "rule_id": "R02",
+              "day": "Sun",
+              "shift": "evening",
+              "expected": 2,
+              "actual": 6,
+              "passed": true
+            },
+            {
+              "rule_id": "R03",
+              "day": "Sun",
+              "shift": "evening",
+              "expected": 1,
+              "actual": 6,
+              "passed": true
+            },
+            {
+              "rule_id": "R04",
+              "day": "Sun",
+              "shift": "evening",
+              "expected": 6,
+              "actual": 6,
+              "passed": true
+            }
+          ]
+        }
+      }
+    ],
+    "employees": [],
+    "workload": {
+      "E01": 5,
+      "E02": 5,
+      "E03": 4,
+      "E04": 4,
+      "E05": 4,
+      "E06": 4,
+      "E07": 5,
+      "E08": 5,
+      "E09": 4,
+      "E10": 4,
+      "E11": 4,
+      "E12": 4,
+      "E13": 3,
+      "E14": 3,
+      "E15": 4,
+      "E16": 3
+    },
+    "rules": {
+      "manager_per_shift": 1,
+      "beverage_per_shift": 2,
+      "cashier_per_shift": 1,
+      "weekday_min_staff": 4,
+      "weekend_min_staff": 6,
+      "max_shifts_per_week": 5,
+      "max_consecutive_days": 5,
+      "max_time_seconds": 10.0,
+      "random_seed": 42,
+      "num_search_workers": 1,
+      "objective": {
+        "preference_reward": 5,
+        "workload_gap_penalty": 2,
+        "schedule_change_penalty": 8
+      }
+    },
+    "rules_source": "current_rule_config",
+    "validation": {
+      "coverage": [
+        {
+          "rule_id": "R01",
+          "day": "Mon",
+          "shift": "morning",
+          "expected": 1,
+          "actual": 2,
+          "passed": true
+        },
+        {
+          "rule_id": "R02",
+          "day": "Mon",
+          "shift": "morning",
+          "expected": 2,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R03",
+          "day": "Mon",
+          "shift": "morning",
+          "expected": 1,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R04",
+          "day": "Mon",
+          "shift": "morning",
+          "expected": 4,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R01",
+          "day": "Mon",
+          "shift": "evening",
+          "expected": 1,
+          "actual": 2,
+          "passed": true
+        },
+        {
+          "rule_id": "R02",
+          "day": "Mon",
+          "shift": "evening",
+          "expected": 2,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R03",
+          "day": "Mon",
+          "shift": "evening",
+          "expected": 1,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R04",
+          "day": "Mon",
+          "shift": "evening",
+          "expected": 4,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R01",
+          "day": "Tue",
+          "shift": "morning",
+          "expected": 1,
+          "actual": 2,
+          "passed": true
+        },
+        {
+          "rule_id": "R02",
+          "day": "Tue",
+          "shift": "morning",
+          "expected": 2,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R03",
+          "day": "Tue",
+          "shift": "morning",
+          "expected": 1,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R04",
+          "day": "Tue",
+          "shift": "morning",
+          "expected": 4,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R01",
+          "day": "Tue",
+          "shift": "evening",
+          "expected": 1,
+          "actual": 1,
+          "passed": true
+        },
+        {
+          "rule_id": "R02",
+          "day": "Tue",
+          "shift": "evening",
+          "expected": 2,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R03",
+          "day": "Tue",
+          "shift": "evening",
+          "expected": 1,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R04",
+          "day": "Tue",
+          "shift": "evening",
+          "expected": 4,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R01",
+          "day": "Wed",
+          "shift": "morning",
+          "expected": 1,
+          "actual": 2,
+          "passed": true
+        },
+        {
+          "rule_id": "R02",
+          "day": "Wed",
+          "shift": "morning",
+          "expected": 2,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R03",
+          "day": "Wed",
+          "shift": "morning",
+          "expected": 1,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R04",
+          "day": "Wed",
+          "shift": "morning",
+          "expected": 4,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R01",
+          "day": "Wed",
+          "shift": "evening",
+          "expected": 1,
+          "actual": 2,
+          "passed": true
+        },
+        {
+          "rule_id": "R02",
+          "day": "Wed",
+          "shift": "evening",
+          "expected": 2,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R03",
+          "day": "Wed",
+          "shift": "evening",
+          "expected": 1,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R04",
+          "day": "Wed",
+          "shift": "evening",
+          "expected": 4,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R01",
+          "day": "Thu",
+          "shift": "morning",
+          "expected": 1,
+          "actual": 1,
+          "passed": true
+        },
+        {
+          "rule_id": "R02",
+          "day": "Thu",
+          "shift": "morning",
+          "expected": 2,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R03",
+          "day": "Thu",
+          "shift": "morning",
+          "expected": 1,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R04",
+          "day": "Thu",
+          "shift": "morning",
+          "expected": 4,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R01",
+          "day": "Thu",
+          "shift": "evening",
+          "expected": 1,
+          "actual": 1,
+          "passed": true
+        },
+        {
+          "rule_id": "R02",
+          "day": "Thu",
+          "shift": "evening",
+          "expected": 2,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R03",
+          "day": "Thu",
+          "shift": "evening",
+          "expected": 1,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R04",
+          "day": "Thu",
+          "shift": "evening",
+          "expected": 4,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R01",
+          "day": "Fri",
+          "shift": "morning",
+          "expected": 1,
+          "actual": 2,
+          "passed": true
+        },
+        {
+          "rule_id": "R02",
+          "day": "Fri",
+          "shift": "morning",
+          "expected": 2,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R03",
+          "day": "Fri",
+          "shift": "morning",
+          "expected": 1,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R04",
+          "day": "Fri",
+          "shift": "morning",
+          "expected": 4,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R01",
+          "day": "Fri",
+          "shift": "evening",
+          "expected": 1,
+          "actual": 2,
+          "passed": true
+        },
+        {
+          "rule_id": "R02",
+          "day": "Fri",
+          "shift": "evening",
+          "expected": 2,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R03",
+          "day": "Fri",
+          "shift": "evening",
+          "expected": 1,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R04",
+          "day": "Fri",
+          "shift": "evening",
+          "expected": 4,
+          "actual": 4,
+          "passed": true
+        },
+        {
+          "rule_id": "R01",
+          "day": "Sat",
+          "shift": "morning",
+          "expected": 1,
+          "actual": 2,
+          "passed": true
+        },
+        {
+          "rule_id": "R02",
+          "day": "Sat",
+          "shift": "morning",
+          "expected": 2,
+          "actual": 6,
+          "passed": true
+        },
+        {
+          "rule_id": "R03",
+          "day": "Sat",
+          "shift": "morning",
+          "expected": 1,
+          "actual": 6,
+          "passed": true
+        },
+        {
+          "rule_id": "R04",
+          "day": "Sat",
+          "shift": "morning",
+          "expected": 6,
+          "actual": 6,
+          "passed": true
+        },
+        {
+          "rule_id": "R01",
+          "day": "Sat",
+          "shift": "evening",
+          "expected": 1,
+          "actual": 2,
+          "passed": true
+        },
+        {
+          "rule_id": "R02",
+          "day": "Sat",
+          "shift": "evening",
+          "expected": 2,
+          "actual": 6,
+          "passed": true
+        },
+        {
+          "rule_id": "R03",
+          "day": "Sat",
+          "shift": "evening",
+          "expected": 1,
+          "actual": 6,
+          "passed": true
+        },
+        {
+          "rule_id": "R04",
+          "day": "Sat",
+          "shift": "evening",
+          "expected": 6,
+          "actual": 6,
+          "passed": true
+        },
+        {
+          "rule_id": "R01",
+          "day": "Sun",
+          "shift": "morning",
+          "expected": 1,
+          "actual": 3,
+          "passed": true
+        },
+        {
+          "rule_id": "R02",
+          "day": "Sun",
+          "shift": "morning",
+          "expected": 2,
+          "actual": 7,
+          "passed": true
+        },
+        {
+          "rule_id": "R03",
+          "day": "Sun",
+          "shift": "morning",
+          "expected": 1,
+          "actual": 7,
+          "passed": true
+        },
+        {
+          "rule_id": "R04",
+          "day": "Sun",
+          "shift": "morning",
+          "expected": 6,
+          "actual": 7,
+          "passed": true
+        },
+        {
+          "rule_id": "R01",
+          "day": "Sun",
+          "shift": "evening",
+          "expected": 1,
+          "actual": 3,
+          "passed": true
+        },
+        {
+          "rule_id": "R02",
+          "day": "Sun",
+          "shift": "evening",
+          "expected": 2,
+          "actual": 6,
+          "passed": true
+        },
+        {
+          "rule_id": "R03",
+          "day": "Sun",
+          "shift": "evening",
+          "expected": 1,
+          "actual": 6,
+          "passed": true
+        },
+        {
+          "rule_id": "R04",
+          "day": "Sun",
+          "shift": "evening",
+          "expected": 6,
+          "actual": 6,
+          "passed": true
+        }
+      ],
+      "valid": true,
+      "hard_constraints": {
+        "H01": {
+          "passed": true,
+          "violations": []
+        },
+        "R01": {
+          "passed": true,
+          "violations": []
+        },
+        "R02": {
+          "passed": true,
+          "violations": []
+        },
+        "R03": {
+          "passed": true,
+          "violations": []
+        },
+        "R04": {
+          "passed": true,
+          "violations": []
+        },
+        "R05": {
+          "passed": true,
+          "violations": []
+        },
+        "R06": {
+          "passed": true,
+          "violations": []
+        },
+        "R07": {
+          "passed": true,
+          "violations": []
+        },
+        "R08": {
+          "passed": true,
+          "violations": []
+        },
+        "R09": {
+          "passed": true,
+          "violations": []
+        }
+      },
+      "violations": [],
+      "passed_count": 10,
+      "total_count": 10,
+      "history_status": "known_empty",
+      "unknown_rules": []
+    },
+    "read_only": true
+  },
+  "final_answer": "本周最多 5 个班次：E01、E02、E07、E08。\n\n各员工班次数：E01：5；E02：5；E03：4；E04：4；E05：4；E06：4；E07：5；E08：5；E09：4；E10：4；E11：4；E12：4；E13：3；E14：3；E15：4；E16：3。\n\n读取 2026-10-05 周的已确认版本 v2（sch_eval_v2）。\n\n当前只是分析，没有修改排班。",
+  "composition": {
+    "prompt_version": "agent-read-v2",
+    "composition_mode": "llm_grounded",
+    "sentence_ids": [
+      "fact_0",
+      "fact_1",
+      "fact_2"
+    ]
+  },
+  "execution_events": [
+    {
+      "event_id": "4a685efcf0194858b41689e8b4446323",
+      "operation_id": "9c53c7e2a4024bb19a5441b06f60e803",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "turn_started",
+      "status": "started",
+      "label": "已收到请求",
+      "timestamp": "2026-09-20T08:38:51.838621+00:00",
+      "duration_ms": null,
+      "details": {}
+    },
+    {
+      "event_id": "7aad9303e63d4ecfbb3c3a8c4ced29b5",
+      "operation_id": "05fe6dd61ca54d289c4930b2b381e7ae",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "load_employees",
+      "status": "started",
+      "label": "读取员工信息",
+      "timestamp": "2026-09-20T08:38:51.838621+00:00",
+      "duration_ms": null,
+      "details": {}
+    },
+    {
+      "event_id": "dcd54b71bbbe4b69b8a474f9827dfcb4",
+      "operation_id": "05fe6dd61ca54d289c4930b2b381e7ae",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "load_employees",
+      "status": "completed",
+      "label": "读取员工信息",
+      "timestamp": "2026-09-20T08:38:51.840651+00:00",
+      "duration_ms": 0,
+      "details": {}
+    },
+    {
+      "event_id": "29489d92876141b4912d01a4ab97a9df",
+      "operation_id": "c320abac23a946cb9c83c6c615793e79",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "agent_route",
+      "status": "started",
+      "label": "理解排班请求",
+      "timestamp": "2026-09-20T08:38:51.840651+00:00",
+      "duration_ms": null,
+      "details": {}
+    },
+    {
+      "event_id": "0587d288f72440ddac9eb33e86078f2a",
+      "operation_id": "7bc72118a0d34529b31cd764372dfc51",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "agent_route_lite",
+      "status": "started",
+      "label": "Agent Router",
+      "timestamp": "2026-09-20T08:38:51.843662+00:00",
+      "duration_ms": null,
+      "details": {}
+    },
+    {
+      "event_id": "f8b2d8b035fd4ee2a17ace2202a8a47b",
+      "operation_id": "7bc72118a0d34529b31cd764372dfc51",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "agent_route_lite",
+      "status": "completed",
+      "label": "Agent Router",
+      "timestamp": "2026-09-20T08:38:57.870906+00:00",
+      "duration_ms": 6032,
+      "details": {}
+    },
+    {
+      "event_id": "d4221ba2be3549deb3faae709a4ecd5f",
+      "operation_id": "c320abac23a946cb9c83c6c615793e79",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "agent_route",
+      "status": "completed",
+      "label": "理解排班请求",
+      "timestamp": "2026-09-20T08:38:57.872419+00:00",
+      "duration_ms": 6032,
+      "details": {
+        "intent": "explain",
+        "employees": [],
+        "changes": []
+      }
+    },
+    {
+      "event_id": "9a65b38a0737445d950dd44ff3e7c02c",
+      "operation_id": "32b27922be304fc9ac1b0d23329d9bfc",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "resolve_context",
+      "status": "started",
+      "label": "定位目标周和排班上下文",
+      "timestamp": "2026-09-20T08:38:57.873924+00:00",
+      "duration_ms": null,
+      "details": {}
+    },
+    {
+      "event_id": "3fbfd9791cb045fd84a8aff7611da9c3",
+      "operation_id": "32b27922be304fc9ac1b0d23329d9bfc",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "resolve_context",
+      "status": "completed",
+      "label": "定位目标周和排班上下文",
+      "timestamp": "2026-09-20T08:38:57.873924+00:00",
+      "duration_ms": 0,
+      "details": {
+        "target_week": "2026-10-05"
+      }
+    },
+    {
+      "event_id": "2a53b10f32a64159b74970e77388bbf0",
+      "operation_id": "816c42a101094fa6ae497cbec30fc3b5",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "tool",
+      "status": "started",
+      "label": "执行排班操作",
+      "timestamp": "2026-09-20T08:38:57.874417+00:00",
+      "duration_ms": null,
+      "details": {}
+    },
+    {
+      "event_id": "b90fab8787314c84b2428a0ab1a93e60",
+      "operation_id": "3b87d61f51834c678f68762e601945b6",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "load_schedule",
+      "status": "started",
+      "label": "读取当前排班",
+      "timestamp": "2026-09-20T08:38:57.874417+00:00",
+      "duration_ms": null,
+      "details": {}
+    },
+    {
+      "event_id": "6fcd10a7d82e4b749a5d5c489ab078fe",
+      "operation_id": "3b87d61f51834c678f68762e601945b6",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "load_schedule",
+      "status": "completed",
+      "label": "读取当前排班",
+      "timestamp": "2026-09-20T08:38:57.882462+00:00",
+      "duration_ms": 15,
+      "details": {}
+    },
+    {
+      "event_id": "7b41a0fc6adf43a188564aca2a81c8f6",
+      "operation_id": "816c42a101094fa6ae497cbec30fc3b5",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "tool",
+      "status": "completed",
+      "label": "执行排班操作",
+      "timestamp": "2026-09-20T08:38:57.882462+00:00",
+      "duration_ms": 15,
+      "details": {}
+    },
+    {
+      "event_id": "439a0ff413ca4325b928c1292304fe19",
+      "operation_id": "59a47a9156644e80a1a4dd162a276a68",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "tool",
+      "status": "started",
+      "label": "执行排班操作",
+      "timestamp": "2026-09-20T08:38:57.882462+00:00",
+      "duration_ms": null,
+      "details": {}
+    },
+    {
+      "event_id": "b7772f62e8804a149e71dda670ca963c",
+      "operation_id": "464e31ec97d54086a62292f1179af581",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "read_analysis",
+      "status": "started",
+      "label": "分析人数和排班事实",
+      "timestamp": "2026-09-20T08:38:57.882462+00:00",
+      "duration_ms": null,
+      "details": {}
+    },
+    {
+      "event_id": "9ef9efea1a084aaaa86fb0c3decdefe4",
+      "operation_id": "5a9d87d20f924f81a60875d57deb727c",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "validator",
+      "status": "started",
+      "label": "校验排班规则",
+      "timestamp": "2026-09-20T08:38:57.887965+00:00",
+      "duration_ms": null,
+      "details": {}
+    },
+    {
+      "event_id": "8c44c269a4f3484e874e57b38eb23c6d",
+      "operation_id": "5a9d87d20f924f81a60875d57deb727c",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "validator",
+      "status": "completed",
+      "label": "校验排班规则",
+      "timestamp": "2026-09-20T08:38:57.888982+00:00",
+      "duration_ms": 0,
+      "details": {}
+    },
+    {
+      "event_id": "d48b409a253547c1acf02462e9dff202",
+      "operation_id": "464e31ec97d54086a62292f1179af581",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "read_analysis",
+      "status": "completed",
+      "label": "分析人数和排班事实",
+      "timestamp": "2026-09-20T08:38:57.890509+00:00",
+      "duration_ms": 0,
+      "details": {}
+    },
+    {
+      "event_id": "97af316b9f1a4ddb9e8b0413dfd084e7",
+      "operation_id": "59a47a9156644e80a1a4dd162a276a68",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "tool",
+      "status": "completed",
+      "label": "执行排班操作",
+      "timestamp": "2026-09-20T08:38:57.890509+00:00",
+      "duration_ms": 0,
+      "details": {}
+    },
+    {
+      "event_id": "2f105e99b6f74e3aaa96902ff2dc97dd",
+      "operation_id": "843639f166344be392b2768e01d03e40",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "response_compose",
+      "status": "started",
+      "label": "生成回复",
+      "timestamp": "2026-09-20T08:38:57.890509+00:00",
+      "duration_ms": null,
+      "details": {}
+    },
+    {
+      "event_id": "fc480a402f1a492ab7ddc71e749c75a4",
+      "operation_id": "843639f166344be392b2768e01d03e40",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "response_compose",
+      "status": "completed",
+      "label": "生成回复",
+      "timestamp": "2026-09-20T08:39:03.691801+00:00",
+      "duration_ms": 5813,
+      "details": {}
+    },
+    {
+      "event_id": "6346755b9f474d65b2074cc1752692c0",
+      "operation_id": "6ed797513d604b0184158480fb5606b6",
+      "turn_id": "read-only-preview:dry-run",
+      "client_message_id": "dry-run",
+      "stage": "turn_completed",
+      "status": "completed",
+      "label": "排班处理完成",
+      "timestamp": "2026-09-20T08:39:03.691801+00:00",
+      "duration_ms": 11860,
+      "details": {}
+    }
+  ],
+  "failures": []
+}

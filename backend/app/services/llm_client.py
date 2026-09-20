@@ -5,10 +5,13 @@ import logging
 import os
 import re
 import time
+from concurrent.futures import Future
+from concurrent.futures import TimeoutError as FutureTimeoutError
 from copy import deepcopy
-from threading import Lock, local
+from threading import BoundedSemaphore, Lock, Thread, local
 from typing import Any, NoReturn
 from urllib.parse import urlsplit
+from uuid import uuid4
 
 import httpx
 from jsonschema import Draft202012Validator
@@ -17,6 +20,33 @@ from ..config import positive_seconds
 from ..execution import ExecutionTimeout, current_execution
 
 logger = logging.getLogger("optishift.llm")
+_transport_slots = BoundedSemaphore(16)
+
+
+def provider_stage_budget(stage: str | None) -> float | None:
+    """Independent wall-clock budgets; callers may impose a smaller remaining budget."""
+    if stage in {"response_compose", "explanation"}:
+        return min(15, positive_seconds("LLM_RESPONSE_BUDGET_SECONDS", 8))
+    if stage in {"intent_parse", "agent_semantic", "semantic_parse"}:
+        return min(30, positive_seconds("LLM_SEMANTIC_BUDGET_SECONDS", 20))
+    return None
+
+
+def is_schema_unsupported(error: AIUnavailableError) -> bool:
+    """Only an explicit feature rejection permits the non-strict compatibility path.
+
+    Invalid schemas and malformed model output are not evidence that the Provider
+    lacks structured output. Transport errors never warrant another long request.
+    """
+    if error.error_type not in {"invalid_request", "provider_not_implemented"}:
+        return False
+    message = error.provider_message or ""
+    feature = r"(?:json[_ ]?schema|response[_ ]?format|structured[ _-]?outputs?|strict)"
+    unsupported = (
+        r"(?:not\s+support(?:ed)?|unsupported|not\s+available|not\s+implemented|"
+        r"does\s+not\s+support|unknown\s+(?:parameter|field))"
+    )
+    return bool(re.search(feature, message, re.I) and re.search(unsupported, message, re.I))
 
 
 def _redact_message(value: str | None, limit: int, secrets: tuple[str, ...] = ()) -> str | None:
@@ -326,11 +356,19 @@ class AgentLLMClient:
         stage: str | None = None,
     ) -> NoReturn:
         latency_ms = max(0, round((time.perf_counter() - started) * 1000))
+        self._last_latency_ms = latency_ms
+        self.last_request_metrics.update(
+            status="failed",
+            error_type=error_type,
+            latency_ms=latency_ms,
+            provider_status=provider_status,
+        )
         safe_provider_message = self._redact_and_truncate(provider_message, 300)
         trace = current_execution.get()
         logger.warning(
             "LLM request failed model=%s base_url=%s provider_status=%s "
-            "error_type=%s latency_ms=%s stage=%s conversation_id=%s client_message_id=%s",
+            "error_type=%s latency_ms=%s stage=%s conversation_id=%s client_message_id=%s "
+            "request_id=%s provider_request_count=%s",
             self._redact_and_truncate(self.model, 120) or "<empty>",
             self._safe_base_url(),
             provider_status,
@@ -339,6 +377,8 @@ class AgentLLMClient:
             stage,
             trace.conversation_id if trace else None,
             trace.client_message_id if trace else None,
+            self.last_request_metrics.get("provider_request_id"),
+            self.last_request_metrics.get("provider_request_count", 0),
         )
         error = AIUnavailableError(
             message,
@@ -352,6 +392,43 @@ class AgentLLMClient:
             raise error from cause
         raise error
 
+    def _bounded_post(self, payload: dict, timeout: httpx.Timeout, limit: float | None):
+        """A slow trickle or custom transport cannot exceed the caller's wall budget.
+
+        Workers only perform HTTP I/O. An expired worker cannot parse or commit a
+        business result. Bounds prevent accumulating unlimited abandoned requests.
+        """
+        transport = self.client
+        endpoint = f"{self.base_url}/chat/completions"
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        if limit is None:
+            return transport.post(endpoint, headers=headers, json=payload, timeout=timeout)
+        if not _transport_slots.acquire(blocking=False):
+            raise AIUnavailableError(
+                "AI Provider 请求通道正忙，请稍后重试。",
+                error_type="provider_busy",
+                stage=self.last_request_metrics.get("stage"),
+            )
+        result: Future = Future()
+
+        def invoke():
+            try:
+                result.set_result(
+                    transport.post(endpoint, headers=headers, json=payload, timeout=timeout)
+                )
+            except BaseException as exc:
+                result.set_exception(exc)
+            finally:
+                _transport_slots.release()
+
+        self.last_request_metrics["provider_request_count"] = 1
+        Thread(target=invoke, daemon=True, name="llm-transport").start()
+        try:
+            return result.result(timeout=limit)
+        except FutureTimeoutError as exc:
+            self.last_request_metrics["timeout_source"] = "wall_budget"
+            raise httpx.ReadTimeout("provider stage wall-clock budget exhausted") from exc
+
     def _post(
         self,
         payload: dict[str, Any],
@@ -361,15 +438,32 @@ class AgentLLMClient:
     ) -> tuple[dict[str, Any], int, int]:
         started = time.perf_counter()
         definition = payload.get("response_format", {}).get("json_schema", {})
-        compact = lambda value: len(json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+
+        def compact(value):
+            return len(json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+
         self._local.request_metrics = {
             "request_bytes": compact(payload),
             "message_count": len(payload.get("messages", [])),
+            "provider_request_id": uuid4().hex,
+            "provider_request_count": 0,
+            "stage": stage,
+            "model": self._redact_and_truncate(self.model, 120),
+            "provider": self._safe_base_url(),
+            "strict_output": bool(definition),
+            "status": "started",
+            "error_type": None,
         }
-        logger.info("llm_request stage=%s model=%s schema_name=%s schema_bytes=%s request_bytes=%s message_count=%s",
-                    stage, self._redact_and_truncate(self.model, 120), definition.get("name"),
-                    compact(definition["schema"]) if definition else 0,
-                    self.last_request_metrics["request_bytes"], self.last_request_metrics["message_count"])
+        logger.info(
+            "llm_request stage=%s model=%s schema_name=%s schema_bytes=%s "
+            "request_bytes=%s message_count=%s",
+            stage,
+            self._redact_and_truncate(self.model, 120),
+            definition.get("name"),
+            compact(definition["schema"]) if definition else 0,
+            self.last_request_metrics["request_bytes"],
+            self.last_request_metrics["message_count"],
+        )
         if not self.enabled:
             self._fail(
                 "AI 功能当前未启用。",
@@ -386,26 +480,50 @@ class AgentLLMClient:
             )
         trace = current_execution.get()
         remaining = trace.remaining(stage or "provider") if trace else None
+        if remaining is not None and stage in {"response_compose", "explanation"}:
+            # Reserve a small completion window for deterministic feedback. Optional
+            # wording must not consume the final time needed to return a saved result.
+            if remaining <= 0.1:
+                self._fail(
+                    "本轮剩余时间不足以润色回复，将使用已验证的结果。",
+                    error_type="response_budget_exhausted",
+                    started=started,
+                    stage=stage,
+                )
+            remaining -= 0.1
+        limits = [
+            value
+            for value in (provider_stage_budget(stage), read_timeout_seconds, remaining)
+            if value is not None
+        ]
+        wall_limit = min(limits) if limits else None
+        self.last_request_metrics["budget_seconds"] = wall_limit
+        # This is metadata only, scoped to the current application request. It is
+        # available to test observers without recording prompts or model reasoning.
+        if trace is not None:
+            if not hasattr(trace, "provider_requests"):
+                trace.provider_requests = []
+            trace.provider_requests.append(self.last_request_metrics)
         # Copy per request: health probes must not change the shared client's limits.
         timeout_values = self.timeout.as_dict()
-        if read_timeout_seconds is not None:
-            timeout_values["read"] = read_timeout_seconds
-        if remaining is not None:
+        if wall_limit is not None:
             timeout_values = {
-                key: min(value, remaining) if value is not None else remaining
+                key: min(value, wall_limit) if value is not None else wall_limit
                 for key, value in timeout_values.items()
             }
         timeout = httpx.Timeout(**timeout_values)
 
         try:
-            response = self.client.post(
-                f"{self.base_url}/chat/completions",
-                headers={"Authorization": f"Bearer {self.api_key}"},
-                json=payload,
-                timeout=timeout,
-            )
+            if wall_limit is None:
+                self.last_request_metrics["provider_request_count"] = 1
+            response = self._bounded_post(payload, timeout, wall_limit)
         except httpx.TimeoutException as exc:
             if trace and remaining is not None and time.monotonic() - trace.started >= trace.budget:
+                self.last_request_metrics.update(
+                    status="failed",
+                    error_type="agent_turn_timeout",
+                    latency_ms=round((time.perf_counter() - started) * 1000),
+                )
                 raise ExecutionTimeout(
                     stage or "provider", round((time.monotonic() - trace.started) * 1000)
                 ) from exc
@@ -430,6 +548,14 @@ class AgentLLMClient:
             self._fail(
                 message,
                 error_type=kind,
+                started=started,
+                stage=stage,
+                cause=exc,
+            )
+        except AIUnavailableError as exc:
+            self._fail(
+                exc.safe_message,
+                error_type=exc.error_type,
                 started=started,
                 stage=stage,
                 cause=exc,
@@ -481,9 +607,16 @@ class AgentLLMClient:
             )
         if trace:
             trace.remaining(stage or "provider")
+        self.last_request_metrics.update(
+            status="completed",
+            error_type=None,
+            latency_ms=latency_ms,
+            provider_status=response.status_code,
+        )
         logger.info(
             "llm_complete model=%s base_url=%s stage=%s latency_ms=%s provider_status=%s "
-            "conversation_id=%s client_message_id=%s status=completed error_type=none",
+            "conversation_id=%s client_message_id=%s status=completed error_type=none "
+            "request_id=%s provider_request_count=1",
             self._redact_and_truncate(self.model, 120),
             self._safe_base_url(),
             stage,
@@ -491,6 +624,7 @@ class AgentLLMClient:
             response.status_code,
             trace.conversation_id if trace else None,
             trace.client_message_id if trace else None,
+            self.last_request_metrics["provider_request_id"],
         )
         return result, latency_ms, response.status_code
 
@@ -619,7 +753,10 @@ class AgentLLMClient:
     ) -> dict[str, Any]:
         validate_strict_json_schema(schema)
         if not strict_output:
-            system += " Return only a JSON object, with all fields and no extra fields, matching: " + json.dumps(schema, ensure_ascii=False, separators=(",", ":"))
+            system += (
+                " Return only a JSON object, with all fields and no extra fields, matching: "
+                + json.dumps(schema, ensure_ascii=False, separators=(",", ":"))
+            )
         response, latency_ms, provider_status = self._post(
             {
                 "model": self.model,
@@ -631,14 +768,20 @@ class AgentLLMClient:
                         "content": json.dumps(user, ensure_ascii=False, default=str),
                     },
                 ],
-                **({"response_format": {
-                    "type": "json_schema",
-                    "json_schema": {
-                        "name": schema_name,
-                        "strict": True,
-                        "schema": schema,
-                    },
-                }} if strict_output else {}),
+                **(
+                    {
+                        "response_format": {
+                            "type": "json_schema",
+                            "json_schema": {
+                                "name": schema_name,
+                                "strict": True,
+                                "schema": schema,
+                            },
+                        }
+                    }
+                    if strict_output
+                    else {}
+                ),
             },
             stage=stage,
             read_timeout_seconds=read_timeout_seconds,

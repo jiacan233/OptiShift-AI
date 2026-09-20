@@ -1,0 +1,706 @@
+{
+  "started": "2026-09-20T09:02:36.843Z",
+  "web": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com",
+  "cases": [
+    {
+      "case": "A",
+      "conversation_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5",
+      "started": "2026-09-20T09:02:42.866Z",
+      "status": "PASS"
+    },
+    {
+      "case": "B",
+      "conversation_id": "conv_2e4b56730f1a49a282d0d2a93bf976cf",
+      "started": "2026-09-20T09:03:06.422Z",
+      "status": "PASS"
+    },
+    {
+      "case": "C",
+      "conversation_id": "conv_4101ec34acad4a9c960d35922d53129d",
+      "started": "2026-09-20T09:03:47.045Z",
+      "status": "PASS"
+    },
+    {
+      "case": "D1",
+      "conversation_id": "conv_b50d1e569d464bdba576241d523e4977",
+      "started": "2026-09-20T09:04:05.576Z",
+      "status": "PASS"
+    },
+    {
+      "case": "D2",
+      "conversation_id": "conv_33a994394ff34e0c8b54aded0e2d46a7",
+      "started": "2026-09-20T09:04:23.672Z",
+      "status": "PASS"
+    },
+    {
+      "case": "D3",
+      "conversation_id": "conv_1a00bde1b34049b78da57d3ec51491cb",
+      "started": "2026-09-20T09:04:47.800Z",
+      "status": "PASS"
+    },
+    {
+      "case": "E",
+      "conversation_id": "conv_adddbbc3b8694409bb278631fb3379e7",
+      "started": "2026-09-20T09:05:06.027Z",
+      "status": "PASS"
+    },
+    {
+      "case": "X1",
+      "conversation_id": "conv_aeed34e4b0674c3a9ae12258e1255aab",
+      "started": "2026-09-20T09:05:52.943Z",
+      "status": "PASS"
+    },
+    {
+      "case": "F",
+      "conversation_id": "conv_e95a19a99bea4553b1419caad743e162",
+      "started": "2026-09-20T09:06:27.604Z",
+      "status": "PASS"
+    },
+    {
+      "case": "X2",
+      "conversation_id": "conv_db1c457efb63478a85be275707b016b9",
+      "started": "2026-09-20T09:07:05.740Z",
+      "status": "PASS"
+    },
+    {
+      "case": "G",
+      "conversation_id": "conv_6a2b8c90708147e188001bfb36030fe4",
+      "started": "2026-09-20T09:07:44.268Z",
+      "status": "FAIL",
+      "error": "Error: expect(locator).toHaveCount(expected) failed\n\nLocator:  getByTestId('markdown-message')\nExpected: 0\nReceived: 1\nTimeout:  5000ms\n\nCall log:\n  - Expect \"toHaveCount\" getByTestId('markdown-message') with timeout 5000ms\n  - waiting for getByTestId('markdown-message')\n    2 × locator resolved to 4 elements\n      - unexpected value \"4\"\n    12 × locator resolved to 1 element\n       - unexpected value \"1\"\n\n    at captureRawStack (D:\\ee\\code\\OptiShift-AI\\frontend\\node_modules\\playwright-core\\lib\\coreBundle.js:8588:17)\n    at callMatcherAsStep (D:\\ee\\code\\OptiShift-AI\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:13310:57)\n    at Object.toHaveCount (D:\\ee\\code\\OptiShift-AI\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:13302:23)\n    at D:\\ee\\code\\OptiShift-AI\\scripts\\scenario_acceptance.cjs:145:149\n    at async run (D:\\ee\\code\\OptiShift-AI\\scripts\\scenario_acceptance.cjs:118:11)\n    at async main (D:\\ee\\code\\OptiShift-AI\\scripts\\scenario_acceptance.cjs:140:3)"
+    },
+    {
+      "case": "C01",
+      "conversation_id": "conv_0dbac96e56c347c7baf96a35e87da351",
+      "started": "2026-09-20T09:09:06.083Z",
+      "status": "PASS"
+    },
+    {
+      "case": "H",
+      "conversation_id": "conv_ade95cde39e342ea80201b065b96a680",
+      "started": "2026-09-20T09:09:34.811Z",
+      "status": "FAIL",
+      "error": "Error: expect(received).toMatchObject(expected)\n\n- Expected  - 1\n+ Received  + 1\n\n@@ -1,7 +1,7 @@\n  Object {\n-   \"assistantBubbles\": 1,\n+   \"assistantBubbles\": 0,\n    \"assistantRecords\": 1,\n    \"draftCards\": 1,\n    \"draftRecords\": 1,\n    \"newVersionRecords\": 1,\n    \"replayTriggered\": true,\n    at captureRawStack (D:\\ee\\code\\OptiShift-AI\\frontend\\node_modules\\playwright-core\\lib\\coreBundle.js:8588:17)\n    at callMatcherAsStep (D:\\ee\\code\\OptiShift-AI\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:13310:57)\n    at Object.toMatchObject (D:\\ee\\code\\OptiShift-AI\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:13302:23)\n    at D:\\ee\\code\\OptiShift-AI\\scripts\\scenario_acceptance.cjs:181:24\n    at async run (D:\\ee\\code\\OptiShift-AI\\scripts\\scenario_acceptance.cjs:118:11)\n    at async main (D:\\ee\\code\\OptiShift-AI\\scripts\\scenario_acceptance.cjs:152:3)"
+    }
+  ],
+  "cleanup": [
+    {
+      "type": "scenario",
+      "conversation_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5",
+      "week": "2026-10-05",
+      "revision": 0,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_2e4b56730f1a49a282d0d2a93bf976cf",
+      "week": "2026-10-05",
+      "revision": 0,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_4101ec34acad4a9c960d35922d53129d",
+      "week": "2026-10-05",
+      "revision": 1,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_b50d1e569d464bdba576241d523e4977",
+      "week": "2026-10-05",
+      "revision": 1,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_33a994394ff34e0c8b54aded0e2d46a7",
+      "week": "2026-10-05",
+      "revision": 1,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_1a00bde1b34049b78da57d3ec51491cb",
+      "week": "2026-10-05",
+      "revision": 1,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_adddbbc3b8694409bb278631fb3379e7",
+      "week": "2026-10-05",
+      "revision": 0,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_aeed34e4b0674c3a9ae12258e1255aab",
+      "week": "2026-10-05",
+      "revision": 2,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_e95a19a99bea4553b1419caad743e162",
+      "week": "2026-10-05",
+      "revision": 2,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_db1c457efb63478a85be275707b016b9",
+      "week": "2026-10-05",
+      "revision": 2,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_6a2b8c90708147e188001bfb36030fe4",
+      "week": "2026-10-05",
+      "revision": 4,
+      "status": "cleared"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_0dbac96e56c347c7baf96a35e87da351",
+      "week": "2026-10-05",
+      "revision": 1,
+      "status": "cleared"
+    },
+    {
+      "type": "draft",
+      "schedule_id": "sch_ea293f0862a4",
+      "version": 6,
+      "client_message_id": "cm_4ae72119d1fa4227ba636211d1abdc0a",
+      "conversation_id": "conv_ade95cde39e342ea80201b065b96a680",
+      "status": "cancelled"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_ade95cde39e342ea80201b065b96a680",
+      "week": "2026-10-05",
+      "revision": 0,
+      "status": "cleared"
+    }
+  ],
+  "conversations": [
+    {
+      "cid": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5",
+      "workspace": "bw_d579850e5ce44dd99ca49dda49fa760d",
+      "case": "A"
+    },
+    {
+      "cid": "conv_2e4b56730f1a49a282d0d2a93bf976cf",
+      "workspace": "bw_2be186d7253744c39ae059a62da65011",
+      "case": "B"
+    },
+    {
+      "cid": "conv_4101ec34acad4a9c960d35922d53129d",
+      "workspace": "bw_6d9d9cad69e44f5ba1e4f6acf793563f",
+      "case": "C"
+    },
+    {
+      "cid": "conv_b50d1e569d464bdba576241d523e4977",
+      "workspace": "bw_ea040ba52c3f45b78c3e6f304b3f697e",
+      "case": "D1"
+    },
+    {
+      "cid": "conv_33a994394ff34e0c8b54aded0e2d46a7",
+      "workspace": "bw_0aa7a6ece5e34ec6b20dd04746cc044d",
+      "case": "D2"
+    },
+    {
+      "cid": "conv_1a00bde1b34049b78da57d3ec51491cb",
+      "workspace": "bw_daa7a7ef59484c268118aeb013df0ca8",
+      "case": "D3"
+    },
+    {
+      "cid": "conv_adddbbc3b8694409bb278631fb3379e7",
+      "workspace": "bw_4de2f7d400e24afbafff38bcb38c92b6",
+      "case": "E"
+    },
+    {
+      "cid": "conv_aeed34e4b0674c3a9ae12258e1255aab",
+      "workspace": "bw_ff314cc9851f40b6ac12af890b418720",
+      "case": "X1"
+    },
+    {
+      "cid": "conv_e95a19a99bea4553b1419caad743e162",
+      "workspace": "bw_d76c051e834b4dc09510d8eed09395c3",
+      "case": "F"
+    },
+    {
+      "cid": "conv_db1c457efb63478a85be275707b016b9",
+      "workspace": "bw_7621f5824c13460a9d16f2f9e60881f2",
+      "case": "X2"
+    },
+    {
+      "cid": "conv_6a2b8c90708147e188001bfb36030fe4",
+      "workspace": "bw_15a393b16e7b486db3ced7f24c0a59cb",
+      "case": "G"
+    },
+    {
+      "cid": "conv_0dbac96e56c347c7baf96a35e87da351",
+      "workspace": "bw_5721034c9207474ea7e1f2654db22751",
+      "case": "C01"
+    },
+    {
+      "cid": "conv_ade95cde39e342ea80201b065b96a680",
+      "workspace": "bw_0bf92d45acb04f038211ecc08aacfd45",
+      "case": "H"
+    }
+  ],
+  "drafts": [
+    {
+      "schedule_id": "sch_ea293f0862a4",
+      "version": 6,
+      "client_message_id": "cm_4ae72119d1fa4227ba636211d1abdc0a",
+      "conversation_id": "conv_ade95cde39e342ea80201b065b96a680"
+    }
+  ],
+  "scenarios": [
+    {
+      "conversation_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5",
+      "week": "2026-10-05",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_2e4b56730f1a49a282d0d2a93bf976cf",
+      "week": "2026-10-05",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_4101ec34acad4a9c960d35922d53129d",
+      "week": "2026-10-05",
+      "scenario_revision": 1,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon"
+          ],
+          "change_type": "leave",
+          "shift": null
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_b50d1e569d464bdba576241d523e4977",
+      "week": "2026-10-05",
+      "scenario_revision": 1,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon",
+            "Tue"
+          ],
+          "change_type": "leave",
+          "shift": null
+        },
+        {
+          "employee_id": "E02",
+          "operation": "add",
+          "days": [
+            "Wed"
+          ],
+          "change_type": "preference",
+          "shift": "evening"
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_33a994394ff34e0c8b54aded0e2d46a7",
+      "week": "2026-10-05",
+      "scenario_revision": 1,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon",
+            "Tue"
+          ],
+          "change_type": "leave",
+          "shift": null
+        },
+        {
+          "employee_id": "E02",
+          "operation": "add",
+          "days": [
+            "Wed"
+          ],
+          "change_type": "preference",
+          "shift": "evening"
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_1a00bde1b34049b78da57d3ec51491cb",
+      "week": "2026-10-05",
+      "scenario_revision": 1,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon",
+            "Tue"
+          ],
+          "change_type": "leave",
+          "shift": null
+        },
+        {
+          "employee_id": "E02",
+          "operation": "add",
+          "days": [
+            "Wed"
+          ],
+          "change_type": "preference",
+          "shift": "evening"
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_adddbbc3b8694409bb278631fb3379e7",
+      "week": "2026-10-05",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_aeed34e4b0674c3a9ae12258e1255aab",
+      "week": "2026-10-05",
+      "scenario_revision": 2,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E02",
+          "operation": "add",
+          "days": [
+            "Mon"
+          ],
+          "change_type": "leave",
+          "shift": null
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_e95a19a99bea4553b1419caad743e162",
+      "week": "2026-10-05",
+      "scenario_revision": 2,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon"
+          ],
+          "change_type": "leave",
+          "shift": null
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_db1c457efb63478a85be275707b016b9",
+      "week": "2026-10-05",
+      "scenario_revision": 2,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon"
+          ],
+          "change_type": "leave",
+          "shift": null
+        },
+        {
+          "employee_id": "E02",
+          "operation": "add",
+          "days": [
+            "Wed"
+          ],
+          "change_type": "preference",
+          "shift": "evening"
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_6a2b8c90708147e188001bfb36030fe4",
+      "week": "2026-10-05",
+      "scenario_revision": 4,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon"
+          ],
+          "change_type": "leave",
+          "shift": null
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_0dbac96e56c347c7baf96a35e87da351",
+      "week": "2026-10-05",
+      "scenario_revision": 1,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon",
+            "Tue"
+          ],
+          "change_type": "leave",
+          "shift": null
+        },
+        {
+          "employee_id": "E02",
+          "operation": "add",
+          "days": [
+            "Wed"
+          ],
+          "change_type": "preference",
+          "shift": "evening"
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_ade95cde39e342ea80201b065b96a680",
+      "week": "2026-10-05",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    }
+  ],
+  "baseline": {
+    "schedule_id": "sch_55898ae95446",
+    "version": 5,
+    "hash": "815ff49548c47019d9a393e347f76225ebd835dcdd97b93c0b719f1525b45ee1",
+    "versions": [
+      {
+        "schedule_id": "sch_d1c5e0b75a27",
+        "version": 6,
+        "status": "cancelled",
+        "created_at": "2026-09-20T07:33:11",
+        "parent_schedule_id": "sch_55898ae95446",
+        "base_schedule_id": "sch_55898ae95446",
+        "base_version": 5,
+        "compliance_status": "compliant",
+        "authorized_violation_count": 0,
+        "violations": []
+      },
+      {
+        "schedule_id": "sch_cf4b087a79c2",
+        "version": 6,
+        "status": "cancelled",
+        "created_at": "2026-09-20T07:31:53",
+        "parent_schedule_id": "sch_55898ae95446",
+        "base_schedule_id": "sch_55898ae95446",
+        "base_version": 5,
+        "compliance_status": "compliant",
+        "authorized_violation_count": 0,
+        "violations": []
+      },
+      {
+        "schedule_id": "sch_3881b10bbb92",
+        "version": 6,
+        "status": "cancelled",
+        "created_at": "2026-09-20T07:26:54",
+        "parent_schedule_id": "sch_55898ae95446",
+        "base_schedule_id": "sch_55898ae95446",
+        "base_version": 5,
+        "compliance_status": "compliant",
+        "authorized_violation_count": 0,
+        "violations": []
+      },
+      {
+        "schedule_id": "sch_f2efacac4599",
+        "version": 6,
+        "status": "cancelled",
+        "created_at": "2026-09-20T04:40:52",
+        "parent_schedule_id": "sch_55898ae95446",
+        "base_schedule_id": "sch_55898ae95446",
+        "base_version": 5,
+        "compliance_status": "compliant",
+        "authorized_violation_count": 0,
+        "violations": []
+      },
+      {
+        "schedule_id": "sch_46782bfff1d6",
+        "version": 6,
+        "status": "cancelled",
+        "created_at": "2026-09-20T04:40:08",
+        "parent_schedule_id": "sch_55898ae95446",
+        "base_schedule_id": "sch_55898ae95446",
+        "base_version": 5,
+        "compliance_status": "compliant",
+        "authorized_violation_count": 0,
+        "violations": []
+      },
+      {
+        "schedule_id": "sch_3be15f9cb496",
+        "version": 6,
+        "status": "cancelled",
+        "created_at": "2026-09-20T03:52:10",
+        "parent_schedule_id": "sch_55898ae95446",
+        "base_schedule_id": "sch_55898ae95446",
+        "base_version": 5,
+        "compliance_status": "compliant",
+        "authorized_violation_count": 0,
+        "violations": []
+      },
+      {
+        "schedule_id": "sch_bec4b3c6a21f",
+        "version": 6,
+        "status": "cancelled",
+        "created_at": "2026-09-19T21:47:17",
+        "parent_schedule_id": "sch_55898ae95446",
+        "base_schedule_id": "sch_55898ae95446",
+        "base_version": 5,
+        "compliance_status": "compliant",
+        "authorized_violation_count": 0,
+        "violations": []
+      },
+      {
+        "schedule_id": "sch_55898ae95446",
+        "version": 5,
+        "status": "confirmed",
+        "created_at": "2026-09-19T05:40:06",
+        "parent_schedule_id": "sch_7836dc9598ad",
+        "base_schedule_id": "sch_7836dc9598ad",
+        "base_version": 4,
+        "compliance_status": "compliant",
+        "authorized_violation_count": 0,
+        "violations": []
+      },
+      {
+        "schedule_id": "sch_7836dc9598ad",
+        "version": 4,
+        "status": "confirmed",
+        "created_at": "2026-09-19T05:39:26",
+        "parent_schedule_id": "sch_c71a4eb68fd4",
+        "base_schedule_id": "sch_c71a4eb68fd4",
+        "base_version": 3,
+        "compliance_status": "compliant",
+        "authorized_violation_count": 0,
+        "violations": []
+      },
+      {
+        "schedule_id": "sch_c71a4eb68fd4",
+        "version": 3,
+        "status": "confirmed",
+        "created_at": "2026-09-18T19:06:19",
+        "parent_schedule_id": "sch_35147f29b125",
+        "base_schedule_id": "sch_35147f29b125",
+        "base_version": 2,
+        "compliance_status": "compliant",
+        "authorized_violation_count": 0,
+        "violations": []
+      },
+      {
+        "schedule_id": "sch_35147f29b125",
+        "version": 2,
+        "status": "confirmed",
+        "created_at": "2026-09-18T16:04:16",
+        "parent_schedule_id": "sch_0be34875c195",
+        "base_schedule_id": "sch_0be34875c195",
+        "base_version": 1,
+        "compliance_status": "compliant",
+        "authorized_violation_count": 0,
+        "violations": []
+      },
+      {
+        "schedule_id": "sch_0be34875c195",
+        "version": 1,
+        "status": "confirmed",
+        "created_at": "2026-09-18T14:06:14",
+        "parent_schedule_id": null,
+        "base_schedule_id": null,
+        "base_version": null,
+        "compliance_status": "compliant",
+        "authorized_violation_count": 0,
+        "violations": []
+      }
+    ]
+  },
+  "employees": [
+    "E01",
+    "E02",
+    "E03",
+    "E04",
+    "E05",
+    "E06",
+    "E07",
+    "E08",
+    "E09",
+    "E10",
+    "E11",
+    "E12",
+    "E13",
+    "E14",
+    "E15",
+    "E16",
+    "E17",
+    "E18",
+    "E19",
+    "E20"
+  ],
+  "domainInterstitial": {
+    "status": 404,
+    "title": "风险提醒"
+  },
+  "sse": {
+    "terminalDropped": true,
+    "replayTriggered": true,
+    "sameIdUsed": true,
+    "streamId": "cm_4ae72119d1fa4227ba636211d1abdc0a",
+    "replayId": "cm_4ae72119d1fa4227ba636211d1abdc0a",
+    "assistantBubbles": 0,
+    "draftCards": 1,
+    "assistantRecords": 1,
+    "userRecords": 1,
+    "draftRecords": 1,
+    "newVersionRecords": 1,
+    "schedule_id": "sch_ea293f0862a4",
+    "version": 6
+  },
+  "final": {
+    "schedule_id": "sch_55898ae95446",
+    "version": 5,
+    "hash": "815ff49548c47019d9a393e347f76225ebd835dcdd97b93c0b719f1525b45ee1",
+    "draft": null
+  },
+  "ended": "2026-09-20T09:09:53.642Z"
+}

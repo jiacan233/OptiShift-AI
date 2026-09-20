@@ -1,0 +1,198 @@
+{
+  "name": "router-ordered_operations",
+  "input": "先清掉 E01 的限制，再给 E02 周五请假",
+  "model": "gpt-5.6-sol",
+  "status": "passed",
+  "failures": [],
+  "duration_seconds": 12.766000000061467,
+  "router_latency_ms": 12766,
+  "fallback_used": false,
+  "error_type": null,
+  "schema_bytes": 1277,
+  "lite_result": {
+    "intent": "replan",
+    "domain": "scheduling",
+    "speech_act": "action_request",
+    "mutation_requested": true,
+    "employees": [
+      "E01",
+      "E02"
+    ],
+    "force_or_override_intent": false,
+    "clarification_required": false,
+    "question_type": "general_question"
+  },
+  "parser_results": {
+    "agent_route_lite": {
+      "intent": "replan",
+      "domain": "scheduling",
+      "speech_act": "action_request",
+      "mutation_requested": true,
+      "employees": [
+        "E01",
+        "E02"
+      ],
+      "force_or_override_intent": false,
+      "clarification_required": false,
+      "question_type": "general_question"
+    },
+    "agent_mutation": {
+      "operations": [
+        {
+          "operation": "clear",
+          "employee_id": "E01",
+          "type": "unavailable",
+          "day": null,
+          "shift": null
+        },
+        {
+          "operation": "add",
+          "employee_id": "E02",
+          "type": "leave",
+          "day": "Fri",
+          "shift": null
+        }
+      ],
+      "minimize_changes": false,
+      "clarification": null
+    }
+  },
+  "stages": [
+    {
+      "stage": "agent_route_lite",
+      "parser_name": "agent_route_lite",
+      "model": "gpt-5.6-sol",
+      "schema_name": "agent_route_lite",
+      "schema_bytes": 1277,
+      "message_count": 2,
+      "request_bytes": 3581,
+      "fallback_used": false,
+      "error_type": null,
+      "latency_ms": 7609,
+      "parser_latency_ms": 7609
+    },
+    {
+      "stage": "agent_mutation",
+      "parser_name": "agent_mutation",
+      "model": "gpt-5.6-sol",
+      "schema_name": "agent_mutation",
+      "schema_bytes": 990,
+      "message_count": 2,
+      "request_bytes": 7056,
+      "fallback_used": false,
+      "error_type": null,
+      "latency_ms": 5157,
+      "parser_latency_ms": 5157
+    }
+  ],
+  "final_route": {
+    "intent": "what_if",
+    "domain": "scheduling",
+    "speech_act": "action_request",
+    "classification_source": "lite_router+deterministic",
+    "read_query": null,
+    "mutation_requested": true,
+    "target_week": null,
+    "target_iso_year": null,
+    "target_iso_week": null,
+    "employees": [
+      "E01",
+      "E02"
+    ],
+    "changes": [
+      {
+        "employee_id": "E02",
+        "type": "leave",
+        "day": "Fri",
+        "shift": null
+      }
+    ],
+    "operations": [
+      {
+        "operation": "clear",
+        "employee_id": "E01",
+        "type": "unavailable",
+        "day": null,
+        "shift": null
+      },
+      {
+        "operation": "add",
+        "employee_id": "E02",
+        "type": "leave",
+        "day": "Fri",
+        "shift": null
+      }
+    ],
+    "operation": "clear",
+    "minimize_changes": false,
+    "override_requested": false,
+    "force_generate": false,
+    "requested_overrides": [],
+    "forced_assignments": [],
+    "authorization_reason": null,
+    "reference": {
+      "type": "none",
+      "suggestion_id": null
+    },
+    "clarification": {
+      "required": false,
+      "question": null
+    }
+  },
+  "provider_outputs": [
+    {
+      "stage": "agent_route_lite",
+      "raw_content": "{\"clarification_required\":false,\"domain\":\"scheduling\",\"employees\":[\"E01\",\"E02\"],\"force_or_override_intent\":false,\"intent\":\"replan\",\"mutation_requested\":true,\"question_type\":\"general_question\",\"speech_act\":\"action_request\"}",
+      "latency_ms": 7612,
+      "provider_status": 200
+    },
+    {
+      "stage": "agent_route_lite",
+      "output": {
+        "clarification_required": false,
+        "domain": "scheduling",
+        "employees": [
+          "E01",
+          "E02"
+        ],
+        "force_or_override_intent": false,
+        "intent": "replan",
+        "mutation_requested": true,
+        "question_type": "general_question",
+        "speech_act": "action_request"
+      },
+      "duration_ms": 7609
+    },
+    {
+      "stage": "agent_mutation",
+      "raw_content": "{\"clarification\":null,\"minimize_changes\":false,\"operations\":[{\"day\":null,\"employee_id\":\"E01\",\"operation\":\"clear\",\"shift\":null,\"type\":\"unavailable\"},{\"day\":\"Fri\",\"employee_id\":\"E02\",\"operation\":\"add\",\"shift\":null,\"type\":\"leave\"}]}",
+      "latency_ms": 5148,
+      "provider_status": 200
+    },
+    {
+      "stage": "agent_mutation",
+      "output": {
+        "clarification": null,
+        "minimize_changes": false,
+        "operations": [
+          {
+            "day": null,
+            "employee_id": "E01",
+            "operation": "clear",
+            "shift": null,
+            "type": "unavailable"
+          },
+          {
+            "day": "Fri",
+            "employee_id": "E02",
+            "operation": "add",
+            "shift": null,
+            "type": "leave"
+          }
+        ]
+      },
+      "duration_ms": 5141
+    }
+  ],
+  "database_unchanged": true
+}

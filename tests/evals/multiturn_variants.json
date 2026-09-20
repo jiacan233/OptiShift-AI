@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "source": "Opt-in paraphrase corpus; each variant inherits the original case oracle",
+  "variants": [
+    {
+      "id": "CASE_A_VARIANT_1",
+      "base_case": "CASE_A",
+      "turns": [
+        {"turn": 1, "content": "先查一下 E06 本周的班表。"},
+        {"turn": 2, "content": "假设 E06 周四不来，会造成什么影响？只做分析，别改数据。"},
+        {"turn": 3, "content": "那就先把 E06 周四标成不可排，暂时不要生成。"},
+        {"turn": 4, "content": "等等，撤回这条，周四维持原状。"},
+        {"turn": 5, "content": "换成 E06 周五优先早班。"},
+        {"turn": 6, "content": "再记一条：E18 周二优先晚班。"},
+        {"turn": 7, "content": "请复述当前生效的两项要求；E06 周四还有限制吗？"},
+        {"turn": 8, "content": "按这两项当前要求重新排班。"}
+      ]
+    },
+    {
+      "id": "CASE_B_VARIANT_1",
+      "base_case": "CASE_B",
+      "turns": [
+        {"turn": 1, "content": "我需要调整一个人的排班。"},
+        {"turn": 2, "content": "员工是 E18。"},
+        {"turn": 3, "content": "让他上一个班。"},
+        {"turn": 4, "content": "日期是周四。"},
+        {"turn": 5, "content": "安排晚班。"},
+        {"turn": 6, "content": "先不要生成，告诉我你目前理解的要求。"},
+        {"turn": 7, "content": "另外记录 E06 周五请假。"},
+        {"turn": 8, "content": "按这两条要求重新排。"}
+      ]
+    },
+    {
+      "id": "CASE_E_VARIANT_1",
+      "base_case": "CASE_E",
+      "turns": [
+        {"turn": 1, "content": "我想调整 E18。"},
+        {"turn": 2, "content": "E18 周二请假。"},
+        {"turn": 3, "content": "但我又想让他周二上晚班。"},
+        {"turn": 4, "content": "先别改，指出这两条哪里矛盾。"},
+        {"turn": 5, "content": "取消周二请假，保留 E18 周二晚班上班。"},
+        {"turn": 6, "content": "再记 E11 周四晚班优先。"},
+        {"turn": 7, "content": "检查冲突并复述最终条件。"},
+        {"turn": 8, "content": "确认没有冲突后重新排班。"}
+      ]
+    },
+    {
+      "id": "CASE_G_VARIANT_1",
+      "base_case": "CASE_G",
+      "turns": [
+        {"turn": 1, "content": "先让 E19 周六晚班优先。"},
+        {"turn": 2, "content": "我说错了，应该是周日，请说明你会怎么改。"},
+        {"turn": 3, "content": "等一下，刚才那条日期写错，改为周日。"},
+        {"turn": 4, "content": "周日的要求先保留，暂不生成。"},
+        {"turn": 5, "content": "记录 E15 周六请假。"},
+        {"turn": 6, "content": "把当前两条要求复述一遍。"},
+        {"turn": 7, "content": "确认 E19 是周日晚班优先，并且两条都已记录。"},
+        {"turn": 8, "content": "按这两项要求重新排班。"}
+      ]
+    },
+    {
+      "id": "CASE_H_VARIANT_1",
+      "base_case": "CASE_H",
+      "turns": [
+        {"turn": 1, "content": "先分析目前各员工的工作量，找出不均衡处。"},
+        {"turn": 2, "content": "给我几种经过验证的公平性优化方案，但先别执行。"},
+        {"turn": 3, "content": "逐条列出每个方案的具体调班操作和改善指标。"},
+        {"turn": 4, "content": "只采纳第一条方案，暂时不要重排。"},
+        {"turn": 5, "content": "复述第一条方案会调整哪位员工哪一天哪个班次。"},
+        {"turn": 6, "content": "再加入 E20 周三晚班优先这个条件。"},
+        {"turn": 7, "content": "重新核对当前条件和已选建议，再执行重排。"},
+        {"turn": 8, "content": "好的，生成这次重排草稿。"}
+      ]
+    },
+    {
+      "id": "CASE_J_VARIANT_1",
+      "base_case": "CASE_J",
+      "turns": [
+        {"turn": 1, "content": "先假设 E03 周五请假，分析一下。"},
+        {"turn": 2, "content": "把这个假设作为待采纳提案保留。"},
+        {"turn": 3, "content": "再考虑 E18 周五晚班优先。"},
+        {"turn": 4, "content": "记住这两项，但现在先不要生成。"},
+        {"turn": 6, "content": "我已经重新打开会话了，继续刚才的对话。"},
+        {"turn": 7, "content": "E03 那条假设不需要了，取消它。"},
+        {"turn": 8, "content": "改为 E06 周三早班优先；其他条件照旧。分析会有什么影响？"},
+        {"turn": 9, "content": "按保留的要求重新排班。"}
+      ]
+    }
+  ]
+}

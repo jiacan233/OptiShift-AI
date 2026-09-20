@@ -1,0 +1,304 @@
+{
+  "confirmed": {
+    "schedule_id": "sch_55898ae95446",
+    "version": 5,
+    "hash": "815ff49548c47019d9a393e347f76225ebd835dcdd97b93c0b719f1525b45ee1"
+  },
+  "active_draft": null,
+  "test_drafts": [
+    {
+      "schedule_id": "sch_ea293f0862a4",
+      "version": 6,
+      "client_message_id": "cm_4ae72119d1fa4227ba636211d1abdc0a",
+      "conversation_id": "conv_ade95cde39e342ea80201b065b96a680",
+      "final_status": "cancelled"
+    },
+    {
+      "schedule_id": "sch_c4bf76f8d89d",
+      "version": 6,
+      "client_message_id": "cm_1820ad4a0b5246fc9e3a8f88be9c6593",
+      "conversation_id": "conv_6de75f4eea2f48879e0f2d461aeded49",
+      "final_status": "cancelled"
+    },
+    {
+      "schedule_id": "sch_d4ebb12e79ab",
+      "version": 6,
+      "client_message_id": "cm_1dae4660c27a4a4db51116b6828b64c0",
+      "conversation_id": "conv_20ff2ecc322140ea8a631c2113672b36",
+      "final_status": "cancelled"
+    }
+  ],
+  "employee_ids": [
+    "E01",
+    "E02",
+    "E03",
+    "E04",
+    "E05",
+    "E06",
+    "E07",
+    "E08",
+    "E09",
+    "E10",
+    "E11",
+    "E12",
+    "E13",
+    "E14",
+    "E15",
+    "E16",
+    "E17",
+    "E18",
+    "E19",
+    "E20"
+  ],
+  "scenario_states": [
+    {
+      "conversation_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5",
+      "case": "A",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_2e4b56730f1a49a282d0d2a93bf976cf",
+      "case": "B",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_4101ec34acad4a9c960d35922d53129d",
+      "case": "C",
+      "scenario_revision": 2,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_b50d1e569d464bdba576241d523e4977",
+      "case": "D1",
+      "scenario_revision": 2,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_33a994394ff34e0c8b54aded0e2d46a7",
+      "case": "D2",
+      "scenario_revision": 2,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_1a00bde1b34049b78da57d3ec51491cb",
+      "case": "D3",
+      "scenario_revision": 2,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_adddbbc3b8694409bb278631fb3379e7",
+      "case": "E",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_aeed34e4b0674c3a9ae12258e1255aab",
+      "case": "X1",
+      "scenario_revision": 3,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_e95a19a99bea4553b1419caad743e162",
+      "case": "F",
+      "scenario_revision": 3,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_db1c457efb63478a85be275707b016b9",
+      "case": "X2",
+      "scenario_revision": 3,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_6a2b8c90708147e188001bfb36030fe4",
+      "case": "G-initial-audited",
+      "scenario_revision": 5,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_0dbac96e56c347c7baf96a35e87da351",
+      "case": "C01",
+      "scenario_revision": 2,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_ade95cde39e342ea80201b065b96a680",
+      "case": "H",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_445abb39d4fe48b98b1aaa7322577add",
+      "case": "G",
+      "scenario_revision": 5,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_3607eb7911bf46978a3f2b8c2bd1fb0e",
+      "case": "G-new-conversation",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_6de75f4eea2f48879e0f2d461aeded49",
+      "case": "H",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_70d3b5ed13cc4745995fd1028bf01518",
+      "case": "A",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_1cc0639e603f4153a76c03007c0fff0d",
+      "case": "B",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_e9bb8ac8c8df4be8906e314158b35f0d",
+      "case": "C",
+      "scenario_revision": 2,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_29695f8a2f3a4328b8c5446d17bde646",
+      "case": "D1",
+      "scenario_revision": 2,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_2242d6aea0ab48b2a3ddf9ee8967a57c",
+      "case": "D2",
+      "scenario_revision": 2,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_295fadec83aa45ec8ae6b14dc1e82eeb",
+      "case": "D3",
+      "scenario_revision": 2,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_5dbf8acbbd2a4d5c8ed7b45f611e8490",
+      "case": "E",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_caabf9023a3245849fe068e8bee975e2",
+      "case": "X1",
+      "scenario_revision": 3,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_75ed9e0b886845e7b052752f22842862",
+      "case": "F",
+      "scenario_revision": 3,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_1de44a77040e47859c0feb2184a539de",
+      "case": "X2",
+      "scenario_revision": 3,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_aebbc63fc9344a7692fe6b23f0b3a2b1",
+      "case": "G",
+      "scenario_revision": 5,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_57cc7a7375884d7a9c68420b84558853",
+      "case": "G-new-conversation",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_c838afd5e9b74fc49c690518c9d75923",
+      "case": "C01",
+      "scenario_revision": 2,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_20ff2ecc322140ea8a631c2113672b36",
+      "case": "H",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    },
+    {
+      "conversation_id": "conv_a51f0e755c6e4c0fa2c49230bddef4d1",
+      "case": "G-initial-audited",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    }
+  ],
+  "conversations_retained_for_audit": 31
+}

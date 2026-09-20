@@ -256,14 +256,16 @@ class RuleValidator:
 
         # R08 uses the effective one-run policy, including requested temporary leave.
         for assignment in valid_assignments:
-            if not facts.employee_can_work(assignment.employee_id, assignment.day):
+            if not facts.employee_can_work(
+                assignment.employee_id, assignment.day, assignment.shift
+            ):
                 violations["R08"].append(
                     RuleViolation(
                         rule_id="R08",
                         employee_id=assignment.employee_id,
                         day=assignment.day,
                         shift=assignment.shift,
-                        message="Employee is on leave or unavailable on this day.",
+                        message="Employee is on leave or unavailable for this shift.",
                     )
                 )
 

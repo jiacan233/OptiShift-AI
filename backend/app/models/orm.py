@@ -273,3 +273,14 @@ class ConversationScenarioRecord(Base):
     last_strict_result: Mapped[dict | None] = mapped_column(JSON)
     last_preview_result: Mapped[dict | None] = mapped_column(JSON)
     updated_at: Mapped[datetime] = mapped_column(AGENT_DATETIME, nullable=False)
+
+
+class ConversationDialogueRecord(Base):
+    __tablename__ = "conversation_dialogue_states"
+    conversation_id: Mapped[str] = mapped_column(
+        AGENT_ID, ForeignKey("conversations.conversation_id", ondelete="CASCADE"), primary_key=True
+    )
+    week_start: Mapped[date] = mapped_column(Date, primary_key=True)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(AGENT_DATETIME, nullable=False)

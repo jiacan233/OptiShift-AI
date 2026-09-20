@@ -4,6 +4,7 @@ import { useAppStore } from '@/store/AppStore'
 import type {
   AgentExecutionEvent,
   AgentMessage,
+  AgentScenario,
   AgentToolCall,
   AgentTurnResult,
   ApiProblem,
@@ -33,6 +34,7 @@ interface AgentStoreValue {
   conversationTitle: string | null
   conversations: ConversationSummary[]
   messages: AgentMessage[]
+  scenario: AgentScenario | null
   executionEvents: AgentExecutionEvent[]
   tracesByMessage: Record<string, AgentToolCall[]>
   isChatOpen: boolean
@@ -92,6 +94,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
   const [conversationTitle, setConversationTitle] = useState<string | null>(null)
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [messages, setMessages] = useState<AgentMessage[]>([])
+  const [scenario, setScenario] = useState<AgentScenario | null>(null)
   const [executionEvents, setExecutionEvents] = useState<AgentExecutionEvent[]>([])
   const [tracesByMessage, setTracesByMessage] = useState<Record<string, AgentToolCall[]>>({})
   const [isChatOpen, setChatOpen] = useState(() => localStorage.getItem(AGENT_PANEL_OPEN_STORAGE_KEY) === '1')
@@ -118,6 +121,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const rememberConversation = useCallback((id: string) => {
+    if (conversationIdRef.current !== id) setScenario(null)
     conversationIdRef.current = id
     setConversationId(id)
     localStorage.setItem(CONVERSATION_STORAGE_KEY, id)
@@ -135,6 +139,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
       rememberConversation(created.conversation_id)
       setConversationTitle(created.title ?? null)
       setMessages([])
+      setScenario(null)
       setTracesByMessage({})
       setExecutionEvents([])
       setPendingMessage(null)
@@ -216,6 +221,16 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
   const ensureConversation = useCallback(async () => (
     conversationIdRef.current ?? createConversation()
   ), [createConversation])
+
+  useEffect(() => {
+    if (!conversationId || isSending) return
+    let cancelled = false
+    const targetWeek = scheduleStore.activeWeekStart
+    void api.agent.getScenario(conversationId, browserWorkspaceId, targetWeek)
+      .then(state => { if (!cancelled) setScenario({ ...state, target_week: targetWeek }) })
+      .catch(error => { if (!cancelled) setAgentError(apiErrorMessage(error)) })
+    return () => { cancelled = true }
+  }, [browserWorkspaceId, conversationId, isSending, scheduleStore.activeWeekStart])
 
   const applyTurnResult = useCallback(async (turn: AgentTurnResult, id: string) => {
     const settleKey = turn.user_message.client_message_id ?? turn.user_message.message_id
@@ -318,6 +333,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
     conversationTitle,
     conversations,
     messages,
+    scenario: scenario?.target_week === scheduleStore.activeWeekStart ? scenario : null,
     tracesByMessage,
     executionEvents,
     isChatOpen,
@@ -337,7 +353,9 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
     clearScenario: async () => {
       if (sendingRef.current || !conversationIdRef.current) return
       try {
-        await api.agent.clearScenario(conversationIdRef.current, browserWorkspaceId, scheduleStore.activeWeekStart, scheduleStore.infeasibleResult?.scenario_revision)
+        await api.agent.clearScenario(conversationIdRef.current, browserWorkspaceId, scheduleStore.activeWeekStart, scenario?.scenario_revision ?? scheduleStore.infeasibleResult?.scenario_revision)
+        const restored = await api.agent.getScenario(conversationIdRef.current, browserWorkspaceId, scheduleStore.activeWeekStart)
+        setScenario({ ...restored, target_week: scheduleStore.activeWeekStart })
         scheduleStore.dismissInfeasibleResult()
         setAgentError(null)
       } catch (error) {
@@ -354,7 +372,7 @@ export function AgentStoreProvider({ children }: { children: ReactNode }) {
       if (pendingMessage) await executeMessage(pendingMessage)
     },
     dismissError: () => setAgentError(null),
-  }), [executionEvents, agentError, browserWorkspaceId, closeChat, conversationId, conversationTitle, conversations, executeMessage, isChatOpen, isHistoryOpen, isLoadingConversation, isSending, loadConversation, messages, newConversation, openChat, pendingMessage, refreshHistory, sendMessage, tracesByMessage, scheduleStore])
+  }), [executionEvents, agentError, browserWorkspaceId, closeChat, conversationId, conversationTitle, conversations, executeMessage, isChatOpen, isHistoryOpen, isLoadingConversation, isSending, loadConversation, messages, newConversation, openChat, pendingMessage, refreshHistory, sendMessage, tracesByMessage, scheduleStore, scenario])
 
   return <AgentStore.Provider value={value}>{children}</AgentStore.Provider>
 }

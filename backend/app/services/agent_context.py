@@ -201,7 +201,8 @@ class WeekResolver:
             offset = 14
         elif any(token in normalized for token in ("下一周", "下周", "next week")):
             offset = 7
-        elif any(token in normalized for token in ("上一周", "上周", "last week", "previous week")):
+        elif (any(token in normalized for token in ("上一周", "last week", "previous week"))
+              or re.search(r"(?<!须)(?<!要)(?<!让)上周", normalized)):
             offset = -7
         if offset is not None:
             anchor = baseline or monday_for(today or date.today())

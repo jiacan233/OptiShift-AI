@@ -1,0 +1,1136 @@
+{
+  "schema_version": 1,
+  "source": "User acceptance specification 2026-09-20 section 9.3; original messages preserved verbatim",
+  "target_week": "2026-10-05",
+  "cases": [
+    {
+      "id": "CASE_A",
+      "title": "撤销、替换和最终两个条件。",
+      "week_start": "2026-10-05",
+      "turns": [
+        {
+          "turn": 1,
+          "kind": "message",
+          "content": "先帮我看看E06这周是怎么排的。"
+        },
+        {
+          "turn": 2,
+          "kind": "message",
+          "content": "如果E06周四不上班，会影响什么？先分析，不要改。"
+        },
+        {
+          "turn": 3,
+          "kind": "message",
+          "content": "那先把E06周四设成不可排，不过先别生成。"
+        },
+        {
+          "turn": 4,
+          "kind": "message",
+          "content": "等等，这个不要了，E06周四保持原样。"
+        },
+        {
+          "turn": 5,
+          "kind": "message",
+          "content": "改成让E06周五早班优先。"
+        },
+        {
+          "turn": 6,
+          "kind": "message",
+          "content": "再加一个，E18周二晚班优先。"
+        },
+        {
+          "turn": 7,
+          "kind": "message",
+          "content": "你现在重新告诉我，真正有效的两个条件是什么？E06周四还有没有限制？"
+        },
+        {
+          "turn": 8,
+          "kind": "message",
+          "content": "好，就按现在这两个条件重新排班。"
+        }
+      ],
+      "expected_conditions": [
+        {
+          "employee_id": "E06",
+          "day": "Fri",
+          "type": "preference",
+          "shift": "morning"
+        },
+        {
+          "employee_id": "E18",
+          "day": "Tue",
+          "type": "preference",
+          "shift": "evening"
+        }
+      ],
+      "requires_new_draft": true,
+      "allow_infeasible": false,
+      "expectation": "最终仅 E06 Fri morning PREFERENCE、E18 Tue evening PREFERENCE；Thu 旧限制不存在。前七轮无新 Draft，最后使用这两条真实创建关联本轮的新 Draft。",
+      "checkpoints": {
+        "2": {
+          "active": [],
+          "proposal_contains": [
+            {
+              "employee_id": "E06",
+              "day": "Thu",
+              "type": "unavailable",
+              "shift": null
+            }
+          ]
+        },
+        "3": {
+          "active": [
+            {
+              "employee_id": "E06",
+              "day": "Thu",
+              "type": "unavailable",
+              "shift": null
+            }
+          ]
+        },
+        "4": {
+          "active": []
+        },
+        "5": {
+          "active": [
+            {
+              "employee_id": "E06",
+              "day": "Fri",
+              "type": "preference",
+              "shift": "morning"
+            }
+          ]
+        },
+        "6": {
+          "active": [
+            {
+              "employee_id": "E06",
+              "day": "Fri",
+              "type": "preference",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E18",
+              "day": "Tue",
+              "type": "preference",
+              "shift": "evening"
+            }
+          ]
+        },
+        "7": {
+          "active": [
+            {
+              "employee_id": "E06",
+              "day": "Fri",
+              "type": "preference",
+              "shift": "morning"
+            },
+            {
+              "employee_id": "E18",
+              "day": "Tue",
+              "type": "preference",
+              "shift": "evening"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "CASE_B",
+      "title": "完整多轮 Slot Filling。",
+      "week_start": "2026-10-05",
+      "turns": [
+        {
+          "turn": 1,
+          "kind": "message",
+          "content": "我想调一个人的排班。"
+        },
+        {
+          "turn": 2,
+          "kind": "message",
+          "content": "E18。"
+        },
+        {
+          "turn": 3,
+          "kind": "message",
+          "content": "想让他上班。"
+        },
+        {
+          "turn": 4,
+          "kind": "message",
+          "content": "周四。"
+        },
+        {
+          "turn": 5,
+          "kind": "message",
+          "content": "晚班。"
+        },
+        {
+          "turn": 6,
+          "kind": "message",
+          "content": "不过先别生成，你告诉我现在理解我要干嘛。"
+        },
+        {
+          "turn": 7,
+          "kind": "message",
+          "content": "再加一个条件，E06周五请假。"
+        },
+        {
+          "turn": 8,
+          "kind": "message",
+          "content": "好，就按这两个要求重新排班。"
+        }
+      ],
+      "expected_conditions": [
+        {
+          "employee_id": "E18",
+          "day": "Thu",
+          "type": "assign",
+          "shift": "evening"
+        },
+        {
+          "employee_id": "E06",
+          "day": "Fri",
+          "type": "leave",
+          "shift": null
+        }
+      ],
+      "requires_new_draft": true,
+      "allow_infeasible": false,
+      "expectation": "逐步补齐 E18 Thu evening ASSIGN，再加入 E06 Fri LEAVE；不能要求重述已明确槽位。另以独立运行在补槽中途刷新页面，再继续同一会话，验证数据库恢复。",
+      "checkpoints": {
+        "3": {
+          "pending_contains": {
+            "employee_id": "E18",
+            "type": "assign"
+          }
+        },
+        "4": {
+          "pending_contains": {
+            "employee_id": "E18",
+            "type": "assign",
+            "days": [
+              "Thu"
+            ]
+          }
+        },
+        "5": {
+          "active": [
+            {
+              "employee_id": "E18",
+              "day": "Thu",
+              "type": "assign",
+              "shift": "evening"
+            }
+          ],
+          "pending_empty": true
+        },
+        "6": {
+          "active": [
+            {
+              "employee_id": "E18",
+              "day": "Thu",
+              "type": "assign",
+              "shift": "evening"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "CASE_C",
+      "title": "多人条件与不可行诊断。",
+      "week_start": "2026-10-05",
+      "turns": [
+        {
+          "turn": 1,
+          "kind": "message",
+          "content": "我想调整三个人，先别生成。"
+        },
+        {
+          "turn": 2,
+          "kind": "message",
+          "content": "E06周四请假。"
+        },
+        {
+          "turn": 3,
+          "kind": "message",
+          "content": "E11周五晚班优先。"
+        },
+        {
+          "turn": 4,
+          "kind": "message",
+          "content": "E18周二不要排。"
+        },
+        {
+          "turn": 5,
+          "kind": "message",
+          "content": "你先看看这三个条件一起会有什么影响。"
+        },
+        {
+          "turn": 6,
+          "kind": "message",
+          "content": "如果有问题，具体告诉我哪一天哪个班次缺什么，不要自己删条件。"
+        },
+        {
+          "turn": 7,
+          "kind": "message",
+          "content": "现在把三个人的条件分别复述一次，一人一行。"
+        },
+        {
+          "turn": 8,
+          "kind": "message",
+          "content": "如果能满足硬约束，就按这三个条件重新排。"
+        }
+      ],
+      "expected_conditions": [
+        {
+          "employee_id": "E06",
+          "day": "Thu",
+          "type": "leave",
+          "shift": null
+        },
+        {
+          "employee_id": "E11",
+          "day": "Fri",
+          "type": "preference",
+          "shift": "evening"
+        },
+        {
+          "employee_id": "E18",
+          "day": "Tue",
+          "type": "unavailable",
+          "shift": null
+        }
+      ],
+      "requires_new_draft": false,
+      "allow_infeasible": true,
+      "expectation": "条件不串员工、不丢失；“周二不要排”保存整日不可排语义。可行才生成，否则准确诊断并完整保留条件。",
+      "checkpoints": {}
+    },
+    {
+      "id": "CASE_D",
+      "title": "技能查询、候选引用与明确选人。",
+      "week_start": "2026-10-05",
+      "turns": [
+        {
+          "turn": 1,
+          "kind": "message",
+          "content": "周末能上班的兼职有哪些？"
+        },
+        {
+          "turn": 2,
+          "kind": "message",
+          "content": "这里面同时会饮品和收银的是谁？"
+        },
+        {
+          "turn": 3,
+          "kind": "message",
+          "content": "那个同时会饮品和收银的兼职，如果放周六晚班合适吗？"
+        },
+        {
+          "turn": 4,
+          "kind": "message",
+          "content": "如果有多个，你列出来，我来选。"
+        },
+        {
+          "turn": 5,
+          "kind": "message",
+          "content": "我选E19。"
+        },
+        {
+          "turn": 6,
+          "kind": "message",
+          "content": "那刚才那个要求就按E19周六晚班优先来理解，先分析。"
+        },
+        {
+          "turn": 7,
+          "kind": "message",
+          "content": "再加E15周日请假。"
+        },
+        {
+          "turn": 8,
+          "kind": "message",
+          "content": "按这两个条件重新排班。"
+        }
+      ],
+      "expected_conditions": [
+        {
+          "employee_id": "E19",
+          "day": "Sat",
+          "type": "preference",
+          "shift": "evening"
+        },
+        {
+          "employee_id": "E15",
+          "day": "Sun",
+          "type": "leave",
+          "shift": null
+        }
+      ],
+      "requires_new_draft": true,
+      "allow_infeasible": false,
+      "expectation": "候选员工来自真实主数据；多候选不擅自选人。最终明确引用的 E19 Sat evening PREFERENCE、E15 Sun LEAVE 能进入执行快照，分析提案是否已采纳需准确标明。",
+      "checkpoints": {}
+    },
+    {
+      "id": "CASE_E",
+      "title": "代词、冲突和解决。",
+      "week_start": "2026-10-05",
+      "turns": [
+        {
+          "turn": 1,
+          "kind": "message",
+          "content": "我要调一下E18。"
+        },
+        {
+          "turn": 2,
+          "kind": "message",
+          "content": "E18周二请假。"
+        },
+        {
+          "turn": 3,
+          "kind": "message",
+          "content": "同时我又想让他周二晚班上。"
+        },
+        {
+          "turn": 4,
+          "kind": "message",
+          "content": "先别改，你告诉我哪里冲突。"
+        },
+        {
+          "turn": 5,
+          "kind": "message",
+          "content": "那取消周二请假，保留E18周二晚班上班。"
+        },
+        {
+          "turn": 6,
+          "kind": "message",
+          "content": "再加E11周四晚班优先。"
+        },
+        {
+          "turn": 7,
+          "kind": "message",
+          "content": "你现在检查一下还有没有互相冲突的条件，并把最终条件复述一遍。"
+        },
+        {
+          "turn": 8,
+          "kind": "message",
+          "content": "没有问题的话就重新排班。"
+        }
+      ],
+      "expected_conditions": [
+        {
+          "employee_id": "E18",
+          "day": "Tue",
+          "type": "assign",
+          "shift": "evening"
+        },
+        {
+          "employee_id": "E11",
+          "day": "Thu",
+          "type": "preference",
+          "shift": "evening"
+        }
+      ],
+      "requires_new_draft": true,
+      "allow_infeasible": false,
+      "expectation": "明确识别同员工同日冲突；“他”稳定指向 E18；解决后保留 E18 Tue evening ASSIGN、E11 Thu evening PREFERENCE，不复活请假，不丢 ASSIGN。",
+      "checkpoints": {
+        "3": {
+          "has_conflict": true
+        },
+        "5": {
+          "active": [
+            {
+              "employee_id": "E18",
+              "day": "Tue",
+              "type": "assign",
+              "shift": "evening"
+            }
+          ],
+          "conflict_empty": true
+        }
+      }
+    },
+    {
+      "id": "CASE_F",
+      "title": "群体条件、可用性恢复与真实不可行。",
+      "week_start": "2026-10-05",
+      "turns": [
+        {
+          "turn": 1,
+          "kind": "message",
+          "content": "周日如果所有有manager技能的人都不上班会怎样？"
+        },
+        {
+          "turn": 2,
+          "kind": "message",
+          "content": "主要会违反哪些规则？"
+        },
+        {
+          "turn": 3,
+          "kind": "message",
+          "content": "那先按“所有manager周日不可排”做一次试排分析，先不要强制。"
+        },
+        {
+          "turn": 4,
+          "kind": "message",
+          "content": "如果无解，具体告诉我是哪一个班次缺什么技能。"
+        },
+        {
+          "turn": 5,
+          "kind": "message",
+          "content": "那最少恢复哪个人，最有可能重新可行？"
+        },
+        {
+          "turn": 6,
+          "kind": "message",
+          "content": "好，那允许E02周日晚班可以上，其他manager周日还是不能排。"
+        },
+        {
+          "turn": 7,
+          "kind": "message",
+          "content": "现在重新分析一次是否可行。"
+        },
+        {
+          "turn": 8,
+          "kind": "message",
+          "content": "如果现在可行，就按照修正后的条件生成草稿。"
+        }
+      ],
+      "expected_conditions": [],
+      "requires_new_draft": false,
+      "allow_infeasible": true,
+      "expectation": "群体范围有依据，不越权 force；区分允许某个班次与强制安排。只恢复 E02 晚班可能仍缺周日早班 manager，不能预设一定可行。必须以明确的班次级可用性或等价约束精确表示恢复范围，不能把“只允许晚班”扩大成整日可用。只有原句存在实际歧义时才澄清；单纯返回“暂不支持”不能算此能力通过。",
+      "checkpoints": {}
+    },
+    {
+      "id": "CASE_G",
+      "title": "日期纠正与旧条件消除。",
+      "week_start": "2026-10-05",
+      "turns": [
+        {
+          "turn": 1,
+          "kind": "message",
+          "content": "我想让E19周六晚班优先。"
+        },
+        {
+          "turn": 2,
+          "kind": "message",
+          "content": "你先告诉我你理解的具体条件是什么。"
+        },
+        {
+          "turn": 3,
+          "kind": "message",
+          "content": "等等，我说错了，不是周六，是周日。"
+        },
+        {
+          "turn": 4,
+          "kind": "message",
+          "content": "班次还是晚班。"
+        },
+        {
+          "turn": 5,
+          "kind": "message",
+          "content": "另外E15周六请假。"
+        },
+        {
+          "turn": 6,
+          "kind": "message",
+          "content": "你现在把两个最终条件再说一遍。"
+        },
+        {
+          "turn": 7,
+          "kind": "message",
+          "content": "确认一下，E19周六那个旧条件已经不存在了，对吧？"
+        },
+        {
+          "turn": 8,
+          "kind": "message",
+          "content": "好，按最终条件重新排。"
+        }
+      ],
+      "expected_conditions": [
+        {
+          "employee_id": "E19",
+          "day": "Sun",
+          "type": "preference",
+          "shift": "evening"
+        },
+        {
+          "employee_id": "E15",
+          "day": "Sat",
+          "type": "leave",
+          "shift": null
+        }
+      ],
+      "requires_new_draft": true,
+      "allow_infeasible": false,
+      "expectation": "只有 E19 Sun evening PREFERENCE、E15 Sat LEAVE。另补同员工另一天既有偏好，断言纠正不会一并删除它。",
+      "checkpoints": {
+        "1": {
+          "active": [
+            {
+              "employee_id": "E19",
+              "day": "Sat",
+              "type": "preference",
+              "shift": "evening"
+            }
+          ]
+        },
+        "3": {
+          "active": [
+            {
+              "employee_id": "E19",
+              "day": "Sun",
+              "type": "preference",
+              "shift": "evening"
+            }
+          ]
+        },
+        "4": {
+          "active": [
+            {
+              "employee_id": "E19",
+              "day": "Sun",
+              "type": "preference",
+              "shift": "evening"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "CASE_H",
+      "title": "公平性建议、指定采纳与自定义条件。",
+      "week_start": "2026-10-05",
+      "turns": [
+        {
+          "turn": 1,
+          "kind": "message",
+          "content": "你先分析这周员工工作量有没有明显不均衡的。"
+        },
+        {
+          "turn": 2,
+          "kind": "message",
+          "content": "如果想让工作量公平一点，你给我一个优化方案，先不要执行。"
+        },
+        {
+          "turn": 3,
+          "kind": "message",
+          "content": "把你的方案拆成具体调整，一条一条告诉我。"
+        },
+        {
+          "turn": 4,
+          "kind": "message",
+          "content": "我只采纳第一条，其他建议都不要。"
+        },
+        {
+          "turn": 5,
+          "kind": "message",
+          "content": "你告诉我第一条具体是哪个员工、哪一天、哪个班次。"
+        },
+        {
+          "turn": 6,
+          "kind": "message",
+          "content": "再加我自己的要求：E20周五晚班优先。"
+        },
+        {
+          "turn": 7,
+          "kind": "message",
+          "content": "所以现在最终准备执行几条？具体是哪几条？"
+        },
+        {
+          "turn": 8,
+          "kind": "message",
+          "content": "好，按这两条重新排。"
+        }
+      ],
+      "expected_conditions": [],
+      "requires_new_draft": true,
+      "allow_infeasible": false,
+      "expectation": "确实产生有唯一身份且有具体操作的建议；只采纳用户选中的那一条，另加自定义偏好；新草稿输入与所选建议操作一致。若一个建议包含多个不可拆分原子操作，明确“2项用户要求/若干原子操作”，不能为了条数拆坏操作组。另生成第二批建议后点击第一批卡片，检查不串批和正确过期处理。",
+      "checkpoints": {}
+    },
+    {
+      "id": "CASE_I",
+      "title": "一出一进与合规检查。",
+      "week_start": "2026-10-05",
+      "turns": [
+        {
+          "turn": 1,
+          "kind": "message",
+          "content": "周六早班为什么现在是这些人？"
+        },
+        {
+          "turn": 2,
+          "kind": "message",
+          "content": "技能覆盖里哪些是重复比较多的？"
+        },
+        {
+          "turn": 3,
+          "kind": "message",
+          "content": "如果想少动整体排班，谁比较适合从周六早班调整出去？先分析。"
+        },
+        {
+          "turn": 4,
+          "kind": "message",
+          "content": "我自己提个方案：把E11从周六早班去掉，可不可以？"
+        },
+        {
+          "turn": 5,
+          "kind": "message",
+          "content": "然后把E19放进周六早班。"
+        },
+        {
+          "turn": 6,
+          "kind": "message",
+          "content": "先检查替换以后人数、manager、beverage、cashier是否都满足。"
+        },
+        {
+          "turn": 7,
+          "kind": "message",
+          "content": "再检查工时、连续工作、晚转早。"
+        },
+        {
+          "turn": 8,
+          "kind": "message",
+          "content": "如果都合法，就按这个一出一进重新排。"
+        }
+      ],
+      "expected_conditions": [
+        {
+          "employee_id": "E11",
+          "day": "Sat",
+          "type": "unassign",
+          "shift": "morning"
+        },
+        {
+          "employee_id": "E19",
+          "day": "Sat",
+          "type": "assign",
+          "shift": "morning"
+        }
+      ],
+      "requires_new_draft": false,
+      "allow_infeasible": true,
+      "expectation": "对结构化组合提案检查，不只复述原排班；最终引用包含 UNASSIGN E11 Sat morning 和 ASSIGN E19 Sat morning。不得把已移出的人员算进覆盖。",
+      "checkpoints": {}
+    },
+    {
+      "id": "CASE_J",
+      "title": "刷新、显式记住与后续撤销。",
+      "week_start": "2026-10-05",
+      "turns": [
+        {
+          "turn": 1,
+          "kind": "message",
+          "content": "先帮我分析E03本周工作量。"
+        },
+        {
+          "turn": 2,
+          "kind": "message",
+          "content": "如果E03周五请假会怎样？"
+        },
+        {
+          "turn": 3,
+          "kind": "message",
+          "content": "再加一个条件，E18周五晚班优先。"
+        },
+        {
+          "turn": 4,
+          "kind": "message",
+          "content": "先不要生成，你把这两个条件记住。"
+        },
+        {
+          "turn": 5,
+          "kind": "browser_refresh",
+          "content": "实际刷新浏览器页面，重新打开原会话；这一步不是发送文字。"
+        },
+        {
+          "turn": 6,
+          "kind": "message",
+          "content": "我刚才准备改哪两个条件？"
+        },
+        {
+          "turn": 7,
+          "kind": "message",
+          "content": "其中E03那个不要了。"
+        },
+        {
+          "turn": 8,
+          "kind": "message",
+          "content": "改成E06周三早班优先。你现在最终理解的两个条件是什么？"
+        },
+        {
+          "turn": 9,
+          "kind": "message",
+          "content": "按现在这两个条件重新排。"
+        }
+      ],
+      "expected_conditions": [
+        {
+          "employee_id": "E18",
+          "day": "Fri",
+          "type": "preference",
+          "shift": "evening"
+        },
+        {
+          "employee_id": "E06",
+          "day": "Wed",
+          "type": "preference",
+          "shift": "morning"
+        }
+      ],
+      "requires_new_draft": true,
+      "allow_infeasible": false,
+      "expectation": "明确记住时可采纳先前分析提案，刷新后恢复；最后仅 E18 Fri evening PREFERENCE、E06 Wed morning PREFERENCE。不能靠客户端缓存聊天重新拼出条件。",
+      "checkpoints": {
+        "2": {
+          "active": [],
+          "proposal_contains": [
+            {
+              "employee_id": "E03",
+              "day": "Fri",
+              "type": "leave",
+              "shift": null
+            }
+          ]
+        },
+        "4": {
+          "active": [
+            {
+              "employee_id": "E03",
+              "day": "Fri",
+              "type": "leave",
+              "shift": null
+            },
+            {
+              "employee_id": "E18",
+              "day": "Fri",
+              "type": "preference",
+              "shift": "evening"
+            }
+          ]
+        },
+        "6": {
+          "active": [
+            {
+              "employee_id": "E03",
+              "day": "Fri",
+              "type": "leave",
+              "shift": null
+            },
+            {
+              "employee_id": "E18",
+              "day": "Fri",
+              "type": "preference",
+              "shift": "evening"
+            }
+          ]
+        },
+        "7": {
+          "active": [
+            {
+              "employee_id": "E18",
+              "day": "Fri",
+              "type": "preference",
+              "shift": "evening"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "CASE_K",
+      "title": "周次定位与执行基准。",
+      "week_start": "2026-10-05",
+      "turns": [
+        {
+          "turn": 1,
+          "kind": "message",
+          "content": "10月5号那周是哪一周？"
+        },
+        {
+          "turn": 2,
+          "kind": "message",
+          "content": "那一周有没有正式排班？"
+        },
+        {
+          "turn": 3,
+          "kind": "message",
+          "content": "下一周呢？"
+        },
+        {
+          "turn": 4,
+          "kind": "message",
+          "content": "回到刚才10月5号那周。"
+        },
+        {
+          "turn": 5,
+          "kind": "message",
+          "content": "我想让E18周二晚班优先，先别排。"
+        },
+        {
+          "turn": 6,
+          "kind": "message",
+          "content": "再加E20周三请假。"
+        },
+        {
+          "turn": 7,
+          "kind": "message",
+          "content": "告诉我现在两个条件作用的目标周、具体日期范围，以及你准备Generate还是Replan。"
+        },
+        {
+          "turn": 8,
+          "kind": "message",
+          "content": "可以，按这个目标周生成或重新排班。"
+        }
+      ],
+      "expected_conditions": [
+        {
+          "employee_id": "E18",
+          "day": "Tue",
+          "type": "preference",
+          "shift": "evening"
+        },
+        {
+          "employee_id": "E20",
+          "day": "Wed",
+          "type": "leave",
+          "shift": null
+        }
+      ],
+      "requires_new_draft": true,
+      "allow_infeasible": false,
+      "expectation": "使用固定测试时钟/明确年份，目标为测试约定的 2026-10-05 周；正确说明已有正式版本时的重排基准，不污染相邻周。另补 UI 换周后单槽回复不能误接旧 Pending。",
+      "checkpoints": {}
+    },
+    {
+      "id": "CASE_L",
+      "title": "中断话题、建议引用与重新给出最终条件。",
+      "week_start": "2026-10-05",
+      "turns": [
+        {
+          "turn": 1,
+          "kind": "message",
+          "content": "如果E17周三请假会有什么影响？"
+        },
+        {
+          "turn": 2,
+          "kind": "message",
+          "content": "给我两个解决方案。"
+        },
+        {
+          "turn": 3,
+          "kind": "message",
+          "content": "第二个方案为什么更改这些人？"
+        },
+        {
+          "turn": 4,
+          "kind": "message",
+          "content": "先别执行。"
+        },
+        {
+          "turn": 5,
+          "kind": "message",
+          "content": "换个问题，周六晚班为什么是现在这些员工？"
+        },
+        {
+          "turn": 6,
+          "kind": "message",
+          "content": "这里面谁的本周班次最多？"
+        },
+        {
+          "turn": 7,
+          "kind": "message",
+          "content": "好，回到刚才E17那个问题。我最终想要：E17周三请假，再让E02周二晚班上。先分析两个条件一起会怎样。"
+        },
+        {
+          "turn": 8,
+          "kind": "message",
+          "content": "如果合规，就按这两个条件重新排。"
+        }
+      ],
+      "expected_conditions": [
+        {
+          "employee_id": "E17",
+          "day": "Wed",
+          "type": "leave",
+          "shift": null
+        },
+        {
+          "employee_id": "E02",
+          "day": "Tue",
+          "type": "assign",
+          "shift": "evening"
+        }
+      ],
+      "requires_new_draft": false,
+      "allow_infeasible": true,
+      "expectation": "解释建议不等于采纳；只读插话不引入无关条件；最终执行明确引用的两个条件，不能把未采纳建议一并执行。",
+      "checkpoints": {}
+    },
+    {
+      "id": "CASE_M",
+      "title": "假设、代词与三条件执行。",
+      "week_start": "2026-10-05",
+      "turns": [
+        {
+          "turn": 1,
+          "kind": "message",
+          "content": "先查E02本周目前怎么排。"
+        },
+        {
+          "turn": 2,
+          "kind": "message",
+          "content": "如果让E02周二晚班上，会有什么影响？先分析。"
+        },
+        {
+          "turn": 3,
+          "kind": "message",
+          "content": "我还希望他周五晚班优先。"
+        },
+        {
+          "turn": 4,
+          "kind": "message",
+          "content": "先别生成，检查这样一周工作量会不会太高。"
+        },
+        {
+          "turn": 5,
+          "kind": "message",
+          "content": "再检查连续工作天数。"
+        },
+        {
+          "turn": 6,
+          "kind": "message",
+          "content": "再检查晚班后第二天早班。"
+        },
+        {
+          "turn": 7,
+          "kind": "message",
+          "content": "你现在把E02相关的两个条件分别复述一次。"
+        },
+        {
+          "turn": 8,
+          "kind": "message",
+          "content": "另外加E20周三请假，然后按这三个条件重新排。"
+        }
+      ],
+      "expected_conditions": [
+        {
+          "employee_id": "E02",
+          "day": "Tue",
+          "type": "assign",
+          "shift": "evening"
+        },
+        {
+          "employee_id": "E02",
+          "day": "Fri",
+          "type": "preference",
+          "shift": "evening"
+        },
+        {
+          "employee_id": "E20",
+          "day": "Wed",
+          "type": "leave",
+          "shift": null
+        }
+      ],
+      "requires_new_draft": true,
+      "allow_infeasible": false,
+      "expectation": "不同条件的采纳状态清楚，分析使用被引用的组合上下文；最后明确执行时能够采纳结构化提案并编译全部三条，不能从“他”错误绑定另一个员工。",
+      "checkpoints": {
+        "2": {
+          "active": [],
+          "proposal_contains": [
+            {
+              "employee_id": "E02",
+              "day": "Tue",
+              "type": "assign",
+              "shift": "evening"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "CASE_N",
+      "title": "延迟生成与最小改动。",
+      "week_start": "2026-10-05",
+      "turns": [
+        {
+          "turn": 1,
+          "kind": "message",
+          "content": "先告诉我E02这周目前排了几个班。"
+        },
+        {
+          "turn": 2,
+          "kind": "message",
+          "content": "需要重新排班，把E02排进本周周二晚班，但先不要真的生成，你先分析。"
+        },
+        {
+          "turn": 3,
+          "kind": "message",
+          "content": "这个改动预计主要会影响谁？"
+        },
+        {
+          "turn": 4,
+          "kind": "message",
+          "content": "另外E17周三请假会怎样？"
+        },
+        {
+          "turn": 5,
+          "kind": "message",
+          "content": "把这两个条件放一起分析。"
+        },
+        {
+          "turn": 6,
+          "kind": "message",
+          "content": "如果我要求尽量少改其他人，你准备怎么调整？"
+        },
+        {
+          "turn": 7,
+          "kind": "message",
+          "content": "把两个最终条件复述给我。"
+        },
+        {
+          "turn": 8,
+          "kind": "message",
+          "content": "可以，就按这两个条件重新排班生成草稿。"
+        }
+      ],
+      "expected_conditions": [
+        {
+          "employee_id": "E02",
+          "day": "Tue",
+          "type": "assign",
+          "shift": "evening"
+        },
+        {
+          "employee_id": "E17",
+          "day": "Wed",
+          "type": "leave",
+          "shift": null
+        }
+      ],
+      "requires_new_draft": true,
+      "allow_infeasible": false,
+      "expectation": "分析和持久条件分离但可明确引用；最终两条件完整，最小改动目标不在执行切换时丢失。对预计影响与实际求解后 diff 分别说明，不能编造影响名单。",
+      "checkpoints": {
+        "2": {
+          "active": [],
+          "proposal_contains": [
+            {
+              "employee_id": "E02",
+              "day": "Tue",
+              "type": "assign",
+              "shift": "evening"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -541,7 +541,11 @@ class AgentService:
             None,
         )
         if write_call is None:
-            return None
+            from .dialogue_agent import DialogueAgent
+            return DialogueAgent(self).recover(
+                conversation_id=conversation_id, browser_workspace_id=browser_workspace_id,
+                client_message_id=client_message_id, user_message=user_message, owner_token=owner_token,
+            )
         inputs = write_call.get("input") or {}
         raw_week = inputs.get("target_week") or user_message.get("target_week")
         if not isinstance(raw_week, str):
@@ -1438,6 +1442,16 @@ class AgentService:
             conversation_id, browser_workspace_id
         )
         try:
+            if not static_turn:
+                from .dialogue_agent import DialogueAgent
+                dialogue_result = DialogueAgent(self).handle(
+                    conversation_id=conversation_id, workspace=browser_workspace_id,
+                    client_id=client_message_id, owner=owner_token, user=user_message, text=content,
+                    current_week_start=current_week_start, prior_messages=prior_messages,
+                    employees=employees, trusted_action=trusted_action,
+                )
+                if dialogue_result is not None:
+                    return dialogue_result
             route = self.router.route(
                 content,
                 employees=employees,

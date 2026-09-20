@@ -1,0 +1,236 @@
+deploy-cloudbase	Set up job	﻿2026-09-20T08:56:47.6663095Z Current runner version: '2.337.0'
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6692762Z ##[group]Runner Image Provisioner
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6693883Z Hosted Compute Agent
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6694746Z Version: 20260828.587
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6695539Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6696427Z Build Date: 2026-08-28T16:44:25Z
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6697392Z Worker ID: {a580aa09-c236-4054-bdb1-8ef2e2fddd70}
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6698347Z Azure Region: westus3
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6699428Z ##[endgroup]
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6701363Z ##[group]Operating System
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6702148Z Ubuntu
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6703023Z 24.04.5
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6703762Z LTS
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6704514Z ##[endgroup]
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6705225Z ##[group]Runner Image
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6706092Z Image: ubuntu-24.04
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6706837Z Version: 20260907.300.1
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6708229Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260907.300/images/ubuntu/Ubuntu2404-Readme.md
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6710727Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260907.300
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6712405Z ##[endgroup]
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6713862Z ##[group]GITHUB_TOKEN Permissions
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6716395Z Contents: read
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6717191Z Metadata: read
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6717859Z ##[endgroup]
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6720601Z Secret source: Actions
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6721773Z Cache mode: write
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.6722781Z Prepare workflow directory
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.7392326Z Prepare all required actions
+deploy-cloudbase	Set up job	2026-09-20T08:56:47.7449099Z Getting action download info
+deploy-cloudbase	Set up job	2026-09-20T08:56:48.0719403Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+deploy-cloudbase	Set up job	2026-09-20T08:56:48.2496718Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+deploy-cloudbase	Set up job	2026-09-20T08:56:48.5111563Z Complete job name: deploy-cloudbase
+deploy-cloudbase	Run actions/checkout@v4	﻿2026-09-20T08:56:48.5641668Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5648577Z ##[group]Run actions/checkout@v4
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5649309Z with:
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5649679Z   repository: jiacan233/OptiShift-AI
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5652989Z   token: ***
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5653354Z   ssh-strict: true
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5653714Z   ssh-user: git
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5654080Z   persist-credentials: true
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5654482Z   clean: true
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5654844Z   sparse-checkout-cone-mode: true
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5655265Z   fetch-depth: 1
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5655620Z   fetch-tags: false
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5655992Z   show-progress: true
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5656399Z   lfs: false
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5656748Z   submodules: false
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5657169Z   set-safe-directory: true
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5657589Z   allow-unsafe-pr-checkout: false
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5658123Z env:
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5658454Z   LLM_ENABLED: false
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5666533Z   TCB_API_KEY: ***
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5666945Z   TCB_ENV_ID: ***
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.5667298Z ##[endgroup]
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6653788Z Syncing repository: jiacan233/OptiShift-AI
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6657752Z ##[group]Getting Git version info
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6659253Z Working directory is '/home/runner/work/OptiShift-AI/OptiShift-AI'
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6661026Z [command]/usr/bin/git version
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6768345Z git version 2.55.0
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6828026Z ##[endgroup]
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6836243Z Temporarily overriding HOME='/home/runner/work/_temp/f821df51-50a7-4b43-a0f5-eed98636163e' before making global git config changes
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6853299Z Adding repository directory to the temporary git global config as a safe directory
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6868327Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/OptiShift-AI/OptiShift-AI
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6871402Z Deleting the contents of '/home/runner/work/OptiShift-AI/OptiShift-AI'
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6873101Z ##[group]Initializing the repository
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6874111Z [command]/usr/bin/git init /home/runner/work/OptiShift-AI/OptiShift-AI
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6974015Z hint: Using 'master' as the name for the initial branch. This default branch name
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6983236Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6984595Z hint: to use in all of your new repositories, which will suppress this warning,
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6985624Z hint: call:
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6986238Z hint:
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6987014Z hint: 	git config --global init.defaultBranch <name>
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6987892Z hint:
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6988890Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6990164Z hint: 'development'. The just-created branch can be renamed via this command:
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6991284Z hint:
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6991907Z hint: 	git branch -m <name>
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6992593Z hint:
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6993475Z hint: Disable this message with "git config set advice.defaultBranchName false"
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6995045Z Initialized empty Git repository in /home/runner/work/OptiShift-AI/OptiShift-AI/.git/
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.6997507Z [command]/usr/bin/git remote add origin https://github.com/jiacan233/OptiShift-AI
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.8078363Z ##[endgroup]
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.8079698Z ##[group]Disabling automatic garbage collection
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.8080713Z [command]/usr/bin/git config --local gc.auto 0
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.8082450Z ##[endgroup]
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.8083312Z ##[group]Setting up auth
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.8084288Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.8086847Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.8090206Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.8093277Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.8179959Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.8191734Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.8406429Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.8441403Z ##[endgroup]
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.8442725Z ##[group]Fetching the repository
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:48.8450133Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +8eac04f1b44ec9e3ad102c64c3af40699af86e61:refs/remotes/origin/main
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:49.6342595Z From https://github.com/jiacan233/OptiShift-AI
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:49.6379997Z  * [new ref]         8eac04f1b44ec9e3ad102c64c3af40699af86e61 -> origin/main
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:49.6402952Z ##[endgroup]
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:49.6404514Z ##[group]Determining the checkout info
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:49.6406029Z ##[endgroup]
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:49.6407074Z [command]/usr/bin/git sparse-checkout disable
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:49.6446906Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:49.6449718Z ##[group]Checking out the ref
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:49.6451832Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:49.6669661Z Switched to a new branch 'main'
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:49.6675516Z branch 'main' set up to track 'origin/main'.
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:49.6696046Z ##[endgroup]
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:49.6727180Z [command]/usr/bin/git log -1 --format=%H
+deploy-cloudbase	Run actions/checkout@v4	2026-09-20T08:56:49.6753062Z 8eac04f1b44ec9e3ad102c64c3af40699af86e61
+deploy-cloudbase	Run actions/setup-node@v4	﻿2026-09-20T08:56:49.7056635Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:49.7061153Z ##[group]Run actions/setup-node@v4
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:49.7062021Z with:
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:49.7062676Z   node-version: 22
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:49.7063394Z   always-auth: false
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:49.7064127Z   check-latest: false
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:49.7071854Z   token: ***
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:49.7072493Z env:
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:49.7073103Z   LLM_ENABLED: false
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:49.7091975Z   TCB_API_KEY: ***
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:49.7092764Z   TCB_ENV_ID: ***
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:49.7093424Z ##[endgroup]
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:49.8307786Z Found in cache @ /opt/hostedtoolcache/node/22.23.2/x64
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:49.8311067Z (node:1931) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:49.8315068Z ##[group]Environment details
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:49.8319715Z (Use `node --trace-deprecation ...` to show where the warning was created)
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:50.1890737Z node: v22.23.2
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:50.1892087Z npm: 10.9.8
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:50.1892708Z yarn: 1.22.22
+deploy-cloudbase	Run actions/setup-node@v4	2026-09-20T08:56:50.1893966Z ##[endgroup]
+deploy-cloudbase	Run npm install --global @cloudbase/cli@3.8.2	﻿2026-09-20T08:56:50.2073983Z ##[group]Run npm install --global @cloudbase/cli@3.8.2
+deploy-cloudbase	Run npm install --global @cloudbase/cli@3.8.2	2026-09-20T08:56:50.2074599Z ^[[36;1mnpm install --global @cloudbase/cli@3.8.2^[[0m
+deploy-cloudbase	Run npm install --global @cloudbase/cli@3.8.2	2026-09-20T08:56:50.2116043Z shell: /usr/bin/bash -e {0}
+deploy-cloudbase	Run npm install --global @cloudbase/cli@3.8.2	2026-09-20T08:56:50.2116477Z env:
+deploy-cloudbase	Run npm install --global @cloudbase/cli@3.8.2	2026-09-20T08:56:50.2116811Z   LLM_ENABLED: false
+deploy-cloudbase	Run npm install --global @cloudbase/cli@3.8.2	2026-09-20T08:56:50.2122836Z   TCB_API_KEY: ***
+deploy-cloudbase	Run npm install --global @cloudbase/cli@3.8.2	2026-09-20T08:56:50.2123249Z   TCB_ENV_ID: ***
+deploy-cloudbase	Run npm install --global @cloudbase/cli@3.8.2	2026-09-20T08:56:50.2123593Z ##[endgroup]
+deploy-cloudbase	Run npm install --global @cloudbase/cli@3.8.2	2026-09-20T08:56:51.2490491Z 
+deploy-cloudbase	Run npm install --global @cloudbase/cli@3.8.2	2026-09-20T08:56:51.2496386Z added 1 package in 983ms
+deploy-cloudbase	Deploy main to CloudBase Run	﻿2026-09-20T08:56:51.2835083Z ##[group]Run set +e
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2835368Z ^[[36;1mset +e^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2835692Z ^[[36;1mtcb --yes --env-id "$TCB_ENV_ID" login --cloudbase-api-key "$TCB_API_KEY" --json^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2836051Z ^[[36;1mstatus=1^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2836243Z ^[[36;1mfor attempt in 1 2; do^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2836507Z ^[[36;1m  echo "CloudBase deployment attempt ${attempt}/2"^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2836836Z ^[[36;1m  tcb --yes --env-id "$TCB_ENV_ID" cloudrun deploy \^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2837133Z ^[[36;1m    --service-name optishift-ai \^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2837377Z ^[[36;1m    --source . \^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2837574Z ^[[36;1m    --port 8080 \^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2837772Z ^[[36;1m    --min-num 0 \^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2837960Z ^[[36;1m    --max-num 1 \^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2838177Z ^[[36;1m    --open-access-types PUBLIC,VPC \^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2838441Z ^[[36;1m    --force \^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2838629Z ^[[36;1m    --wait \^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2839113Z ^[[36;1m    --json^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2839338Z ^[[36;1m  status=$?^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2839533Z ^[[36;1m  if [ "$status" -eq 0 ]; then^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2839743Z ^[[36;1m    exit 0^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2839919Z ^[[36;1m  fi^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2840095Z ^[[36;1m  if [ "$attempt" -lt 2 ]; then^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2840400Z ^[[36;1m    echo 'CloudBase deployment failed; retrying after 20 seconds...'^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2840702Z ^[[36;1m    sleep 20^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2840887Z ^[[36;1m  fi^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2841058Z ^[[36;1mdone^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2841233Z ^[[36;1mexit "$status"^[[0m
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2875486Z shell: /usr/bin/bash -e {0}
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2875729Z env:
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2875922Z   LLM_ENABLED: false
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2881393Z   TCB_API_KEY: ***
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2881634Z   TCB_ENV_ID: ***
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:51.2881812Z ##[endgroup]
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3931038Z Use the following command to proceed with the operation:
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3932251Z 
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3933034Z – One-click AI development experience
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3933479Z 
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3933763Z   $ tcb ai
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3934057Z 
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3934463Z – View command usage introduction
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3934835Z 
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3935085Z   $ tcb -h
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3935355Z 
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3935786Z Tips: You can use the tcb command tcb to replace cloudbase
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3936215Z 
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3936775Z AI Programming: Run tcb ai to start a full-stack AI development experience
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3938110Z AI IDE Integration: Run tcb mcp info to view CloudBase MCP configuration guide
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3938629Z 
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3939451Z In MCP-supported AI IDE, add the following MCP configuration to enable convenient CloudBase MCP integration
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3940148Z 
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3940361Z {
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3940707Z   "mcpServers": {
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3941078Z     "cloudbase": {
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3941452Z       "command": "npx",
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3941977Z       "args": ["@cloudbase/cloudbase-mcp@latest"]
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3942450Z     }
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3942780Z   }
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3943176Z }
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3943421Z 
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3944193Z View detailed AI IDE configuration guide https://docs.cloudbase.net/ai/cloudbase-ai-toolkit/getting-started
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.3944980Z 
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:54.9508371Z CloudBase deployment attempt 1/2
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:56.5637149Z ℹ Current Environment ID: ***
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:56:57.7294792Z ℹ Submitting Container-based cloud hosting optishift-ai, please wait...
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:57:20.1855912Z ℹ Container-based cloud hosting optishift-ai submission completed!
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:57:20.1868932Z ℹ Please open the link to view deployment status: https://tcb.cloud.tencent.com/dev?envId=***#/platform-run/service/detail?serverName=optishift-ai&tabId=deploy&envId=***
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:57:20.1870403Z ℹ Waiting for deployment to complete...
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:57:20.5909256Z ℹ   - CreateVersion: todo
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:57:20.5910615Z ℹ   - RunPipeline: notInvolve
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:57:20.5911016Z ℹ   - GrayRelease: notInvolve
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:57:20.5911391Z ℹ   - ReleaseVersion: todo
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T08:57:23.9878948Z ℹ   - CreateVersion: running
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T09:01:05.5787988Z ℹ   - CreateVersion: finished
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T09:01:05.5788492Z ℹ   - ReleaseVersion: running
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T09:01:08.9758504Z ℹ   - ReleaseVersion: finished
+deploy-cloudbase	Deploy main to CloudBase Run	2026-09-20T09:01:08.9759638Z ✔ Deployment successful
+deploy-cloudbase	Post Run actions/setup-node@v4	﻿2026-09-20T09:01:09.0000040Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+deploy-cloudbase	Post Run actions/setup-node@v4	2026-09-20T09:01:09.0000971Z Post job cleanup.
+deploy-cloudbase	Post Run actions/setup-node@v4	2026-09-20T09:01:09.1009447Z (node:2080) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+deploy-cloudbase	Post Run actions/setup-node@v4	2026-09-20T09:01:09.1019893Z (Use `node --trace-deprecation ...` to show where the warning was created)
+deploy-cloudbase	Post Run actions/checkout@v4	﻿2026-09-20T09:01:09.1210509Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+deploy-cloudbase	Post Run actions/checkout@v4	2026-09-20T09:01:09.1212122Z Post job cleanup.
+deploy-cloudbase	Post Run actions/checkout@v4	2026-09-20T09:01:09.2032314Z [command]/usr/bin/git version
+deploy-cloudbase	Post Run actions/checkout@v4	2026-09-20T09:01:09.2117086Z git version 2.55.0
+deploy-cloudbase	Post Run actions/checkout@v4	2026-09-20T09:01:09.2164409Z Temporarily overriding HOME='/home/runner/work/_temp/a62e89e9-36c8-4975-97f4-1b1ab7fa501e' before making global git config changes
+deploy-cloudbase	Post Run actions/checkout@v4	2026-09-20T09:01:09.2165615Z Adding repository directory to the temporary git global config as a safe directory
+deploy-cloudbase	Post Run actions/checkout@v4	2026-09-20T09:01:09.2166688Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/OptiShift-AI/OptiShift-AI
+deploy-cloudbase	Post Run actions/checkout@v4	2026-09-20T09:01:09.2225653Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+deploy-cloudbase	Post Run actions/checkout@v4	2026-09-20T09:01:09.2288989Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+deploy-cloudbase	Post Run actions/checkout@v4	2026-09-20T09:01:09.2614555Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+deploy-cloudbase	Post Run actions/checkout@v4	2026-09-20T09:01:09.2640895Z http.https://github.com/.extraheader
+deploy-cloudbase	Post Run actions/checkout@v4	2026-09-20T09:01:09.2686146Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+deploy-cloudbase	Post Run actions/checkout@v4	2026-09-20T09:01:09.2688573Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+deploy-cloudbase	Post Run actions/checkout@v4	2026-09-20T09:01:09.3060132Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+deploy-cloudbase	Post Run actions/checkout@v4	2026-09-20T09:01:09.3100331Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+deploy-cloudbase	Complete job	﻿2026-09-20T09:01:09.3519558Z Cleaning up orphan processes
+deploy-cloudbase	Complete job	2026-09-20T09:01:09.3777884Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

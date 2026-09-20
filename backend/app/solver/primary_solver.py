@@ -58,7 +58,13 @@ class PrimarySolver:
 
         if context.override_scopes and built.authorized_violation_terms:
             if status is not SolverStatus.OPTIMAL:
-                return SolverResult(status=SolverStatus.UNKNOWN, message="Exception count optimum was not proven; retry with a larger solver time limit.")
+                return SolverResult(
+                    status=SolverStatus.UNKNOWN,
+                    message=(
+                        "Exception count optimum was not proven; "
+                        "retry with a larger solver time limit."
+                    ),
+                )
             # Force solving has three explicit phases: exception count,
             # exception magnitude, then ordinary business objectives.
             exception_count = sum(
@@ -144,24 +150,11 @@ class PrimarySolver:
         solver: cp_model.CpSolver,
         assignments: list[Assignment],
     ) -> dict[str, int | float | str]:
-        preferred = sum(solver.Value(term) for term in built.preference_terms)
-        employees_with_preference = {
-            employee.id
-            for employee in context.employees
-            if built.facts.policies[employee.id].preferred_shift is not None
-        }
-        preferred_opportunities = sum(
-            1 for assignment in assignments if assignment.employee_id in employees_with_preference
-        )
         change_count = sum(solver.Value(term) for term in built.change_terms)
         workload_gap = solver.Value(built.workload_gap) if built.workload_gap is not None else 0
         return {
             "assignment_count": len(assignments),
-            "preference_satisfied": preferred,
-            "preference_opportunities": preferred_opportunities,
-            "preference_rate": (
-                preferred / preferred_opportunities if preferred_opportunities else 1.0
-            ),
+            **built.facts.preference_metrics(assignments),
             "workload_gap": workload_gap,
             "change_count": change_count,
             "solve_duration_seconds": solver.WallTime(),

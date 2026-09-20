@@ -190,6 +190,9 @@ class TrustedAgentAction(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     intent: Literal["generate", "replan", "validate", "advice"]
+    suggestion_id: str | None = None
+    suggestion_set_id: str | None = None
+    execution: Literal["record", "preview", "create_draft"] | None = None
     target_week: date | None = None
     changes: list[ScheduleChange] = Field(default_factory=list)
     minimize_changes: bool = True

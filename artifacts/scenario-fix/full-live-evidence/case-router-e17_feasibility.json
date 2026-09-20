@@ -1,0 +1,126 @@
+{
+  "name": "router-e17_feasibility",
+  "input": "E17这周能不能排进去？",
+  "model": "gpt-5.6-sol",
+  "status": "passed",
+  "failures": [],
+  "duration_seconds": 5.219000000040978,
+  "router_latency_ms": 5203,
+  "fallback_used": false,
+  "error_type": null,
+  "schema_bytes": 1277,
+  "lite_result": {
+    "intent": "what_if",
+    "domain": "scheduling",
+    "speech_act": "question",
+    "mutation_requested": false,
+    "employees": [
+      "E17"
+    ],
+    "force_or_override_intent": false,
+    "clarification_required": false,
+    "question_type": "feasibility_explanation"
+  },
+  "parser_results": {
+    "agent_route_lite": {
+      "intent": "what_if",
+      "domain": "scheduling",
+      "speech_act": "question",
+      "mutation_requested": false,
+      "employees": [
+        "E17"
+      ],
+      "force_or_override_intent": false,
+      "clarification_required": false,
+      "question_type": "feasibility_explanation"
+    }
+  },
+  "stages": [
+    {
+      "stage": "agent_route_lite",
+      "parser_name": "agent_route_lite",
+      "model": "gpt-5.6-sol",
+      "schema_name": "agent_route_lite",
+      "schema_bytes": 1277,
+      "message_count": 2,
+      "request_bytes": 3562,
+      "fallback_used": false,
+      "error_type": null,
+      "latency_ms": 5203,
+      "parser_latency_ms": 5203
+    }
+  ],
+  "final_route": {
+    "intent": "explain",
+    "domain": "scheduling",
+    "speech_act": "question",
+    "classification_source": "deterministic",
+    "read_query": {
+      "question_type": "feasibility_explanation",
+      "target_week": null,
+      "day": null,
+      "shift": null,
+      "employee_ids": [
+        "E17"
+      ],
+      "scope": "per_day",
+      "requested_facts": [
+        "validation"
+      ],
+      "comparison": "none",
+      "reference_mode": "none",
+      "whether_counterfactual_needed": false,
+      "version": null,
+      "clarification": null
+    },
+    "mutation_requested": false,
+    "target_week": null,
+    "target_iso_year": null,
+    "target_iso_week": null,
+    "employees": [
+      "E17"
+    ],
+    "changes": [],
+    "operations": [],
+    "operation": "add",
+    "minimize_changes": false,
+    "override_requested": false,
+    "force_generate": false,
+    "requested_overrides": [],
+    "forced_assignments": [],
+    "authorization_reason": null,
+    "reference": {
+      "type": "none",
+      "suggestion_id": null
+    },
+    "clarification": {
+      "required": false,
+      "question": null
+    }
+  },
+  "provider_outputs": [
+    {
+      "stage": "agent_route_lite",
+      "raw_content": "{\"clarification_required\":false,\"domain\":\"scheduling\",\"employees\":[\"E17\"],\"force_or_override_intent\":false,\"intent\":\"what_if\",\"mutation_requested\":false,\"question_type\":\"feasibility_explanation\",\"speech_act\":\"question\"}",
+      "latency_ms": 5214,
+      "provider_status": 200
+    },
+    {
+      "stage": "agent_route_lite",
+      "output": {
+        "clarification_required": false,
+        "domain": "scheduling",
+        "employees": [
+          "E17"
+        ],
+        "force_or_override_intent": false,
+        "intent": "what_if",
+        "mutation_requested": false,
+        "question_type": "feasibility_explanation",
+        "speech_act": "question"
+      },
+      "duration_ms": 5203
+    }
+  ],
+  "database_unchanged": true
+}

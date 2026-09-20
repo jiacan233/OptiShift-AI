@@ -1,0 +1,131 @@
+{
+  "run_start": "2026-09-20T10:00:23.337192",
+  "run_end": "2026-09-20T10:07:07.264525",
+  "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/",
+  "cases_ran": [
+    "00"
+  ],
+  "results": [
+    {
+      "case_id": "Case 00",
+      "case_key": "00",
+      "description": "双条件最终重排",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "E02这周为啥没排班？",
+          "reply": "Agent Router完成3243 ms\n---\n定位目标周和排班上下文完成0 ms\n\n目标周：2026-10-05\n---\n定位目标周和排班上下文完成0 ms\n\n目标周：2026-10-05\n---\n定位目标周和排班上下文完成0 ms",
+          "exec_record": "处理进度 · 公开执行记录\n\n已收到请求\n\n读取员工信息完成9 ms\n\n理解排班请求完成3247 ms\n\nAgent Router完成3243 ms\n\n定位目标周和排班上下文完成0 ms\n\n目标周：2026-10-05\n\n读取当前排班完成17 ms",
+          "elapsed_ms": 3513,
+          "screenshot": "tests\\acceptance\\screenshots\\00_t01.png",
+          "draft_this_turn": true,
+          "draft_sample": "📱\nOP\n排班工作台\n第35周 · 08/24 - 08/30 · 未生成\n第36周 · 08/31 - 09/06 · 未生成\n第37周 · 09/07 - 09/13 · 未生成\n第38周 · 09/14 - 09/20 · 未生成\n第39周 · 09/21 - 09/27 · v2\n第40周 · 09/28 - 10/04 · v4\n第41周 · 10/05 - 10/11 · v5 · 当",
+          "result": "PASS",
+          "bugs": []
+        },
+        {
+          "turn": 2,
+          "user": "我想把E02排进去，你有什么建议吗？",
+          "reply": "定位目标周和排班上下文完成0 ms\n---\n分析人数和排班事实完成110 ms\n---\n分析人数和排班事实完成110 ms\n---\n分析人数和排班事实完成110 ms",
+          "exec_record": "处理进度 · 公开执行记录\n\n已收到请求\n\n读取员工信息完成9 ms\n\n理解排班请求完成3247 ms\n\nAgent Router完成3243 ms\n\n定位目标周和排班上下文完成0 ms\n\n目标周：2026-10-05\n\n读取当前排班完成17 ms\n\n分析人数和排班事实完成110 ms\n\n校验排班规则完成1 ms\n\n生成回复完成6093 ms\n\n排班处理完成9766 ms",
+          "elapsed_ms": 91206,
+          "screenshot": "tests\\acceptance\\screenshots\\00_t02.png",
+          "draft_this_turn": true,
+          "draft_sample": "📱\nOP\n排班工作台\n第35周 · 08/24 - 08/30 · 未生成\n第36周 · 08/31 - 09/06 · 未生成\n第37周 · 09/07 - 09/13 · 未生成\n第38周 · 09/14 - 09/20 · 未生成\n第39周 · 09/21 - 09/27 · v2\n第40周 · 09/28 - 10/04 · v4\n第41周 · 10/05 - 10/11 · v5 · 当",
+          "result": "PASS",
+          "bugs": []
+        },
+        {
+          "turn": 3,
+          "user": "如果尽量少改其他人，你建议把他放哪？",
+          "reply": "分析人数和排班事实完成110 ms\n---\n分析人数和排班事实完成110 ms\n---\n分析人数和排班事实完成110 ms\n---\n如果尽量少改其他人，你建议把他放哪？",
+          "exec_record": "处理进度 · 公开执行记录\n\n已收到请求\n\n读取员工信息完成10 ms\n\n理解排班请求…\n\nAgent Router…",
+          "elapsed_ms": 3506,
+          "screenshot": "tests\\acceptance\\screenshots\\00_t03.png",
+          "draft_this_turn": true,
+          "draft_sample": "📱\nOP\n排班工作台\n第35周 · 08/24 - 08/30 · 未生成\n第36周 · 08/31 - 09/06 · 未生成\n第37周 · 09/07 - 09/13 · 未生成\n第38周 · 09/14 - 09/20 · 未生成\n第39周 · 09/21 - 09/27 · v2\n第40周 · 09/28 - 10/04 · v4\n第41周 · 10/05 - 10/11 · v5 · 当",
+          "result": "PASS",
+          "bugs": []
+        },
+        {
+          "turn": 4,
+          "user": "那就重新排，把E02排进本周。",
+          "reply": "定位目标周和排班上下文完成0 ms\n---\n分析人数和排班事实完成99 ms\n---\n分析人数和排班事实完成99 ms\n---\n分析人数和排班事实完成99 ms",
+          "exec_record": "处理进度 · 公开执行记录\n\n已收到请求\n\n读取员工信息完成10 ms\n\n理解排班请求完成6058 ms\n\nAgent Router完成6054 ms\n\n定位目标周和排班上下文完成0 ms\n\n目标周：2026-10-05\n\n读取当前排班完成15 ms\n\n分析人数和排班事实完成99 ms\n\n校验排班规则完成1 ms\n\n生成回复完成12986 ms\n\n排班处理完成19945 ms",
+          "elapsed_ms": 91402,
+          "screenshot": "tests\\acceptance\\screenshots\\00_t04.png",
+          "draft_this_turn": true,
+          "draft_sample": "📱\nOP\n排班工作台\n第35周 · 08/24 - 08/30 · 未生成\n第36周 · 08/31 - 09/06 · 未生成\n第37周 · 09/07 - 09/13 · 未生成\n第38周 · 09/14 - 09/20 · 未生成\n第39周 · 09/21 - 09/27 · v2\n第40周 · 09/28 - 10/04 · v4\n第41周 · 10/05 - 10/11 · v5 · 当",
+          "result": "PASS",
+          "bugs": []
+        },
+        {
+          "turn": 5,
+          "user": "周二。",
+          "reply": "定位目标周和排班上下文完成0 ms\n---\n分析人数和排班事实完成99 ms\n---\n分析人数和排班事实完成99 ms\n---\n分析人数和排班事实完成99 ms",
+          "exec_record": "处理进度 · 公开执行记录\n\n已收到请求\n\n读取员工信息完成9 ms\n\n理解排班请求…\n\nAgent Router…",
+          "elapsed_ms": 3512,
+          "screenshot": "tests\\acceptance\\screenshots\\00_t05.png",
+          "draft_this_turn": true,
+          "draft_sample": "📱\nOP\n排班工作台\n第35周 · 08/24 - 08/30 · 未生成\n第36周 · 08/31 - 09/06 · 未生成\n第37周 · 09/07 - 09/13 · 未生成\n第38周 · 09/14 - 09/20 · 未生成\n第39周 · 09/21 - 09/27 · v2\n第40周 · 09/28 - 10/04 · v4\n第41周 · 10/05 - 10/11 · v5 · 当",
+          "result": "PASS",
+          "bugs": []
+        },
+        {
+          "turn": 6,
+          "user": "晚班。",
+          "reply": "定位目标周和排班上下文完成0 ms\n---\n分析人数和排班事实完成26 ms\n---\n分析人数和排班事实完成26 ms\n---\n分析人数和排班事实完成26 ms",
+          "exec_record": "处理进度 · 公开执行记录\n\n已收到请求\n\n读取员工信息完成9 ms\n\n理解排班请求完成36486 ms\n\nAgent Router失败25001 ms\n\n等待 AI 响应超时\n\n使用备用 JSON 解析完成11479 ms\n\n定位目标周和排班上下文完成0 ms\n\n目标周：2026-10-05\n\n读取当前排班完成15 ms\n\n分析人数和排班事实完成26 ms\n\n校验排班规则完成1 ms\n\n生成回复完成2792 ms\n\n排班处理完成39774 ms",
+          "elapsed_ms": 91692,
+          "screenshot": "tests\\acceptance\\screenshots\\00_t06.png",
+          "draft_this_turn": true,
+          "draft_sample": "📱\nOP\n排班工作台\n第35周 · 08/24 - 08/30 · 未生成\n第36周 · 08/31 - 09/06 · 未生成\n第37周 · 09/07 - 09/13 · 未生成\n第38周 · 09/14 - 09/20 · 未生成\n第39周 · 09/21 - 09/27 · v2\n第40周 · 09/28 - 10/04 · v4\n第41周 · 10/05 - 10/11 · v5 · 当",
+          "result": "PASS",
+          "bugs": []
+        },
+        {
+          "turn": 7,
+          "user": "先别生成，再加一个条件：E17周三请假。你先分析一下这两个条件一起会怎样。",
+          "reply": "分析人数和排班事实完成26 ms\n---\n分析人数和排班事实完成26 ms\n---\n分析人数和排班事实完成26 ms\n---\n先别生成，再加一个条件：E17周三请假。你先分析一下这两个条件一起会怎样。",
+          "exec_record": "处理进度 · 公开执行记录\n\n已收到请求\n\n读取员工信息完成74 ms\n\n理解排班请求…\n\nAgent Router…",
+          "elapsed_ms": 3509,
+          "screenshot": "tests\\acceptance\\screenshots\\00_t07.png",
+          "draft_this_turn": true,
+          "draft_sample": "📱\nOP\n排班工作台\n第35周 · 08/24 - 08/30 · 未生成\n第36周 · 08/31 - 09/06 · 未生成\n第37周 · 09/07 - 09/13 · 未生成\n第38周 · 09/14 - 09/20 · 未生成\n第39周 · 09/21 - 09/27 · v2\n第40周 · 09/28 - 10/04 · v4\n第41周 · 10/05 - 10/11 · v5 · 当",
+          "result": "PASS",
+          "bugs": []
+        },
+        {
+          "turn": 8,
+          "user": "把你现在理解的两个排班条件复述给我。",
+          "reply": "定位目标周和排班上下文完成0 ms\n---\n分析人数和排班事实完成40 ms\n---\n分析人数和排班事实完成40 ms\n---\n分析人数和排班事实完成40 ms",
+          "exec_record": "处理进度 · 公开执行记录\n\n已收到请求\n\n读取员工信息完成74 ms\n\n理解排班请求完成50008 ms\n\nAgent Router失败25000 ms\n\n等待 AI 响应超时\n\n使用备用 JSON 解析失败25000 ms\n\n等待 AI 响应超时\n\n定位目标周和排班上下文完成0 ms\n\n目标周：2026-10-05\n\n读取当前排班完成15 ms\n\n分析人数和排班事实完成40 ms\n\n校验排班规则完成2 ms\n\n生成回复完成4345 ms\n\n排班处理完成54732 ms",
+          "elapsed_ms": 91785,
+          "screenshot": "tests\\acceptance\\screenshots\\00_t08.png",
+          "draft_this_turn": true,
+          "draft_sample": "📱\nOP\n排班工作台\n第35周 · 08/24 - 08/30 · 未生成\n第36周 · 08/31 - 09/06 · 未生成\n第37周 · 09/07 - 09/13 · 未生成\n第38周 · 09/14 - 09/20 · 未生成\n第39周 · 09/21 - 09/27 · v2\n第40周 · 09/28 - 10/04 · v4\n第41周 · 10/05 - 10/11 · v5 · 当",
+          "result": "PASS",
+          "bugs": []
+        },
+        {
+          "turn": 9,
+          "user": "可以，就按这两个条件重新排班，生成草稿。",
+          "reply": "分析人数和排班事实完成40 ms\n---\n分析人数和排班事实完成40 ms\n---\n分析人数和排班事实完成40 ms\n---\n可以，就按这两个条件重新排班，生成草稿。",
+          "exec_record": "处理进度 · 公开执行记录\n\n已收到请求\n\n读取员工信息完成9 ms\n\n理解排班请求…\n\nAgent Router…",
+          "elapsed_ms": 3510,
+          "screenshot": "tests\\acceptance\\screenshots\\00_t09.png",
+          "draft_this_turn": true,
+          "draft_sample": "📱\nOP\n排班工作台\n第35周 · 08/24 - 08/30 · 未生成\n第36周 · 08/31 - 09/06 · 未生成\n第37周 · 09/07 - 09/13 · 未生成\n第38周 · 09/14 - 09/20 · 未生成\n第39周 · 09/21 - 09/27 · v2\n第40周 · 09/28 - 10/04 · v4\n第41周 · 10/05 - 10/11 · v5 · 当",
+          "result": "PASS",
+          "bugs": []
+        }
+      ],
+      "draft_created": true,
+      "overall_result": "PASS",
+      "bugs_found": [],
+      "fail_count": 0,
+      "block_count": 0,
+      "total_turns": 9
+    }
+  ]
+}

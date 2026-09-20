@@ -3,13 +3,14 @@ import { InfeasibleSummary } from '@/components/agent/InfeasibleSummary'
 import { MarkdownMessage } from '@/components/agent/MarkdownMessage'
 import { AgentTrace } from '@/components/agent/AgentTrace'
 import { SuggestionCard } from '@/components/agent/SuggestionCard'
-import type { AgentMessage, AgentSuggestion, AgentToolCall } from '@/types'
+import type { AgentMessage, AgentSuggestion, AgentToolCall, SuggestionExecution } from '@/types'
 
-export function MessageBubble({ message, trace, suggestionsDisabled = false, onApplySuggestion, onViewPlan }: {
+export function MessageBubble({ message, trace, suggestionsDisabled = false, draftBlocked = false, onApplySuggestion, onViewPlan }: {
   message: AgentMessage
   trace: AgentToolCall[]
   suggestionsDisabled?: boolean
-  onApplySuggestion(suggestion: AgentSuggestion): void
+  draftBlocked?: boolean
+  onApplySuggestion(suggestion: AgentSuggestion, execution: SuggestionExecution): void
   onViewPlan(): void
 }) {
   const isUser = message.role === 'user'
@@ -30,7 +31,7 @@ export function MessageBubble({ message, trace, suggestionsDisabled = false, onA
             <span>本轮排班版本 v{draftVersion}{recoveredStatus === 'confirmed' ? ' · 已确认' : recoveredStatus === 'cancelled' ? ' · 已取消' : ''}</span>
             <button type="button" onClick={onViewPlan} className="mt-1 flex items-center gap-1 font-bold text-blue-600 hover:text-blue-700">查看工作台方案 <ArrowUpRight className="h-3 w-3" /></button>
           </div>}
-          {suggestions.length > 0 && <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50/70"><summary className="cursor-pointer px-3 py-2 text-[11px] font-bold text-blue-700">调整建议 · {suggestions.length} 条</summary><div className="space-y-2 border-t border-slate-200/60 p-2">{suggestions.map(suggestion => <SuggestionCard key={suggestion.suggestion_id} suggestion={suggestion} disabled={suggestionsDisabled} onApply={onApplySuggestion} />)}</div></details>}
+          {suggestions.length > 0 && <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50/70"><summary className="cursor-pointer px-3 py-2 text-[11px] font-bold text-blue-700">调整建议 · {suggestions.length} 条</summary><div className="space-y-2 border-t border-slate-200/60 p-2">{suggestions.map((suggestion, index) => <SuggestionCard key={`${suggestion.suggestion_set_id ?? 'set'}-${suggestion.suggestion_id}`} suggestion={suggestion} ordinal={index + 1} disabled={suggestionsDisabled} draftBlocked={draftBlocked} onApply={onApplySuggestion} />)}</div></details>}
           <AgentTrace calls={trace} events={message.metadata_json?.execution_events ?? []} />
         </div>
       )}

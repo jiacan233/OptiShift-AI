@@ -1,0 +1,13 @@
+{
+  "testPassed": false,
+  "terminalDropped": true,
+  "replayTriggered": true,
+  "sameIdUsed": true,
+  "streamClientMsgId": "cm_ee8f84207f324d539846acffc5ccc3db",
+  "replayClientMsgId": "cm_ee8f84207f324d539846acffc5ccc3db",
+  "bubbleCount": 1,
+  "draftCardCount": 2,
+  "assistantText": "已生成2026年第41周排班草稿 v6。请在工作台检查后手动确认。",
+  "noNetworkErrorDisplayed": true,
+  "screenshot": "SSE-FAULT-INJECTION-RESULT.png"
+}

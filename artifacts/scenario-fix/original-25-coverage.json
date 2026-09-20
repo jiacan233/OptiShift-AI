@@ -1,0 +1,38 @@
+{
+  "base_commit": "bde4d52",
+  "original_case_count": 25,
+  "original_cases": [
+    "sun_staffing_after_previous_suggestion",
+    "sun_assignments",
+    "sun_evening_beverage",
+    "e01_monday_absence",
+    "e03_wednesday_absence",
+    "explicit_second_suggestion",
+    "remove_e07_evening",
+    "e15_sunday_assignment",
+    "busiest_employee",
+    "current_rule_violations",
+    "previous_version_diff",
+    "why_infeasible",
+    "one_fewer_sunday_morning",
+    "explicit_history_optout",
+    "router-e17_unspecified",
+    "router-e01_leave_replan",
+    "router-sunday_staffing",
+    "router-force_missing_scope",
+    "router-hello",
+    "router-e17_feasibility",
+    "router-negative_force",
+    "router-previous_suggestion",
+    "router-multi_employee_days",
+    "router-ordered_operations",
+    "router-explicit_force_r08"
+  ],
+  "covered": true,
+  "additional_cases": [
+    "router-only_leave_followup",
+    "router-preference_missing_shift",
+    "router-set_preserves_preference",
+    "router-two_preference_shifts"
+  ]
+}

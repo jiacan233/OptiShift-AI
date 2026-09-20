@@ -83,19 +83,26 @@ def test_strict_success_preserves_public_contract(router_factory, employees):
     assert router.llm.timeout.read == 120
 
 
-@pytest.mark.parametrize("failure", [httpx.ReadTimeout("slow"), {"bogus": True},
-    httpx.Response(400, json={"error": {"message": "Invalid response_format schema"}})])
+@pytest.mark.parametrize("failure", [
+    httpx.Response(400, json={"error": {"message": "response_format json_schema is not supported by this model"}}),
+    httpx.Response(501, json={"error": {"message": "Structured outputs are not implemented"}}),
+])
 def test_compatible_failure_falls_back_once(router_factory, employees, failure):
     router, calls = router_factory(failure, decision())
     assert not route(router, employees).mutation_requested
     assert len(calls) == 2 and router.last_run.fallback_used
     assert "response_format" not in calls[1][0]
     assert calls[1][0]["temperature"] == 0
-    assert calls[1][1]["read"] <= 25
+    assert calls[1][1]["read"] <= 10
+    assert router.last_run.stages[1]["retry_reason"] == "schema_unsupported"
+    assert router.last_run.stages[1]["attempt"] == 2
 
 
 def test_invalid_fallback_fails_closed(router_factory, employees):
-    router, calls = router_factory({}, {})
+    router, calls = router_factory(
+        httpx.Response(400, json={"error": {"message": "strict response_format is unsupported"}}),
+        {},
+    )
     with pytest.raises(AIUnavailableError):
         route(router, employees, "生成本周排班")
     assert len(calls) == 2
@@ -144,6 +151,27 @@ def test_ids_and_multi_day_mutation(router_factory, employees, identifier):
     assert len(result.changes) == 3
     assert text in calls[1][0]["messages"][1]["content"]
     assert len(calls) == 2
+
+
+@pytest.mark.parametrize("failure,expected", [
+    (httpx.ReadTimeout("slow"), "read_timeout"),
+    (httpx.ConnectTimeout("slow connect"), "connect_timeout"),
+    (httpx.ConnectError("connection refused"), "connection_error"),
+    ({"bogus": True}, "structured_output_error"),
+    (httpx.Response(200, text="invalid json"), "invalid_provider_response"),
+    (httpx.Response(400, json={"error": {"message": "Invalid response_format schema: missing properties"}}), "invalid_request"),
+])
+def test_transport_and_invalid_output_never_trigger_schema_retry(
+    router_factory, employees, failure, expected
+):
+    router, calls = router_factory(failure, decision())
+    with pytest.raises(AIUnavailableError) as error:
+        route(router, employees, "生成本周排班")
+    assert error.value.error_type == expected
+    assert len(calls) == 1
+    assert not router.last_run.fallback_used
+    assert router.last_run.stages[0]["error_type"] == expected
+    assert router.last_run.stages[0]["provider_request_count"] == 1
 
 
 def test_provider_operation_order_is_canonicalized_to_current_message(router_factory, employees):
@@ -262,7 +290,8 @@ def test_force_scope_cannot_be_invented(router_factory, employees):
 
 
 def test_fallback_budget_is_shared_across_stages(router_factory, employees):
-    router, calls = router_factory({}, decision(intent="replan", mutation_requested=True), {})
+    unsupported = httpx.Response(400, json={"error": {"message": "json_schema is not supported"}})
+    router, calls = router_factory(unsupported, decision(intent="replan", mutation_requested=True), unsupported)
     with pytest.raises(AIUnavailableError):
         route(router, employees, "E01 周一请假，重新排一下")
     assert len(calls) == 3

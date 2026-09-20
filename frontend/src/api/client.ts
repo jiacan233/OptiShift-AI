@@ -1,5 +1,6 @@
 import type {
   AgentExecutionEvent,
+  AgentScenario,
   ApiProblem,
   Assignment,
   OverrideScope,
@@ -372,6 +373,10 @@ export const api = {
   },
 
   agent: {
+    getScenario(conversationId: string, browserWorkspaceId: string, weekStart: string) {
+      const query = new URLSearchParams({ browser_workspace_id: browserWorkspaceId, week_start: weekStart })
+      return request<AgentScenario>(`/api/agent/conversations/${encodeURIComponent(conversationId)}/scenario?${query}`)
+    },
     clearScenario(conversationId: string, browserWorkspaceId: string, weekStart: string, expectedRevision?: number) {
       return request(`/api/agent/conversations/${encodeURIComponent(conversationId)}/scenario`, {
         method: 'DELETE', body: { browser_workspace_id: browserWorkspaceId, week_start: weekStart, expected_revision: expectedRevision },

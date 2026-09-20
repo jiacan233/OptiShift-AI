@@ -299,6 +299,12 @@ export interface ConversationSummary {
 export interface AgentSuggestion {
   id?: string
   suggestion_id: string
+  suggestion_set_id?: string
+  display_order?: number
+  ordinal?: number
+  executable?: boolean
+  feasibility_status?: string
+  stale?: boolean
   title?: string
   content?: string
   description?: string
@@ -308,6 +314,46 @@ export interface AgentSuggestion {
   based_on_version?: number | null
   scenario_patch?: { employee_id: string; operation: string; days: Day[]; change_type: string; shift?: ShiftType | null }
   action?: 'generate' | 'replan'
+}
+
+export type SuggestionExecution = 'record' | 'preview' | 'create_draft'
+
+export interface DialogueCondition {
+  id: string
+  changes: ScheduleChange[]
+  source_message_id: string
+  source_kind?: string
+  suggestion_id?: string | null
+}
+
+export interface DialoguePending {
+  id: string
+  employee_id: string | null
+  type: ScheduleChange['type'] | null
+  days: Day[]
+  shift: ShiftType | null
+  source_message_id: string
+  proposal?: boolean
+}
+
+export interface DialogueState {
+  schema_version: number
+  revision: number
+  scenario_revision: number
+  conditions: DialogueCondition[]
+  proposals: DialogueCondition[]
+  pending: DialoguePending[]
+  conflicts: Array<{ code?: string; message?: string }>
+  warnings: string[]
+  minimize_changes?: boolean
+}
+
+export interface AgentScenario {
+  target_week?: string
+  scenario_revision: number
+  invalidated?: boolean
+  message?: string | null
+  dialogue_state?: DialogueState | null
 }
 
 export interface AgentMessage {
@@ -328,6 +374,7 @@ export interface AgentMessage {
     generated_draft_version?: number
     infeasible_result?: InfeasibleResult
     scenario_preview?: ScenarioPreviewResult
+    dialogue_state?: DialogueState
     [key: string]: unknown
   }
   created_at: string
@@ -383,6 +430,9 @@ export interface TrustedAgentAction {
   requested_overrides?: OverrideScope[]
   forced_assignments?: Assignment[]
   authorization_reason?: string
+  suggestion_id?: string
+  suggestion_set_id?: string
+  execution?: SuggestionExecution
 }
 
 export interface AgentTurnResult {

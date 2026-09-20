@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import threading
+import time
 
 import httpx
 import pytest
 
+from backend.app.execution import ExecutionTrace, current_execution
 from backend.app.services.agent_router import agent_route_json_schema
 from backend.app.services.llm_client import (
     AgentLLMClient,
@@ -190,3 +193,73 @@ def test_provider_message_is_redacted_before_public_details(
     assert "Bearer sk-test-secret" not in serialized
     assert details["latency_ms"] == 821
     assert details["stage"] == "structured_output"
+
+
+@pytest.mark.parametrize("stage,budget_env,budget", [
+    ("response_compose", "LLM_RESPONSE_BUDGET_SECONDS", 3),
+    ("explanation", "LLM_RESPONSE_BUDGET_SECONDS", 3),
+    ("intent_parse", "LLM_SEMANTIC_BUDGET_SECONDS", 7),
+])
+def test_stage_budget_caps_every_http_phase_and_records_safe_request(
+    monkeypatch, stage, budget_env, budget
+):
+    client = _client(monkeypatch)
+    monkeypatch.setenv(budget_env, str(budget))
+    client.base_url = "https://user:password@example.test/private?token=secret"
+    execution = ExecutionTrace("conversation", "turn")
+    execution.budget = 2
+    token = current_execution.set(execution)
+
+    def fake_post(_self, _url, **kwargs):
+        assert all(0 < value <= 2 for value in kwargs["timeout"].as_dict().values())
+        return _response("OK")
+
+    monkeypatch.setattr(httpx.Client, "post", fake_post)
+    try:
+        assert client.complete_text(system="PRIVATE_PROMPT", user={}, stage=stage) == "OK"
+        assert len(execution.provider_requests) == 1
+        metrics = execution.provider_requests[0]
+        assert metrics["provider_request_count"] == 1
+        assert metrics["status"] == "completed"
+        assert metrics["stage"] == stage
+        assert metrics["provider"] == "example.test"
+        assert metrics["model"] == client.model
+        assert metrics["provider_request_id"]
+        assert metrics["latency_ms"] >= 0
+        assert metrics["error_type"] is None
+        assert not any(secret in json.dumps(metrics) for secret in (
+            "sk-test-secret", "password", "token=secret", "PRIVATE_PROMPT",
+        ))
+    finally:
+        current_execution.reset(token)
+
+
+def test_response_wall_budget_stops_stalled_transport_without_late_result(monkeypatch):
+    client = _client(monkeypatch)
+    monkeypatch.setenv("LLM_RESPONSE_BUDGET_SECONDS", "0.03")
+    release = threading.Event()
+    finished = threading.Event()
+    calls = []
+
+    def stalled_post(_self, _url, **_kwargs):
+        calls.append(1)
+        release.wait(timeout=1)
+        finished.set()
+        return _response("late result")
+
+    monkeypatch.setattr(httpx.Client, "post", stalled_post)
+    started = time.monotonic()
+    try:
+        with pytest.raises(AIUnavailableError) as error:
+            client.complete_text(system="test", user={})
+        assert time.monotonic() - started < 0.3
+        assert error.value.error_type == "read_timeout"
+        assert error.value.stage == "response_compose"
+        metrics = dict(client.last_request_metrics)
+        assert metrics["status"] == "failed"
+        assert metrics["timeout_source"] == "wall_budget"
+        assert len(calls) == metrics["provider_request_count"] == 1
+    finally:
+        release.set()
+        assert finished.wait(timeout=1)
+    assert client.last_request_metrics == metrics

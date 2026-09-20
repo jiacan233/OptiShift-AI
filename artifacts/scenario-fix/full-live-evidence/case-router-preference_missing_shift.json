@@ -1,0 +1,142 @@
+{
+  "name": "router-preference_missing_shift",
+  "input": "E02 周三优先，帮我重新排一下",
+  "model": "gpt-5.6-sol",
+  "status": "passed",
+  "failures": [],
+  "duration_seconds": 13.375,
+  "router_latency_ms": 13375,
+  "fallback_used": false,
+  "error_type": null,
+  "schema_bytes": 1277,
+  "lite_result": {
+    "intent": "replan",
+    "domain": "scheduling",
+    "speech_act": "action_request",
+    "mutation_requested": true,
+    "employees": [
+      "E02"
+    ],
+    "force_or_override_intent": false,
+    "clarification_required": false,
+    "question_type": "general_question"
+  },
+  "parser_results": {
+    "agent_route_lite": {
+      "intent": "replan",
+      "domain": "scheduling",
+      "speech_act": "action_request",
+      "mutation_requested": true,
+      "employees": [
+        "E02"
+      ],
+      "force_or_override_intent": false,
+      "clarification_required": false,
+      "question_type": "general_question"
+    },
+    "agent_mutation": {
+      "operations": [],
+      "minimize_changes": true,
+      "clarification": "E02 周三优先安排哪个班次：早班还是晚班？"
+    }
+  },
+  "stages": [
+    {
+      "stage": "agent_route_lite",
+      "parser_name": "agent_route_lite",
+      "model": "gpt-5.6-sol",
+      "schema_name": "agent_route_lite",
+      "schema_bytes": 1277,
+      "message_count": 2,
+      "request_bytes": 3572,
+      "fallback_used": false,
+      "error_type": null,
+      "latency_ms": 5797,
+      "parser_latency_ms": 5797
+    },
+    {
+      "stage": "agent_mutation",
+      "parser_name": "agent_mutation",
+      "model": "gpt-5.6-sol",
+      "schema_name": "agent_mutation",
+      "schema_bytes": 990,
+      "message_count": 2,
+      "request_bytes": 7047,
+      "fallback_used": false,
+      "error_type": null,
+      "latency_ms": 7578,
+      "parser_latency_ms": 7578
+    }
+  ],
+  "final_route": {
+    "intent": "clarification",
+    "domain": "scheduling",
+    "speech_act": "question",
+    "classification_source": "deterministic",
+    "read_query": null,
+    "mutation_requested": false,
+    "target_week": null,
+    "target_iso_year": null,
+    "target_iso_week": null,
+    "employees": [
+      "E02"
+    ],
+    "changes": [],
+    "operations": [],
+    "operation": "add",
+    "minimize_changes": false,
+    "override_requested": false,
+    "force_generate": false,
+    "requested_overrides": [],
+    "forced_assignments": [],
+    "authorization_reason": null,
+    "reference": {
+      "type": "none",
+      "suggestion_id": null
+    },
+    "clarification": {
+      "required": true,
+      "question": "E02 周三优先安排哪个班次：早班还是晚班？"
+    }
+  },
+  "provider_outputs": [
+    {
+      "stage": "agent_route_lite",
+      "raw_content": "{\"clarification_required\":false,\"domain\":\"scheduling\",\"employees\":[\"E02\"],\"force_or_override_intent\":false,\"intent\":\"replan\",\"mutation_requested\":true,\"question_type\":\"general_question\",\"speech_act\":\"action_request\"}",
+      "latency_ms": 5788,
+      "provider_status": 200
+    },
+    {
+      "stage": "agent_route_lite",
+      "output": {
+        "clarification_required": false,
+        "domain": "scheduling",
+        "employees": [
+          "E02"
+        ],
+        "force_or_override_intent": false,
+        "intent": "replan",
+        "mutation_requested": true,
+        "question_type": "general_question",
+        "speech_act": "action_request"
+      },
+      "duration_ms": 5797
+    },
+    {
+      "stage": "agent_mutation",
+      "raw_content": "{\"clarification\":\"E02 周三优先安排哪个班次：早班还是晚班？\",\"minimize_changes\":true,\"operations\":[]}",
+      "latency_ms": 7573,
+      "provider_status": 200
+    },
+    {
+      "stage": "agent_mutation",
+      "output": {
+        "clarification": "E02 周三优先安排哪个班次：早班还是晚班？",
+        "minimize_changes": true,
+        "operations": []
+      },
+      "duration_ms": 7578
+    }
+  ],
+  "database_unchanged": true
+}

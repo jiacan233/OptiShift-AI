@@ -1,0 +1,173 @@
+{
+  "name": "router-only_leave_followup",
+  "input": "那如果只让 E01 周一请假呢？",
+  "model": "gpt-5.6-sol",
+  "status": "passed",
+  "failures": [],
+  "duration_seconds": 21.234000000171363,
+  "router_latency_ms": 21234,
+  "fallback_used": false,
+  "error_type": null,
+  "schema_bytes": 1277,
+  "lite_result": {
+    "intent": "what_if",
+    "domain": "scheduling",
+    "speech_act": "question",
+    "mutation_requested": false,
+    "employees": [
+      "E01"
+    ],
+    "force_or_override_intent": false,
+    "clarification_required": false,
+    "question_type": "coverage_analysis"
+  },
+  "parser_results": {
+    "agent_route_lite": {
+      "intent": "what_if",
+      "domain": "scheduling",
+      "speech_act": "question",
+      "mutation_requested": false,
+      "employees": [
+        "E01"
+      ],
+      "force_or_override_intent": false,
+      "clarification_required": false,
+      "question_type": "coverage_analysis"
+    },
+    "agent_mutation": {
+      "operations": [
+        {
+          "operation": "set",
+          "employee_id": "E01",
+          "type": "leave",
+          "day": "Mon",
+          "shift": null
+        }
+      ],
+      "minimize_changes": true,
+      "clarification": null
+    }
+  },
+  "stages": [
+    {
+      "stage": "agent_route_lite",
+      "parser_name": "agent_route_lite",
+      "model": "gpt-5.6-sol",
+      "schema_name": "agent_route_lite",
+      "schema_bytes": 1277,
+      "message_count": 2,
+      "request_bytes": 3570,
+      "fallback_used": false,
+      "error_type": null,
+      "latency_ms": 11719,
+      "parser_latency_ms": 11719
+    },
+    {
+      "stage": "agent_mutation",
+      "parser_name": "agent_mutation",
+      "model": "gpt-5.6-sol",
+      "schema_name": "agent_mutation",
+      "schema_bytes": 990,
+      "message_count": 2,
+      "request_bytes": 7045,
+      "fallback_used": false,
+      "error_type": null,
+      "latency_ms": 9515,
+      "parser_latency_ms": 9515
+    }
+  ],
+  "final_route": {
+    "intent": "what_if",
+    "domain": "scheduling",
+    "speech_act": "action_request",
+    "classification_source": "lite_router+deterministic",
+    "read_query": null,
+    "mutation_requested": true,
+    "target_week": null,
+    "target_iso_year": null,
+    "target_iso_week": null,
+    "employees": [
+      "E01"
+    ],
+    "changes": [
+      {
+        "employee_id": "E01",
+        "type": "leave",
+        "day": "Mon",
+        "shift": null
+      }
+    ],
+    "operations": [
+      {
+        "operation": "set",
+        "employee_id": "E01",
+        "type": "leave",
+        "day": "Mon",
+        "shift": null
+      }
+    ],
+    "operation": "set",
+    "minimize_changes": true,
+    "override_requested": false,
+    "force_generate": false,
+    "requested_overrides": [],
+    "forced_assignments": [],
+    "authorization_reason": null,
+    "reference": {
+      "type": "none",
+      "suggestion_id": null
+    },
+    "clarification": {
+      "required": false,
+      "question": null
+    }
+  },
+  "provider_outputs": [
+    {
+      "stage": "agent_route_lite",
+      "raw_content": "{\"clarification_required\":false,\"domain\":\"scheduling\",\"employees\":[\"E01\"],\"force_or_override_intent\":false,\"intent\":\"what_if\",\"mutation_requested\":false,\"question_type\":\"coverage_analysis\",\"speech_act\":\"question\"}",
+      "latency_ms": 11709,
+      "provider_status": 200
+    },
+    {
+      "stage": "agent_route_lite",
+      "output": {
+        "clarification_required": false,
+        "domain": "scheduling",
+        "employees": [
+          "E01"
+        ],
+        "force_or_override_intent": false,
+        "intent": "what_if",
+        "mutation_requested": false,
+        "question_type": "coverage_analysis",
+        "speech_act": "question"
+      },
+      "duration_ms": 11719
+    },
+    {
+      "stage": "agent_mutation",
+      "raw_content": "{\"clarification\":null,\"minimize_changes\":true,\"operations\":[{\"day\":\"Mon\",\"employee_id\":\"E01\",\"operation\":\"set\",\"shift\":null,\"type\":\"leave\"}]}",
+      "latency_ms": 9514,
+      "provider_status": 200
+    },
+    {
+      "stage": "agent_mutation",
+      "output": {
+        "clarification": null,
+        "minimize_changes": true,
+        "operations": [
+          {
+            "day": "Mon",
+            "employee_id": "E01",
+            "operation": "set",
+            "shift": null,
+            "type": "leave"
+          }
+        ]
+      },
+      "duration_ms": 9515
+    }
+  ],
+  "database_unchanged": true
+}

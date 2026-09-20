@@ -126,8 +126,10 @@ class AgentTools:
         self.scenarios.clear(conversation_id, browser_workspace_id, target_week, expected_revision)
 
     def get_scenario(self, *, conversation_id: str, target_week: date) -> dict[str, Any]:
+        from ..repository.dialogue import DialogueRepository
         state = self.scenarios.get(conversation_id, target_week)
         return {
+            "dialogue_state": DialogueRepository(self.scenarios.database).get(conversation_id, target_week).model_dump(mode="json"),
             "scenario_revision": state.revision if state else 0,
             "invalidated": state.invalidated if state else False,
             "message": state.message if state else None,
@@ -317,7 +319,6 @@ class AgentTools:
         employees = {employee.id: employee for employee in self.employees.list()}
         workload = Counter(item.employee_id for item in schedule.assignments)
         coverage: dict[str, dict[str, int]] = {}
-        preferred = 0
         for assignment in schedule.assignments:
             employee = employees.get(assignment.employee_id)
             key = f"{assignment.day.value}:{assignment.shift.value}"
@@ -329,13 +330,22 @@ class AgentTools:
                 skills = {skill.value for skill in employee.skills}
                 for skill in ("manager", "beverage", "cashier"):
                     slot[skill] += int(skill in skills)
-                preferred += int(employee.preferred_shift == assignment.shift)
         validation = self.scheduling.validate_stored(schedule.schedule_id)
         metadata_metrics = dict(display.get("metadata", {}).get("metrics", {}))
-        metadata_metrics.setdefault(
-            "preference_rate",
-            preferred / len(schedule.assignments) if schedule.assignments else 0.0,
-        )
+        if metadata_metrics.get("preference_scope") != "effective_employee_days":
+            from ..core import SchedulingFacts
+            from ..models import SchedulingContext
+
+            preference_context = SchedulingContext(
+                employees=list(employees.values()),
+                requested_changes=[
+                    ScheduleChange.model_validate(item)
+                    for item in display.get("metadata", {}).get("requested_changes", [])
+                ],
+            )
+            metadata_metrics.update(
+                SchedulingFacts(preference_context).preference_metrics(schedule.assignments)
+            )
         values = list(workload.values()) or [0]
         metadata_metrics.setdefault("workload_gap", max(values) - min(values))
         affected_assignments = [

@@ -47,12 +47,12 @@ def capacity_precheck(context: SchedulingContext) -> list[CapacityConflict]:
     )
     conflicts: list[CapacityConflict] = []
     for day in WEEK_DAYS:
-        available = [
-            employee
-            for employee in context.employees
-            if facts.employee_can_work(employee.id, day)
-        ]
         for shift in SHIFTS:
+            available = [
+                employee
+                for employee in context.employees
+                if facts.employee_can_work(employee.id, day, shift)
+            ]
             for rule_id, skill, required, label in requirements:
                 actual = sum(skill in employee.skills for employee in available)
                 if actual < required:
@@ -225,12 +225,12 @@ def candidate_blocking_analysis(
                 continue
             reasons: list[BlockingReason] = []
             policy = facts.policies[employee.id]
-            if not policy.can_work(conflict.day):
+            if not policy.can_work(conflict.day, conflict.shift):
                 reasons.append(
                     BlockingReason(
                         rule_id="R08",
-                        message="Employee is on leave or unavailable on this day.",
-                        details={"day": conflict.day.value},
+                        message="Employee is on leave or unavailable for this shift.",
+                        details={"day": conflict.day.value, "shift": conflict.shift.value},
                     )
                 )
             other_shifts = [

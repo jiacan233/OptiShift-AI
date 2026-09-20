@@ -1,0 +1,40 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- D:\ee\code\OptiShift-AI\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: D:\ee\code\OptiShift-AI
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 30 items
+
+tests/evals/test_force_eval.py::test_eval_case_a_explicit_force_leave_override PASSED [  3%]
+tests/evals/test_force_eval.py::test_eval_case_b_conflict_request_no_force PASSED [  6%]
+tests/evals/test_force_eval.py::test_eval_case_c_explicit_do_not_force PASSED [ 10%]
+tests/evals/test_force_eval.py::test_eval_live_llm_force_evaluation PASSED [ 13%]
+tests/evals/test_live_agent_eval.py::test_live_read_agent[sun_staffing_after_previous_suggestion] PASSED [ 16%]
+tests/evals/test_live_agent_eval.py::test_live_read_agent[sun_assignments] PASSED [ 20%]
+tests/evals/test_live_agent_eval.py::test_live_read_agent[sun_evening_beverage] PASSED [ 23%]
+tests/evals/test_live_agent_eval.py::test_live_read_agent[e01_monday_absence] PASSED [ 26%]
+tests/evals/test_live_agent_eval.py::test_live_read_agent[e03_wednesday_absence] PASSED [ 30%]
+tests/evals/test_live_agent_eval.py::test_live_read_agent[explicit_second_suggestion] PASSED [ 33%]
+tests/evals/test_live_agent_eval.py::test_live_read_agent[remove_e07_evening] PASSED [ 36%]
+tests/evals/test_live_agent_eval.py::test_live_read_agent[e15_sunday_assignment] PASSED [ 40%]
+tests/evals/test_live_agent_eval.py::test_live_read_agent[busiest_employee] PASSED [ 43%]
+tests/evals/test_live_agent_eval.py::test_live_read_agent[current_rule_violations] PASSED [ 46%]
+tests/evals/test_live_agent_eval.py::test_live_read_agent[previous_version_diff] PASSED [ 50%]
+tests/evals/test_live_agent_eval.py::test_live_read_agent[why_infeasible] PASSED [ 53%]
+tests/evals/test_live_agent_eval.py::test_live_read_agent[one_fewer_sunday_morning] PASSED [ 56%]
+tests/evals/test_live_agent_eval.py::test_live_read_agent[explicit_history_optout] PASSED [ 60%]
+tests/evals/test_live_router_eval.py::test_live_router[two_preference_shifts] PASSED [ 63%]
+tests/evals/test_live_router_eval.py::test_live_router[preference_missing_shift] PASSED [ 66%]
+tests/evals/test_live_router_eval.py::test_live_router[e17_unspecified] PASSED [ 70%]
+tests/evals/test_live_router_eval.py::test_live_router[e01_leave_replan] PASSED [ 73%]
+tests/evals/test_live_router_eval.py::test_live_router[sunday_staffing] PASSED [ 76%]
+tests/evals/test_live_router_eval.py::test_live_router[force_missing_scope] PASSED [ 80%]
+tests/evals/test_live_router_eval.py::test_live_router[hello] PASSED     [ 83%]
+tests/evals/test_live_router_eval.py::test_live_router[e17_feasibility] PASSED [ 86%]
+tests/evals/test_live_router_eval.py::test_live_router[negative_force] PASSED [ 90%]
+tests/evals/test_live_router_eval.py::test_live_router[previous_suggestion] PASSED [ 93%]
+tests/evals/test_live_router_eval.py::test_live_router[multi_employee_days] PASSED [ 96%]
+tests/evals/test_live_router_eval.py::test_live_router[ordered_operations] PASSED [100%]
+
+======================= 30 passed in 358.63s (0:05:58) ========================

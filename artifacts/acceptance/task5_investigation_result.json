@@ -1,0 +1,743 @@
+{
+  "test": "Task 5 Investigation",
+  "date": "2026-09-20T07:25:32.659Z",
+  "networkTimeline": [
+    {
+      "elapsedMs": 4506,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/employees",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 4506,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/rules",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 4506,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/latest?status=draft",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 4507,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/latest?status=confirmed",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 4577,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/employees",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 4579,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/rules",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 4631,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/latest?status=draft",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 4645,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/latest?status=confirmed",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 4654,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/week-context?week_start=2026-09-28",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 4747,
+      "type": "request",
+      "method": "POST",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedule/validate",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 4750,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/week-context?week_start=2026-09-28",
+      "status": 200,
+      "details": "{\"week_start\":\"2026-09-28\",\"confirmed_schedule\":{\"schedule_id\":\"sch_aebfa4f08806\",\"version\":4,\"parent_schedule_id\":\"sch_c7883ea3a8cf\",\"status\":\"confirmed\",\"week_start\":\"2026-09-28\",\"assignments\":[{\"employee_id\":\"E01\",\"day\":\"Fri\",\"shift\":\"evening\"},{\"employee_id\":\"E06\",\"day\":\"Fri\",\"shift\":\"evening\"},"
+    },
+    {
+      "elapsedMs": 4856,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/weeks?anchor_week_start=2026-09-28&radius=6",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 4858,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedule/validate",
+      "status": 200,
+      "details": "{\"status\":\"feasible\",\"schedule_id\":\"sch_7a6847714869\",\"version\":5,\"schedule_status\":\"draft\",\"solver_status\":\"optimal\",\"schedule\":{\"schedule_id\":\"sch_7a6847714869\",\"version\":5,\"parent_schedule_id\":\"sch_aebfa4f08806\",\"status\":\"draft\",\"week_start\":\"2026-09-28\",\"assignments\":[{\"employee_id\":\"E01\",\"day\":"
+    },
+    {
+      "elapsedMs": 5056,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/weeks?anchor_week_start=2026-09-28&radius=6",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 5093,
+      "type": "request",
+      "method": "POST",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 5221,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 5222,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations?browser_workspace_id=bw_6ee4e8a2314647fba42663cb8965fb0e",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 5279,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations?browser_workspace_id=bw_6ee4e8a2314647fba42663cb8965fb0e",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 7384,
+      "type": "request",
+      "method": "POST",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedule/cancel",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 7454,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedule/cancel",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 7454,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/week-context?week_start=2026-09-28",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 7615,
+      "type": "request",
+      "method": "POST",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedule/validate",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 7616,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/week-context?week_start=2026-09-28",
+      "status": 200,
+      "details": "{\"week_start\":\"2026-09-28\",\"confirmed_schedule\":{\"schedule_id\":\"sch_aebfa4f08806\",\"version\":4,\"parent_schedule_id\":\"sch_c7883ea3a8cf\",\"status\":\"confirmed\",\"week_start\":\"2026-09-28\",\"assignments\":[{\"employee_id\":\"E01\",\"day\":\"Fri\",\"shift\":\"evening\"},{\"employee_id\":\"E06\",\"day\":\"Fri\",\"shift\":\"evening\"},"
+    },
+    {
+      "elapsedMs": 7745,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/weeks?anchor_week_start=2026-09-28&radius=6",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 7761,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedule/validate",
+      "status": 200,
+      "details": "{\"status\":\"feasible\",\"schedule_id\":\"sch_aebfa4f08806\",\"version\":4,\"schedule_status\":\"confirmed\",\"solver_status\":\"feasible\",\"schedule\":{\"schedule_id\":\"sch_aebfa4f08806\",\"version\":4,\"parent_schedule_id\":\"sch_c7883ea3a8cf\",\"status\":\"confirmed\",\"week_start\":\"2026-09-28\",\"assignments\":[{\"employee_id\":\"E0"
+    },
+    {
+      "elapsedMs": 7925,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/weeks?anchor_week_start=2026-09-28&radius=6",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 11564,
+      "type": "request",
+      "method": "POST",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 11601,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 11602,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations?browser_workspace_id=bw_6ee4e8a2314647fba42663cb8965fb0e",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 11653,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations?browser_workspace_id=bw_6ee4e8a2314647fba42663cb8965fb0e",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 12661,
+      "type": "request",
+      "method": "POST",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations/conv_8174c557846c4fd89ce975e973724526/messages/stream",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 12694,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations/conv_8174c557846c4fd89ce975e973724526/messages/stream",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 26476,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/week-context?week_start=2026-09-28",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 26554,
+      "type": "request",
+      "method": "POST",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedule/validate",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 26557,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/week-context?week_start=2026-09-28",
+      "status": 200,
+      "details": "{\"week_start\":\"2026-09-28\",\"confirmed_schedule\":{\"schedule_id\":\"sch_aebfa4f08806\",\"version\":4,\"parent_schedule_id\":\"sch_c7883ea3a8cf\",\"status\":\"confirmed\",\"week_start\":\"2026-09-28\",\"assignments\":[{\"employee_id\":\"E01\",\"day\":\"Fri\",\"shift\":\"evening\"},{\"employee_id\":\"E06\",\"day\":\"Fri\",\"shift\":\"evening\"},"
+    },
+    {
+      "elapsedMs": 26667,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/weeks?anchor_week_start=2026-09-28&radius=6",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 26675,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedule/validate",
+      "status": 200,
+      "details": "{\"status\":\"feasible\",\"schedule_id\":\"sch_220434e9a150\",\"version\":5,\"schedule_status\":\"draft\",\"solver_status\":\"optimal\",\"schedule\":{\"schedule_id\":\"sch_220434e9a150\",\"version\":5,\"parent_schedule_id\":\"sch_aebfa4f08806\",\"status\":\"draft\",\"week_start\":\"2026-09-28\",\"assignments\":[{\"employee_id\":\"E01\",\"day\":"
+    },
+    {
+      "elapsedMs": 26841,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/weeks?anchor_week_start=2026-09-28&radius=6",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 26841,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations/conv_8174c557846c4fd89ce975e973724526?browser_workspace_id=bw_6ee4e8a2314647fba42663cb8965fb0e",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 26940,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations/conv_8174c557846c4fd89ce975e973724526?browser_workspace_id=bw_6ee4e8a2314647fba42663cb8965fb0e",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 26980,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations?browser_workspace_id=bw_6ee4e8a2314647fba42663cb8965fb0e",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 27037,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations?browser_workspace_id=bw_6ee4e8a2314647fba42663cb8965fb0e",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 44138,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/employees",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 44139,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/rules",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 44139,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/latest?status=draft",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 44139,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/latest?status=confirmed",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 44174,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/rules",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 44181,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/employees",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 44206,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/latest?status=draft",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 44212,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/latest?status=confirmed",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 44213,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/week-context?week_start=2026-09-28",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 44291,
+      "type": "request",
+      "method": "POST",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedule/validate",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 44292,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/week-context?week_start=2026-09-28",
+      "status": 200,
+      "details": "{\"week_start\":\"2026-09-28\",\"confirmed_schedule\":{\"schedule_id\":\"sch_aebfa4f08806\",\"version\":4,\"parent_schedule_id\":\"sch_c7883ea3a8cf\",\"status\":\"confirmed\",\"week_start\":\"2026-09-28\",\"assignments\":[{\"employee_id\":\"E01\",\"day\":\"Fri\",\"shift\":\"evening\"},{\"employee_id\":\"E06\",\"day\":\"Fri\",\"shift\":\"evening\"},"
+    },
+    {
+      "elapsedMs": 44398,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/weeks?anchor_week_start=2026-09-28&radius=6",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 44400,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedule/validate",
+      "status": 200,
+      "details": "{\"status\":\"feasible\",\"schedule_id\":\"sch_220434e9a150\",\"version\":5,\"schedule_status\":\"draft\",\"solver_status\":\"optimal\",\"schedule\":{\"schedule_id\":\"sch_220434e9a150\",\"version\":5,\"parent_schedule_id\":\"sch_aebfa4f08806\",\"status\":\"draft\",\"week_start\":\"2026-09-28\",\"assignments\":[{\"employee_id\":\"E01\",\"day\":"
+    },
+    {
+      "elapsedMs": 44584,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/weeks?anchor_week_start=2026-09-28&radius=6",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 44624,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations/conv_8174c557846c4fd89ce975e973724526?browser_workspace_id=bw_6ee4e8a2314647fba42663cb8965fb0e",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 44712,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations/conv_8174c557846c4fd89ce975e973724526?browser_workspace_id=bw_6ee4e8a2314647fba42663cb8965fb0e",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 44795,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/week-context?week_start=2026-09-28",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 44881,
+      "type": "request",
+      "method": "POST",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedule/validate",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 44882,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/week-context?week_start=2026-09-28",
+      "status": 200,
+      "details": "{\"week_start\":\"2026-09-28\",\"confirmed_schedule\":{\"schedule_id\":\"sch_aebfa4f08806\",\"version\":4,\"parent_schedule_id\":\"sch_c7883ea3a8cf\",\"status\":\"confirmed\",\"week_start\":\"2026-09-28\",\"assignments\":[{\"employee_id\":\"E01\",\"day\":\"Fri\",\"shift\":\"evening\"},{\"employee_id\":\"E06\",\"day\":\"Fri\",\"shift\":\"evening\"},"
+    },
+    {
+      "elapsedMs": 44986,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/weeks?anchor_week_start=2026-09-28&radius=6",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 44998,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedule/validate",
+      "status": 200,
+      "details": "{\"status\":\"feasible\",\"schedule_id\":\"sch_220434e9a150\",\"version\":5,\"schedule_status\":\"draft\",\"solver_status\":\"optimal\",\"schedule\":{\"schedule_id\":\"sch_220434e9a150\",\"version\":5,\"parent_schedule_id\":\"sch_aebfa4f08806\",\"status\":\"draft\",\"week_start\":\"2026-09-28\",\"assignments\":[{\"employee_id\":\"E01\",\"day\":"
+    },
+    {
+      "elapsedMs": 45153,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/weeks?anchor_week_start=2026-09-28&radius=6",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 45154,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations?browser_workspace_id=bw_6ee4e8a2314647fba42663cb8965fb0e",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 45215,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/agent/conversations?browser_workspace_id=bw_6ee4e8a2314647fba42663cb8965fb0e",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 49499,
+      "type": "request",
+      "method": "POST",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedule/cancel",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 49568,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedule/cancel",
+      "status": 200,
+      "details": null
+    },
+    {
+      "elapsedMs": 49571,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/week-context?week_start=2026-09-28",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 49677,
+      "type": "request",
+      "method": "POST",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedule/validate",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 49678,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/week-context?week_start=2026-09-28",
+      "status": 200,
+      "details": "{\"week_start\":\"2026-09-28\",\"confirmed_schedule\":{\"schedule_id\":\"sch_aebfa4f08806\",\"version\":4,\"parent_schedule_id\":\"sch_c7883ea3a8cf\",\"status\":\"confirmed\",\"week_start\":\"2026-09-28\",\"assignments\":[{\"employee_id\":\"E01\",\"day\":\"Fri\",\"shift\":\"evening\"},{\"employee_id\":\"E06\",\"day\":\"Fri\",\"shift\":\"evening\"},"
+    },
+    {
+      "elapsedMs": 49838,
+      "type": "request",
+      "method": "GET",
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/weeks?anchor_week_start=2026-09-28&radius=6",
+      "status": null,
+      "details": null
+    },
+    {
+      "elapsedMs": 49850,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedule/validate",
+      "status": 200,
+      "details": "{\"status\":\"feasible\",\"schedule_id\":\"sch_aebfa4f08806\",\"version\":4,\"schedule_status\":\"confirmed\",\"solver_status\":\"feasible\",\"schedule\":{\"schedule_id\":\"sch_aebfa4f08806\",\"version\":4,\"parent_schedule_id\":\"sch_c7883ea3a8cf\",\"status\":\"confirmed\",\"week_start\":\"2026-09-28\",\"assignments\":[{\"employee_id\":\"E0"
+    },
+    {
+      "elapsedMs": 50008,
+      "type": "response",
+      "method": null,
+      "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/api/schedules/weeks?anchor_week_start=2026-09-28&radius=6",
+      "status": 200,
+      "details": null
+    }
+  ],
+  "stateSnapshots": [
+    {
+      "bubbleSnippet": "",
+      "hasReadingPlan": false,
+      "hasReadingWeek": false,
+      "hasDraftCard": false,
+      "hasConfirmBtn": true,
+      "isSendingSpinner": true,
+      "elapsedMs": 2079
+    },
+    {
+      "bubbleSnippet": "",
+      "hasReadingPlan": false,
+      "hasReadingWeek": false,
+      "hasDraftCard": false,
+      "hasConfirmBtn": true,
+      "isSendingSpinner": true,
+      "elapsedMs": 4092
+    },
+    {
+      "bubbleSnippet": "",
+      "hasReadingPlan": false,
+      "hasReadingWeek": false,
+      "hasDraftCard": false,
+      "hasConfirmBtn": true,
+      "isSendingSpinner": true,
+      "elapsedMs": 6102
+    },
+    {
+      "bubbleSnippet": "",
+      "hasReadingPlan": false,
+      "hasReadingWeek": false,
+      "hasDraftCard": false,
+      "hasConfirmBtn": true,
+      "isSendingSpinner": true,
+      "elapsedMs": 8116
+    },
+    {
+      "bubbleSnippet": "",
+      "hasReadingPlan": false,
+      "hasReadingWeek": false,
+      "hasDraftCard": false,
+      "hasConfirmBtn": true,
+      "isSendingSpinner": true,
+      "elapsedMs": 10132
+    },
+    {
+      "bubbleSnippet": "",
+      "hasReadingPlan": false,
+      "hasReadingWeek": false,
+      "hasDraftCard": false,
+      "hasConfirmBtn": true,
+      "isSendingSpinner": true,
+      "elapsedMs": 12147
+    },
+    {
+      "bubbleSnippet": "",
+      "hasReadingPlan": false,
+      "hasReadingWeek": false,
+      "hasDraftCard": true,
+      "hasConfirmBtn": true,
+      "isSendingSpinner": true,
+      "elapsedMs": 14161
+    },
+    {
+      "bubbleSnippet": "",
+      "hasReadingPlan": false,
+      "hasReadingWeek": false,
+      "hasDraftCard": true,
+      "hasConfirmBtn": true,
+      "isSendingSpinner": false,
+      "elapsedMs": 16175
+    },
+    {
+      "bubbleSnippet": "",
+      "hasReadingPlan": false,
+      "hasReadingWeek": false,
+      "hasDraftCard": true,
+      "hasConfirmBtn": true,
+      "isSendingSpinner": false,
+      "elapsedMs": 18191
+    },
+    {
+      "bubbleSnippet": "",
+      "hasReadingPlan": false,
+      "hasReadingWeek": false,
+      "hasDraftCard": true,
+      "hasConfirmBtn": true,
+      "isSendingSpinner": false,
+      "elapsedMs": 20206
+    },
+    {
+      "bubbleSnippet": "",
+      "hasReadingPlan": false,
+      "hasReadingWeek": false,
+      "hasDraftCard": true,
+      "hasConfirmBtn": true,
+      "isSendingSpinner": false,
+      "elapsedMs": 22284
+    },
+    {
+      "bubbleSnippet": "",
+      "hasReadingPlan": false,
+      "hasReadingWeek": false,
+      "hasDraftCard": true,
+      "hasConfirmBtn": true,
+      "isSendingSpinner": false,
+      "elapsedMs": 24298
+    },
+    {
+      "bubbleSnippet": "",
+      "hasReadingPlan": false,
+      "hasReadingWeek": false,
+      "hasDraftCard": true,
+      "hasConfirmBtn": true,
+      "isSendingSpinner": false,
+      "elapsedMs": 26310
+    }
+  ],
+  "finalDomState": {
+    "plansText": "智能排班方案\n预览排班与方案差异，确认后生效\n当前版\nv4\n\n当前正式生效的排班\n\n草稿方案\n待确认\n\nv5 · 预览后确认生效\n\n暂无候选方案\n\n多方案预览与应用暂未开放。\n\nAI 生成说明\n· 2026/9/20 07:25:03\n待确认\n已生成草稿 v5\n66 条班次安排 · v5\n偏好满足率 45% · 工作量差距 5 班\n规则校验 10/10 项通过\n查看生成说明\n\n确认后该排班版本正式生效。\n\n查看更多分析\n取消草稿\n确认生效\n\n先预览方案，\n再确认生效",
+    "workbenchSnippet": "排班工作台\n第34周 · 08/17 - 08/23 · 未生成\n第35周 · 08/24 - 08/30 · 未生成\n第36周 · 08/31 - 09/06 · 未生成\n第37周 · 09/07 - 09/13 · 未生成\n第38周 · 09/14 - 09/20 · 未生成\n第39周 · 09/21 - 09/27 · v2\n第40周 · 09/28 - 10/04 · v5 · 当前\n第41周 · 10/05 - 10/11 · v5\n第42周 · 10/12 - 10/18 · 未生成\n第43周 · 10/19 - 10/25 · 未生成\n第44周 · 10/26 - 11/01 · 未生成\n第45周 · 11/02 - 11/08 · 未生成\n第46周 · 11/09 - 11/15 · 未生成\n2026年第40周\n2026年第40周 · v5 待确认草稿\n09月28日 - 1",
+    "bubbleText": "",
+    "hasDraftV6": false,
+    "hasReadingPlan": false,
+    "hasReadingWeek": false,
+    "e02Cells": [
+      "早班 4/4\n晚班 4/4\n早班 4/4\n晚班 4/4\n早班 4/4\n晚班 4/4\n早班 4/4\n晚班 4/4\n早班 5/4\n晚班 5/4\n早班 6/6\n晚班 6/6\n早班 6/6\n晚班 6/6\n员工排班\n20 / 20 员工\n全部岗位 ▾\n店长\n副店长\n值班主管\n高级店员\n店员\n兼职\n全部状态 ▾\n本周有班次\n本周无班 (0班次)\n包含请假\n显示无班员工\n员工主数据 · 资质与岗位\nMon (周一)\n09/28\nTue (周二)\n09/29\nWed (周三)\n09/30\nThu (周四)\n10/01\nFri (周五)\n10/02\nSat (周六)\n10/03\nSun (周日)\n10/04\n林逸 (E01)\n店长\n偏早\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n请假\nR-08锁定\n09:00 - 17:00\n早班·值守\n13:00 - 21:00\n晚班·值守\nOff\n09:00 - 17:00\n早班·值守\n张宇 (E02)\n副店长\n偏晚\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\nOff\nOff\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\n陈思琪 (E03)\n值班主管\n无偏好\n09:00 - 17:00\n早班·值守\nOff\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n限制·Off\n限制·Off\n赵子轩 (E04)\n值班主管\n偏早\n限制·Off\n限制·Off\n09:00 - 17:00\n早班·值守\n13:00 - 21:00\n晚班·值守\nOff\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\n孙静 (E05)\n高级店员\n偏晚\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n李默 (E06)\n店员\n偏早\nOff\n请假\nR-08锁定\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n王小雨 (E07)\n店员\n偏晚\nOff\n09:00 - 17:00\n早班\nOff\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n周凯 (E08)\n店员\n无偏好\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\nOff\nOff\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n限制·Off\n吴晓楠 (E09)\n店员\n偏早\n09:00 - 17:00\n早班\n限制·Off\n09:00 - 17:00\n早班\n限制·Off\nOff\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n刘畅 (E10)\n店员\n无偏好\n限制·Off\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\nOff\nOff\n钱佳 (E11)\n店员\n偏晚\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\nOff\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\nOff\n何明 (E12)\n店员\n偏早\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\nOff\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n限制·Off\n限制·Off\n兼职小苏 (E13)\n兼职\n偏早\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n09:00 - 17:00\n早班\nOff\n兼职阿豪 (E14)\n兼职\n偏晚\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n兼职美美 (E15)\n兼职\n无偏好\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n兼职小锋 (E16)\n兼职\n无偏好\n限制·Off\n限制·Off\n13:00 - 21:00\n晚班\nOff\n限制·Off\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n郑涛 (E17)\n店员\n无偏好\n本周未排\n请假\nR-08锁定\nOff\nOff\nOff\nOff\nOff\nOff\n冯婷 (E18)\n店员\n偏晚\n13:00 - 21:00\n晚班\nOff\nOff\nOff\nOff\n限制·Off\n限制·Off\n兼职乐乐 (E19)\n兼职\n无偏好\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n限制·Off\nOff\n13:00 - 21:00\n晚班\n白雪 (E20)\n店员\n偏早\n限制·Off\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n请假\nR-08锁定\nOff\nOff\n09:00 - 17:00\n早班\n本周人员安排\n已排班\n19 人\n未排班\n1 人\n在册请假\n4 人\n\n根据当前周排班与员工档案统计；实际考勤尚未接入。\n\n最近排班版本\nv5 · 待确认草稿\n2026/9/20 07:25:03\nv5 · 已取消\n2026/9/20 07:18:26\nv5 · 已取消\n2026/9/19 15:15:15",
+      "员工排班\n20 / 20 员工\n全部岗位 ▾\n店长\n副店长\n值班主管\n高级店员\n店员\n兼职\n全部状态 ▾\n本周有班次\n本周无班 (0班次)\n包含请假\n显示无班员工\n员工主数据 · 资质与岗位\nMon (周一)\n09/28\nTue (周二)\n09/29\nWed (周三)\n09/30\nThu (周四)\n10/01\nFri (周五)\n10/02\nSat (周六)\n10/03\nSun (周日)\n10/04\n林逸 (E01)\n店长\n偏早\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n请假\nR-08锁定\n09:00 - 17:00\n早班·值守\n13:00 - 21:00\n晚班·值守\nOff\n09:00 - 17:00\n早班·值守\n张宇 (E02)\n副店长\n偏晚\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\nOff\nOff\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\n陈思琪 (E03)\n值班主管\n无偏好\n09:00 - 17:00\n早班·值守\nOff\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n限制·Off\n限制·Off\n赵子轩 (E04)\n值班主管\n偏早\n限制·Off\n限制·Off\n09:00 - 17:00\n早班·值守\n13:00 - 21:00\n晚班·值守\nOff\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\n孙静 (E05)\n高级店员\n偏晚\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n李默 (E06)\n店员\n偏早\nOff\n请假\nR-08锁定\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n王小雨 (E07)\n店员\n偏晚\nOff\n09:00 - 17:00\n早班\nOff\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n周凯 (E08)\n店员\n无偏好\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\nOff\nOff\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n限制·Off\n吴晓楠 (E09)\n店员\n偏早\n09:00 - 17:00\n早班\n限制·Off\n09:00 - 17:00\n早班\n限制·Off\nOff\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n刘畅 (E10)\n店员\n无偏好\n限制·Off\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\nOff\nOff\n钱佳 (E11)\n店员\n偏晚\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\nOff\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\nOff\n何明 (E12)\n店员\n偏早\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\nOff\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n限制·Off\n限制·Off\n兼职小苏 (E13)\n兼职\n偏早\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n09:00 - 17:00\n早班\nOff\n兼职阿豪 (E14)\n兼职\n偏晚\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n兼职美美 (E15)\n兼职\n无偏好\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n兼职小锋 (E16)\n兼职\n无偏好\n限制·Off\n限制·Off\n13:00 - 21:00\n晚班\nOff\n限制·Off\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n郑涛 (E17)\n店员\n无偏好\n本周未排\n请假\nR-08锁定\nOff\nOff\nOff\nOff\nOff\nOff\n冯婷 (E18)\n店员\n偏晚\n13:00 - 21:00\n晚班\nOff\nOff\nOff\nOff\n限制·Off\n限制·Off\n兼职乐乐 (E19)\n兼职\n无偏好\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n限制·Off\nOff\n13:00 - 21:00\n晚班\n白雪 (E20)\n店员\n偏早\n限制·Off\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n请假\nR-08锁定\nOff\nOff\n09:00 - 17:00\n早班",
+      "员工主数据 · 资质与岗位\nMon (周一)\n09/28\nTue (周二)\n09/29\nWed (周三)\n09/30\nThu (周四)\n10/01\nFri (周五)\n10/02\nSat (周六)\n10/03\nSun (周日)\n10/04\n林逸 (E01)\n店长\n偏早\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n请假\nR-08锁定\n09:00 - 17:00\n早班·值守\n13:00 - 21:00\n晚班·值守\nOff\n09:00 - 17:00\n早班·值守\n张宇 (E02)\n副店长\n偏晚\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\nOff\nOff\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\n陈思琪 (E03)\n值班主管\n无偏好\n09:00 - 17:00\n早班·值守\nOff\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n限制·Off\n限制·Off\n赵子轩 (E04)\n值班主管\n偏早\n限制·Off\n限制·Off\n09:00 - 17:00\n早班·值守\n13:00 - 21:00\n晚班·值守\nOff\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\n孙静 (E05)\n高级店员\n偏晚\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n李默 (E06)\n店员\n偏早\nOff\n请假\nR-08锁定\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n王小雨 (E07)\n店员\n偏晚\nOff\n09:00 - 17:00\n早班\nOff\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n周凯 (E08)\n店员\n无偏好\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\nOff\nOff\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n限制·Off\n吴晓楠 (E09)\n店员\n偏早\n09:00 - 17:00\n早班\n限制·Off\n09:00 - 17:00\n早班\n限制·Off\nOff\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n刘畅 (E10)\n店员\n无偏好\n限制·Off\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\nOff\nOff\n钱佳 (E11)\n店员\n偏晚\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\nOff\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\nOff\n何明 (E12)\n店员\n偏早\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\nOff\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n限制·Off\n限制·Off\n兼职小苏 (E13)\n兼职\n偏早\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n09:00 - 17:00\n早班\nOff\n兼职阿豪 (E14)\n兼职\n偏晚\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n兼职美美 (E15)\n兼职\n无偏好\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n兼职小锋 (E16)\n兼职\n无偏好\n限制·Off\n限制·Off\n13:00 - 21:00\n晚班\nOff\n限制·Off\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n郑涛 (E17)\n店员\n无偏好\n本周未排\n请假\nR-08锁定\nOff\nOff\nOff\nOff\nOff\nOff\n冯婷 (E18)\n店员\n偏晚\n13:00 - 21:00\n晚班\nOff\nOff\nOff\nOff\n限制·Off\n限制·Off\n兼职乐乐 (E19)\n兼职\n无偏好\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n限制·Off\nOff\n13:00 - 21:00\n晚班\n白雪 (E20)\n店员\n偏早\n限制·Off\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n请假\nR-08锁定\nOff\nOff\n09:00 - 17:00\n早班",
+      "员工主数据 · 资质与岗位\nMon (周一)\n09/28\nTue (周二)\n09/29\nWed (周三)\n09/30\nThu (周四)\n10/01\nFri (周五)\n10/02\nSat (周六)\n10/03\nSun (周日)\n10/04\n林逸 (E01)\n店长\n偏早\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n请假\nR-08锁定\n09:00 - 17:00\n早班·值守\n13:00 - 21:00\n晚班·值守\nOff\n09:00 - 17:00\n早班·值守\n张宇 (E02)\n副店长\n偏晚\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\nOff\nOff\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\n陈思琪 (E03)\n值班主管\n无偏好\n09:00 - 17:00\n早班·值守\nOff\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n限制·Off\n限制·Off\n赵子轩 (E04)\n值班主管\n偏早\n限制·Off\n限制·Off\n09:00 - 17:00\n早班·值守\n13:00 - 21:00\n晚班·值守\nOff\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\n孙静 (E05)\n高级店员\n偏晚\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n李默 (E06)\n店员\n偏早\nOff\n请假\nR-08锁定\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n王小雨 (E07)\n店员\n偏晚\nOff\n09:00 - 17:00\n早班\nOff\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n周凯 (E08)\n店员\n无偏好\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\nOff\nOff\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n限制·Off\n吴晓楠 (E09)\n店员\n偏早\n09:00 - 17:00\n早班\n限制·Off\n09:00 - 17:00\n早班\n限制·Off\nOff\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n刘畅 (E10)\n店员\n无偏好\n限制·Off\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\nOff\nOff\n钱佳 (E11)\n店员\n偏晚\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\nOff\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\nOff\n何明 (E12)\n店员\n偏早\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\nOff\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n限制·Off\n限制·Off\n兼职小苏 (E13)\n兼职\n偏早\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n09:00 - 17:00\n早班\nOff\n兼职阿豪 (E14)\n兼职\n偏晚\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n兼职美美 (E15)\n兼职\n无偏好\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n兼职小锋 (E16)\n兼职\n无偏好\n限制·Off\n限制·Off\n13:00 - 21:00\n晚班\nOff\n限制·Off\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n郑涛 (E17)\n店员\n无偏好\n本周未排\n请假\nR-08锁定\nOff\nOff\nOff\nOff\nOff\nOff\n冯婷 (E18)\n店员\n偏晚\n13:00 - 21:00\n晚班\nOff\nOff\nOff\nOff\n限制·Off\n限制·Off\n兼职乐乐 (E19)\n兼职\n无偏好\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n限制·Off\nOff\n13:00 - 21:00\n晚班\n白雪 (E20)\n店员\n偏早\n限制·Off\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n请假\nR-08锁定\nOff\nOff\n09:00 - 17:00\n早班",
+      "林逸 (E01)\n店长\n偏早\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n请假\nR-08锁定\n09:00 - 17:00\n早班·值守\n13:00 - 21:00\n晚班·值守\nOff\n09:00 - 17:00\n早班·值守\n张宇 (E02)\n副店长\n偏晚\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\nOff\nOff\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\n陈思琪 (E03)\n值班主管\n无偏好\n09:00 - 17:00\n早班·值守\nOff\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n限制·Off\n限制·Off\n赵子轩 (E04)\n值班主管\n偏早\n限制·Off\n限制·Off\n09:00 - 17:00\n早班·值守\n13:00 - 21:00\n晚班·值守\nOff\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\n孙静 (E05)\n高级店员\n偏晚\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n09:00 - 17:00\n早班·值守\n李默 (E06)\n店员\n偏早\nOff\n请假\nR-08锁定\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n王小雨 (E07)\n店员\n偏晚\nOff\n09:00 - 17:00\n早班\nOff\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n周凯 (E08)\n店员\n无偏好\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\nOff\nOff\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n限制·Off\n吴晓楠 (E09)\n店员\n偏早\n09:00 - 17:00\n早班\n限制·Off\n09:00 - 17:00\n早班\n限制·Off\nOff\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n刘畅 (E10)\n店员\n无偏好\n限制·Off\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\nOff\nOff\n钱佳 (E11)\n店员\n偏晚\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\nOff\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\nOff\n何明 (E12)\n店员\n偏早\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\nOff\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n限制·Off\n限制·Off\n兼职小苏 (E13)\n兼职\n偏早\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n09:00 - 17:00\n早班\nOff\n兼职阿豪 (E14)\n兼职\n偏晚\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n兼职美美 (E15)\n兼职\n无偏好\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n兼职小锋 (E16)\n兼职\n无偏好\n限制·Off\n限制·Off\n13:00 - 21:00\n晚班\nOff\n限制·Off\n13:00 - 21:00\n晚班\n13:00 - 21:00\n晚班\n郑涛 (E17)\n店员\n无偏好\n本周未排\n请假\nR-08锁定\nOff\nOff\nOff\nOff\nOff\nOff\n冯婷 (E18)\n店员\n偏晚\n13:00 - 21:00\n晚班\nOff\nOff\nOff\nOff\n限制·Off\n限制·Off\n兼职乐乐 (E19)\n兼职\n无偏好\n限制·Off\n限制·Off\n限制·Off\n限制·Off\n限制·Off\nOff\n13:00 - 21:00\n晚班\n白雪 (E20)\n店员\n偏早\n限制·Off\n09:00 - 17:00\n早班\n09:00 - 17:00\n早班\n请假\nR-08锁定\nOff\nOff\n09:00 - 17:00\n早班",
+      "张宇 (E02)\n副店长\n偏晚\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守\nOff\nOff\n13:00 - 21:00\n晚班·值守\n13:00 - 21:00\n晚班·值守",
+      "张宇 (E02)\n副店长\n偏晚",
+      "张宇 (E02)",
+      "本周运营概览\n实时真实核算\n班次覆盖达标率\n100%\n覆盖达标 14 / 14 班次\n硬约束规则合规率见下方规则清单\n在岗人员缺口\n0 人\n满编\n全周班次底线满足\n排班总工时 (8h/班)\n528h\n19 / 20 人已排班\n4 人在册请假\n排班冲突与预警\n2 条\n工时饱和监控 (R-05)\n林逸、张宇、李默 已达 40h 饱和\n员工档案请假记录 (R-08)\n全店 4 名员工有请假记录，具体合规情况见规则校验\n前往排班规则中心 (R-01~R-09)",
+      "排班冲突与预警\n2 条\n工时饱和监控 (R-05)\n林逸、张宇、李默 已达 40h 饱和\n员工档案请假记录 (R-08)\n全店 4 名员工有请假记录，具体合规情况见规则校验\n前往排班规则中心 (R-01~R-09)"
+    ]
+  },
+  "afterReloadState": {
+    "plansText": "智能排班方案\n预览排班与方案差异，确认后生效\n当前版\nv4\n\n当前正式生效的排班\n\n草稿方案\n待确认\n\nv5 · 预览后确认生效\n\n暂无候选方案\n\n多方案预览与应用暂未开放。\n\nAI 生成说明\n· 2026/9/20 07:25:03\n待确认\n已生成草稿 v5\n66 条班次安排 · v5\n偏好满足率 45% · 工作量差距 5 班\n规则校验 10/10 项通过\n查看生成说明\n\n确认后该排班版本正式生效。\n\n查看更多分析\n取消草稿\n确认生效\n\n先预览方案，\n再确认生效",
+    "hasDraftV6": false,
+    "hasReadingPlan": false,
+    "hasReadingWeek": false
+  }
+}

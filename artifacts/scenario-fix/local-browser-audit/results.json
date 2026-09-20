@@ -1,0 +1,182 @@
+{
+  "started": "2026-09-20T08:52:57.804Z",
+  "web": "http://127.0.0.1:8018",
+  "cases": [
+    {
+      "case": "G",
+      "conversation_id": "conv_0611459c617a4428abf6a4e135701233",
+      "started": "2026-09-20T08:52:59.636Z",
+      "status": "PASS"
+    },
+    {
+      "case": "H",
+      "conversation_id": "conv_fa62e74aa003416496a8725587c61c43",
+      "started": "2026-09-20T08:53:39.251Z",
+      "status": "PASS"
+    }
+  ],
+  "cleanup": [
+    {
+      "type": "scenario",
+      "conversation_id": "conv_0611459c617a4428abf6a4e135701233",
+      "week": "2026-10-05",
+      "revision": 4,
+      "status": "cleared"
+    },
+    {
+      "type": "draft",
+      "schedule_id": "sch_16f9db8c00c8",
+      "version": 6,
+      "client_message_id": "cm_bf0fcef9117b440398592e664efc97e0",
+      "conversation_id": "conv_fa62e74aa003416496a8725587c61c43",
+      "status": "cancelled"
+    },
+    {
+      "type": "scenario",
+      "conversation_id": "conv_fa62e74aa003416496a8725587c61c43",
+      "week": "2026-10-05",
+      "revision": 0,
+      "status": "cleared"
+    }
+  ],
+  "conversations": [
+    {
+      "cid": "conv_0611459c617a4428abf6a4e135701233",
+      "workspace": "bw_b855cf03f7474e308c1edb568681049b",
+      "case": "G"
+    },
+    {
+      "cid": "conv_d68fe3bd665c41c3824b63c8e3da4abc",
+      "workspace": "bw_b855cf03f7474e308c1edb568681049b",
+      "case": "G-new-conversation"
+    },
+    {
+      "cid": "conv_fa62e74aa003416496a8725587c61c43",
+      "workspace": "bw_47df42336dc244b3b5c645849bceac26",
+      "case": "H"
+    }
+  ],
+  "drafts": [
+    {
+      "schedule_id": "sch_16f9db8c00c8",
+      "version": 6,
+      "client_message_id": "cm_bf0fcef9117b440398592e664efc97e0",
+      "conversation_id": "conv_fa62e74aa003416496a8725587c61c43"
+    }
+  ],
+  "scenarios": [
+    {
+      "conversation_id": "conv_0611459c617a4428abf6a4e135701233",
+      "week": "2026-10-05",
+      "scenario_revision": 4,
+      "invalidated": false,
+      "message": null,
+      "patches": [
+        {
+          "employee_id": "E01",
+          "operation": "add",
+          "days": [
+            "Mon"
+          ],
+          "change_type": "leave",
+          "shift": null
+        }
+      ]
+    },
+    {
+      "conversation_id": "conv_fa62e74aa003416496a8725587c61c43",
+      "week": "2026-10-05",
+      "scenario_revision": 0,
+      "invalidated": false,
+      "message": null,
+      "patches": []
+    }
+  ],
+  "baseline": {
+    "schedule_id": "sch_55898ae95446",
+    "version": 5,
+    "hash": "815ff49548c47019d9a393e347f76225ebd835dcdd97b93c0b719f1525b45ee1",
+    "versions": [
+      {
+        "schedule_id": "sch_3d7d060dbff9",
+        "version": 6,
+        "status": "cancelled",
+        "created_at": "2026-09-20T08:41:35.825893",
+        "parent_schedule_id": "sch_55898ae95446",
+        "base_schedule_id": "sch_55898ae95446",
+        "base_version": 5,
+        "compliance_status": "compliant",
+        "authorized_violation_count": 0,
+        "violations": []
+      },
+      {
+        "schedule_id": "sch_ad293ba8fec1",
+        "version": 6,
+        "status": "cancelled",
+        "created_at": "2026-09-20T08:34:26.758831",
+        "parent_schedule_id": "sch_55898ae95446",
+        "base_schedule_id": "sch_55898ae95446",
+        "base_version": 5,
+        "compliance_status": "compliant",
+        "authorized_violation_count": 0,
+        "violations": []
+      },
+      {
+        "schedule_id": "sch_55898ae95446",
+        "version": 5,
+        "status": "confirmed",
+        "created_at": "2026-09-19T05:40:06",
+        "parent_schedule_id": null,
+        "base_schedule_id": null,
+        "base_version": null,
+        "compliance_status": "compliant",
+        "authorized_violation_count": 0,
+        "violations": []
+      }
+    ]
+  },
+  "employees": [
+    "E01",
+    "E02",
+    "E03",
+    "E04",
+    "E05",
+    "E06",
+    "E07",
+    "E08",
+    "E09",
+    "E10",
+    "E11",
+    "E12",
+    "E13",
+    "E14",
+    "E15",
+    "E16",
+    "E17",
+    "E18",
+    "E19",
+    "E20"
+  ],
+  "sse": {
+    "terminalDropped": true,
+    "replayTriggered": true,
+    "sameIdUsed": true,
+    "streamId": "cm_bf0fcef9117b440398592e664efc97e0",
+    "replayId": "cm_bf0fcef9117b440398592e664efc97e0",
+    "assistantBubbles": 1,
+    "draftCards": 1,
+    "assistantRecords": 1,
+    "userRecords": 1,
+    "draftRecords": 1,
+    "newVersionRecords": 1,
+    "schedule_id": "sch_16f9db8c00c8",
+    "version": 6
+  },
+  "final": {
+    "schedule_id": "sch_55898ae95446",
+    "version": 5,
+    "hash": "815ff49548c47019d9a393e347f76225ebd835dcdd97b93c0b719f1525b45ee1",
+    "draft": null
+  },
+  "ended": "2026-09-20T08:53:53.362Z"
+}

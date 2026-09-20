@@ -1,0 +1,353 @@
+backend-tests	Set up job	﻿2026-09-20T09:13:06.6145218Z Current runner version: '2.337.0'
+backend-tests	Set up job	2026-09-20T09:13:06.6213583Z ##[group]Runner Image Provisioner
+backend-tests	Set up job	2026-09-20T09:13:06.6215356Z Hosted Compute Agent
+backend-tests	Set up job	2026-09-20T09:13:06.6216522Z Version: 20260828.587
+backend-tests	Set up job	2026-09-20T09:13:06.6217668Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+backend-tests	Set up job	2026-09-20T09:13:06.6239310Z Build Date: 2026-08-28T16:44:25Z
+backend-tests	Set up job	2026-09-20T09:13:06.6240670Z Worker ID: {36420901-2eed-48d7-beb6-304da88443ad}
+backend-tests	Set up job	2026-09-20T09:13:06.6241988Z Azure Region: eastus
+backend-tests	Set up job	2026-09-20T09:13:06.6243246Z ##[endgroup]
+backend-tests	Set up job	2026-09-20T09:13:06.6245784Z ##[group]Operating System
+backend-tests	Set up job	2026-09-20T09:13:06.6246989Z Ubuntu
+backend-tests	Set up job	2026-09-20T09:13:06.6248021Z 24.04.5
+backend-tests	Set up job	2026-09-20T09:13:06.6249285Z LTS
+backend-tests	Set up job	2026-09-20T09:13:06.6250403Z ##[endgroup]
+backend-tests	Set up job	2026-09-20T09:13:06.6251444Z ##[group]Runner Image
+backend-tests	Set up job	2026-09-20T09:13:06.6252911Z Image: ubuntu-24.04
+backend-tests	Set up job	2026-09-20T09:13:06.6253971Z Version: 20260907.300.1
+backend-tests	Set up job	2026-09-20T09:13:06.6255967Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260907.300/images/ubuntu/Ubuntu2404-Readme.md
+backend-tests	Set up job	2026-09-20T09:13:06.6280353Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260907.300
+backend-tests	Set up job	2026-09-20T09:13:06.6282245Z ##[endgroup]
+backend-tests	Set up job	2026-09-20T09:13:06.6284230Z ##[group]GITHUB_TOKEN Permissions
+backend-tests	Set up job	2026-09-20T09:13:06.6287493Z Contents: read
+backend-tests	Set up job	2026-09-20T09:13:06.6288526Z Metadata: read
+backend-tests	Set up job	2026-09-20T09:13:06.6299926Z ##[endgroup]
+backend-tests	Set up job	2026-09-20T09:13:06.6303180Z Secret source: Actions
+backend-tests	Set up job	2026-09-20T09:13:06.6304895Z Cache mode: write
+backend-tests	Set up job	2026-09-20T09:13:06.6306484Z Prepare workflow directory
+backend-tests	Set up job	2026-09-20T09:13:06.7299572Z Prepare all required actions
+backend-tests	Set up job	2026-09-20T09:13:06.7372207Z Getting action download info
+backend-tests	Set up job	2026-09-20T09:13:06.9428158Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+backend-tests	Set up job	2026-09-20T09:13:07.1169663Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+backend-tests	Set up job	2026-09-20T09:13:07.3006797Z Complete job name: backend-tests
+backend-tests	Run actions/checkout@v4	﻿2026-09-20T09:13:07.3754024Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3763299Z ##[group]Run actions/checkout@v4
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3764073Z with:
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3764576Z   repository: jiacan233/OptiShift-AI
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3768288Z   token: ***
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3768744Z   ssh-strict: true
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3769630Z   ssh-user: git
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3770107Z   persist-credentials: true
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3770610Z   clean: true
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3771072Z   sparse-checkout-cone-mode: true
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3771633Z   fetch-depth: 1
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3772080Z   fetch-tags: false
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3772545Z   show-progress: true
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3773016Z   lfs: false
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3773449Z   submodules: false
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3773968Z   set-safe-directory: true
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3774501Z   allow-unsafe-pr-checkout: false
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3775371Z env:
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3775815Z   LLM_ENABLED: false
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.3776275Z ##[endgroup]
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.4989108Z Syncing repository: jiacan233/OptiShift-AI
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.4992960Z ##[group]Getting Git version info
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.4994168Z Working directory is '/home/runner/work/OptiShift-AI/OptiShift-AI'
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.4995798Z [command]/usr/bin/git version
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.5120892Z git version 2.55.0
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.5133474Z ##[endgroup]
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.5141268Z Temporarily overriding HOME='/home/runner/work/_temp/43502960-e3a4-4ed0-860c-aac7913bce92' before making global git config changes
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.5143653Z Adding repository directory to the temporary git global config as a safe directory
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.5145739Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/OptiShift-AI/OptiShift-AI
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.5291281Z Deleting the contents of '/home/runner/work/OptiShift-AI/OptiShift-AI'
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.5293961Z ##[group]Initializing the repository
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.5295437Z [command]/usr/bin/git init /home/runner/work/OptiShift-AI/OptiShift-AI
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6405637Z hint: Using 'master' as the name for the initial branch. This default branch name
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6410501Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6413025Z hint: to use in all of your new repositories, which will suppress this warning,
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6414892Z hint: call:
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6416001Z hint:
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6417258Z hint: 	git config --global init.defaultBranch <name>
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6419401Z hint:
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6421032Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6423702Z hint: 'development'. The just-created branch can be renamed via this command:
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6425966Z hint:
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6427282Z hint: 	git branch -m <name>
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6428577Z hint:
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6430690Z hint: Disable this message with "git config set advice.defaultBranchName false"
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6433275Z Initialized empty Git repository in /home/runner/work/OptiShift-AI/OptiShift-AI/.git/
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6437339Z [command]/usr/bin/git remote add origin https://github.com/jiacan233/OptiShift-AI
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6445575Z ##[endgroup]
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6447922Z ##[group]Disabling automatic garbage collection
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6450000Z [command]/usr/bin/git config --local gc.auto 0
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6454886Z ##[endgroup]
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6456956Z ##[group]Setting up auth
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6459132Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6469843Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6820278Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.6877911Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.7136411Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.7179280Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.7439441Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.7480567Z ##[endgroup]
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.7482599Z ##[group]Fetching the repository
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:07.7486524Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +4a5d8aee0052fb4f9dc13534cae065c3f45c91b4:refs/remotes/origin/main
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:08.0858496Z From https://github.com/jiacan233/OptiShift-AI
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:08.0862485Z  * [new ref]         4a5d8aee0052fb4f9dc13534cae065c3f45c91b4 -> origin/main
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:08.0867519Z ##[endgroup]
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:08.0869815Z ##[group]Determining the checkout info
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:08.0872106Z ##[endgroup]
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:08.0882628Z [command]/usr/bin/git sparse-checkout disable
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:08.1000286Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:08.1060436Z ##[group]Checking out the ref
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:08.1062655Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:08.1261170Z Switched to a new branch 'main'
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:08.1270678Z branch 'main' set up to track 'origin/main'.
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:08.1276174Z ##[endgroup]
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:08.1324420Z [command]/usr/bin/git log -1 --format=%H
+backend-tests	Run actions/checkout@v4	2026-09-20T09:13:08.1354264Z 4a5d8aee0052fb4f9dc13534cae065c3f45c91b4
+backend-tests	Run actions/setup-python@v5	﻿2026-09-20T09:13:08.1705597Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.1711011Z ##[group]Run actions/setup-python@v5
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.1711797Z with:
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.1712278Z   python-version: 3.12
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.1712864Z   cache: pip
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.1713572Z   cache-dependency-path: backend/requirements-dev.txt
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.1714566Z   check-latest: false
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.1723281Z   token: ***
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.1723869Z   update-environment: true
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.1724614Z   allow-prereleases: false
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.1725290Z   freethreaded: false
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.1725864Z env:
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.1726333Z   LLM_ENABLED: false
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.1726899Z ##[endgroup]
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.3134004Z ##[group]Installed versions
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.3301745Z (node:2035) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.3310601Z (Use `node --trace-deprecation ...` to show where the warning was created)
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.3330179Z Successfully set up CPython (3.12.14)
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.3332936Z ##[endgroup]
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.3920426Z [command]/opt/hostedtoolcache/Python/3.12.14/x64/bin/pip cache dir
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.8168704Z /home/runner/.cache/pip
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.8996531Z Cache hit for: setup-python-Linux-x64-24.04-Ubuntu-python-3.12.14-pip-2f9ed411ca248562667c409cda37f2868bb21346c37d2e23d168bad7a6746865
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:08.9122502Z (node:2035) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:09.5854001Z Received 85014965 of 85014965 (100.0%), 130.6 MBs/sec
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:09.5855571Z Cache Size: ~81 MB (85014965 B)
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:09.5970695Z [command]/usr/bin/tar -xf /home/runner/work/_temp/e861b998-dc34-4eb6-ac4f-5ca14e76f5eb/cache.tzst -P -C /home/runner/work/OptiShift-AI/OptiShift-AI --use-compress-program unzstd
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:09.7803603Z Cache restored successfully
+backend-tests	Run actions/setup-python@v5	2026-09-20T09:13:09.8400588Z Cache restored from key: setup-python-Linux-x64-24.04-Ubuntu-python-3.12.14-pip-2f9ed411ca248562667c409cda37f2868bb21346c37d2e23d168bad7a6746865
+backend-tests	Run pip install -r backend/requirements-dev.txt	﻿2026-09-20T09:13:09.8675290Z ##[group]Run pip install -r backend/requirements-dev.txt
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:09.8675808Z ^[[36;1mpip install -r backend/requirements-dev.txt^[[0m
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:09.8720368Z shell: /usr/bin/bash -e {0}
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:09.8720672Z env:
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:09.8720874Z   LLM_ENABLED: false
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:09.8721183Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:09.8721652Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:09.8722120Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:09.8722513Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:09.8722904Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:09.8723332Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:09.8723678Z ##[endgroup]
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:10.7298288Z Collecting fastapi<1.0,>=0.115 (from -r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 1))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:10.7316967Z   Using cached fastapi-0.141.1-py3-none-any.whl.metadata (27 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:10.7592759Z Collecting uvicorn<1.0,>=0.30 (from uvicorn[standard]<1.0,>=0.30->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 2))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:10.7606108Z   Using cached uvicorn-0.53.0-py3-none-any.whl.metadata (6.6 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:10.8760299Z Collecting pydantic<3.0,>=2.9 (from -r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 3))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:10.8780914Z   Using cached pydantic-2.13.5-py3-none-any.whl.metadata (110 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:10.8935541Z Collecting pydantic-settings<3.0,>=2.6 (from -r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 4))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:10.8949740Z   Using cached pydantic_settings-2.15.0-py3-none-any.whl.metadata (3.9 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:10.9250603Z Collecting ortools<10.0,>=9.11 (from -r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 5))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:10.9263703Z   Using cached ortools-9.15.6755-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (3.3 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.2716272Z Collecting sqlalchemy<3.0,>=2.0 (from -r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 6))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.2737109Z   Using cached sqlalchemy-2.0.54-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (9.7 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.2988283Z Collecting alembic<2.0,>=1.14 (from -r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 7))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.3006543Z   Using cached alembic-1.20.0-py3-none-any.whl.metadata (7.3 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.3167513Z Collecting pymysql<2.0,>=1.1 (from pymysql[rsa]<2.0,>=1.1->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 8))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.3654169Z   Downloading pymysql-1.2.3-py3-none-any.whl.metadata (4.2 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.3827240Z Collecting httpx<1.0,>=0.27 (from -r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 9))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.3840936Z   Using cached httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.3995184Z Collecting python-dotenv<2.0,>=1.0 (from -r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 10))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.4007656Z   Using cached python_dotenv-1.2.3-py3-none-any.whl.metadata (29 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.4243944Z Collecting jsonschema<5.0,>=4.23 (from -r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 11))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.4280508Z   Downloading jsonschema-4.26.0-py3-none-any.whl.metadata (7.6 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.4655465Z Collecting pytest<10,>=8 (from -r backend/requirements-dev.txt (line 2))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.4677278Z   Using cached pytest-9.1.1-py3-none-any.whl.metadata (7.6 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.4926654Z Collecting starlette>=0.46.0 (from fastapi<1.0,>=0.115->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 1))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.4943295Z   Using cached starlette-1.6.0-py3-none-any.whl.metadata (6.4 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.5085686Z Collecting typing-extensions>=4.8.0 (from fastapi<1.0,>=0.115->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 1))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.5099070Z   Using cached typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.5187731Z Collecting typing-inspection>=0.4.2 (from fastapi<1.0,>=0.115->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 1))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.5201664Z   Using cached typing_inspection-0.4.4-py3-none-any.whl.metadata (2.6 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.5284779Z Collecting annotated-doc>=0.0.2 (from fastapi<1.0,>=0.115->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 1))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.5297877Z   Using cached annotated_doc-0.0.5-py3-none-any.whl.metadata (6.5 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.5447069Z Collecting click>=7.0 (from uvicorn<1.0,>=0.30->uvicorn[standard]<1.0,>=0.30->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 2))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.5459949Z   Using cached click-8.5.0-py3-none-any.whl.metadata (2.6 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.5547511Z Collecting h11>=0.8 (from uvicorn<1.0,>=0.30->uvicorn[standard]<1.0,>=0.30->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 2))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.5560705Z   Using cached h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.5654019Z Collecting annotated-types>=0.6.0 (from pydantic<3.0,>=2.9->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 3))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:11.5667114Z   Using cached annotated_types-0.8.0-py3-none-any.whl.metadata (15 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.2306690Z Collecting pydantic-core==2.46.5 (from pydantic<3.0,>=2.9->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 3))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.2322187Z   Using cached pydantic_core-2.46.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.6 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.3080290Z Collecting absl-py>=2.0.0 (from ortools<10.0,>=9.11->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 5))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.3094520Z   Using cached absl_py-2.5.0-py3-none-any.whl.metadata (3.3 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.4908552Z Collecting numpy>=2.0.2 (from ortools<10.0,>=9.11->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 5))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.4924788Z   Using cached numpy-2.5.3-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.6204376Z Collecting pandas>=2.0.0 (from ortools<10.0,>=9.11->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 5))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.6240174Z   Downloading pandas-3.0.6-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (79 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.7999409Z Collecting protobuf<6.34,>=6.33.1 (from ortools<10.0,>=9.11->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 5))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.8019805Z   Using cached protobuf-6.33.6-cp39-abi3-manylinux2014_x86_64.whl.metadata (593 bytes)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.8122747Z Collecting immutabledict>=3.0.0 (from ortools<10.0,>=9.11->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 5))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.8135886Z   Using cached immutabledict-4.3.1-py3-none-any.whl.metadata (3.5 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.9520790Z Collecting greenlet>=1 (from sqlalchemy<3.0,>=2.0->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 6))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.9540528Z   Using cached greenlet-3.5.6-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (3.8 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.9691586Z Collecting Mako (from alembic<2.0,>=1.14->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 7))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.9704868Z   Using cached mako-1.4.1-py3-none-any.whl.metadata (2.9 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.9883623Z Collecting anyio (from httpx<1.0,>=0.27->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 9))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:12.9896868Z   Using cached anyio-4.15.1-py3-none-any.whl.metadata (4.7 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.0060247Z Collecting certifi (from httpx<1.0,>=0.27->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 9))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.0074035Z   Using cached certifi-2026.7.22-py3-none-any.whl.metadata (2.5 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.0208528Z Collecting httpcore==1.* (from httpx<1.0,>=0.27->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 9))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.0222058Z   Using cached httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.0368504Z Collecting idna (from httpx<1.0,>=0.27->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 9))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.0399994Z   Downloading idna-3.20-py3-none-any.whl.metadata (7.2 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.0566615Z Collecting attrs>=22.2.0 (from jsonschema<5.0,>=4.23->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 11))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.0597636Z   Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.0751539Z Collecting jsonschema-specifications>=2023.03.6 (from jsonschema<5.0,>=4.23->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 11))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.0784653Z   Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.1013940Z Collecting referencing>=0.28.4 (from jsonschema<5.0,>=4.23->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 11))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.1044842Z   Downloading referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.3826439Z Collecting rpds-py>=0.25.0 (from jsonschema<5.0,>=4.23->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 11))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.3864221Z   Downloading rpds_py-2026.6.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.3994839Z Collecting iniconfig>=1.0.1 (from pytest<10,>=8->-r backend/requirements-dev.txt (line 2))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.4008082Z   Using cached iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.4134272Z Collecting packaging>=22 (from pytest<10,>=8->-r backend/requirements-dev.txt (line 2))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.4147763Z   Using cached packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.4245611Z Collecting pluggy<2,>=1.5 (from pytest<10,>=8->-r backend/requirements-dev.txt (line 2))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.4259138Z   Using cached pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.4413861Z Collecting pygments>=2.7.2 (from pytest<10,>=8->-r backend/requirements-dev.txt (line 2))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.4426792Z   Using cached pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.5999513Z Collecting cryptography>=46.0.7 (from pymysql[rsa]<2.0,>=1.1->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 8))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.6014759Z   Using cached cryptography-50.0.1-cp311-abi3-manylinux_2_34_x86_64.whl.metadata (4.3 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.6290250Z Collecting httptools>=0.8.0 (from uvicorn[standard]<1.0,>=0.30->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 2))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.6304235Z   Using cached httptools-0.8.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (3.5 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.6646710Z Collecting pyyaml>=5.1 (from uvicorn[standard]<1.0,>=0.30->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 2))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.6660885Z   Using cached pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.6985552Z Collecting uvloop>=0.15.1 (from uvicorn[standard]<1.0,>=0.30->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 2))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.7000025Z   Using cached uvloop-0.22.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (4.9 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.7665252Z Collecting watchfiles>=0.20 (from uvicorn[standard]<1.0,>=0.30->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 2))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.7679706Z   Using cached watchfiles-1.2.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.8680480Z Collecting websockets>=13.0 (from uvicorn[standard]<1.0,>=0.30->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 2))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.8700170Z   Using cached websockets-17.1-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (6.3 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.9739506Z Collecting cffi>=2.0.0 (from cryptography>=46.0.7->pymysql[rsa]<2.0,>=1.1->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 8))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.9754779Z   Using cached cffi-2.1.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.5 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.9871913Z Collecting pycparser (from cffi>=2.0.0->cryptography>=46.0.7->pymysql[rsa]<2.0,>=1.1->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 8))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:13.9884769Z   Using cached pycparser-3.0-py3-none-any.whl.metadata (8.2 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.0071256Z Collecting python-dateutil>=2.8.2 (from pandas>=2.0.0->ortools<10.0,>=9.11->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 5))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.0084987Z   Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.0220257Z Collecting six>=1.5 (from python-dateutil>=2.8.2->pandas>=2.0.0->ortools<10.0,>=9.11->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 5))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.0225701Z   Using cached six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.0820552Z Collecting MarkupSafe>=2.0 (from Mako->alembic<2.0,>=1.14->-r /home/runner/work/OptiShift-AI/OptiShift-AI/backend/requirements.txt (line 7))
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.0834844Z   Using cached markupsafe-3.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.0879720Z Using cached fastapi-0.141.1-py3-none-any.whl (131 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.0893978Z Using cached uvicorn-0.53.0-py3-none-any.whl (87 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.0906978Z Using cached pydantic-2.13.5-py3-none-any.whl (472 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.0922244Z Using cached pydantic_core-2.46.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.0942064Z Using cached pydantic_settings-2.15.0-py3-none-any.whl (69 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.0955586Z Using cached ortools-9.15.6755-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (29.8 MB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1076710Z Using cached sqlalchemy-2.0.54-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (3.5 MB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1101589Z Using cached alembic-1.20.0-py3-none-any.whl (268 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1138971Z Downloading pymysql-1.2.3-py3-none-any.whl (46 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1184765Z Using cached httpx-0.28.1-py3-none-any.whl (73 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1197014Z Using cached python_dotenv-1.2.3-py3-none-any.whl (22 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1228718Z Downloading jsonschema-4.26.0-py3-none-any.whl (90 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1270684Z Using cached pytest-9.1.1-py3-none-any.whl (386 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1283963Z Using cached httpcore-1.0.9-py3-none-any.whl (78 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1296188Z Using cached pluggy-1.6.0-py3-none-any.whl (20 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1308383Z Using cached protobuf-6.33.6-cp39-abi3-manylinux2014_x86_64.whl (323 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1321594Z Using cached absl_py-2.5.0-py3-none-any.whl (137 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1333654Z Using cached annotated_doc-0.0.5-py3-none-any.whl (5.3 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1345514Z Using cached annotated_types-0.8.0-py3-none-any.whl (13 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1378689Z Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1425803Z Using cached click-8.5.0-py3-none-any.whl (125 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1438435Z Using cached cryptography-50.0.1-cp311-abi3-manylinux_2_34_x86_64.whl (4.7 MB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1468555Z Using cached cffi-2.1.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (221 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1481672Z Using cached greenlet-3.5.6-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (621 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1495421Z Using cached h11-0.16.0-py3-none-any.whl (37 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1507755Z Using cached httptools-0.8.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (523 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1521544Z Using cached immutabledict-4.3.1-py3-none-any.whl (5.0 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1533381Z Using cached iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1570298Z Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1612025Z Using cached numpy-2.5.3-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.7 MB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1684023Z Using cached packaging-26.3-py3-none-any.whl (129 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.1717968Z Downloading pandas-3.0.6-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (10.8 MB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2151137Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.8/10.8 MB 270.5 MB/s  0:00:00
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2164490Z Using cached pygments-2.21.0-py3-none-any.whl (1.3 MB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2181227Z Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2194337Z Using cached pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (807 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2231640Z Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2298952Z Downloading rpds_py-2026.6.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (366 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2345414Z Using cached six-1.17.0-py2.py3-none-any.whl (11 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2357709Z Using cached starlette-1.6.0-py3-none-any.whl (75 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2370241Z Using cached anyio-4.15.1-py3-none-any.whl (132 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2401476Z Downloading idna-3.20-py3-none-any.whl (69 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2440933Z Using cached typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2453127Z Using cached typing_inspection-0.4.4-py3-none-any.whl (14 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2465756Z Using cached uvloop-0.22.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (4.4 MB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2493436Z Using cached watchfiles-1.2.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (456 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2507095Z Using cached websockets-17.1-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (224 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2519414Z Using cached certifi-2026.7.22-py3-none-any.whl (136 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2532013Z Using cached mako-1.4.1-py3-none-any.whl (80 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2544826Z Using cached markupsafe-3.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.2556356Z Using cached pycparser-3.0-py3-none-any.whl (48 kB)
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:14.6285663Z Installing collected packages: websockets, uvloop, typing-extensions, six, rpds-py, pyyaml, python-dotenv, pymysql, pygments, pycparser, protobuf, pluggy, packaging, numpy, MarkupSafe, iniconfig, immutabledict, idna, httptools, h11, greenlet, click, certifi, attrs, annotated-types, annotated-doc, absl-py, uvicorn, typing-inspection, sqlalchemy, referencing, python-dateutil, pytest, pydantic-core, Mako, httpcore, cffi, anyio, watchfiles, starlette, pydantic, pandas, jsonschema-specifications, httpx, cryptography, alembic, pydantic-settings, ortools, jsonschema, fastapi
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:27.5974233Z 
+backend-tests	Run pip install -r backend/requirements-dev.txt	2026-09-20T09:13:27.6022055Z Successfully installed Mako-1.4.1 MarkupSafe-3.0.3 absl-py-2.5.0 alembic-1.20.0 annotated-doc-0.0.5 annotated-types-0.8.0 anyio-4.15.1 attrs-26.1.0 certifi-2026.7.22 cffi-2.1.1 click-8.5.0 cryptography-50.0.1 fastapi-0.141.1 greenlet-3.5.6 h11-0.16.0 httpcore-1.0.9 httptools-0.8.0 httpx-0.28.1 idna-3.20 immutabledict-4.3.1 iniconfig-2.3.0 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 numpy-2.5.3 ortools-9.15.6755 packaging-26.3 pandas-3.0.6 pluggy-1.6.0 protobuf-6.33.6 pycparser-3.0 pydantic-2.13.5 pydantic-core-2.46.5 pydantic-settings-2.15.0 pygments-2.21.0 pymysql-1.2.3 pytest-9.1.1 python-dateutil-2.9.0.post0 python-dotenv-1.2.3 pyyaml-6.0.3 referencing-0.37.0 rpds-py-2026.6.3 six-1.17.0 sqlalchemy-2.0.54 starlette-1.6.0 typing-extensions-4.16.0 typing-inspection-0.4.4 uvicorn-0.53.0 uvloop-0.22.1 watchfiles-1.2.0 websockets-17.1
+backend-tests	Run python -m pytest -q	﻿2026-09-20T09:13:27.7479265Z ##[group]Run python -m pytest -q
+backend-tests	Run python -m pytest -q	2026-09-20T09:13:27.7479791Z ^[[36;1mpython -m pytest -q^[[0m
+backend-tests	Run python -m pytest -q	2026-09-20T09:13:27.7518382Z shell: /usr/bin/bash -e {0}
+backend-tests	Run python -m pytest -q	2026-09-20T09:13:27.7518649Z env:
+backend-tests	Run python -m pytest -q	2026-09-20T09:13:27.7519137Z   LLM_ENABLED: false
+backend-tests	Run python -m pytest -q	2026-09-20T09:13:27.7519453Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+backend-tests	Run python -m pytest -q	2026-09-20T09:13:27.7519900Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+backend-tests	Run python -m pytest -q	2026-09-20T09:13:27.7520341Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+backend-tests	Run python -m pytest -q	2026-09-20T09:13:27.7520733Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+backend-tests	Run python -m pytest -q	2026-09-20T09:13:27.7521132Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+backend-tests	Run python -m pytest -q	2026-09-20T09:13:27.7521522Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+backend-tests	Run python -m pytest -q	2026-09-20T09:13:27.7521855Z ##[endgroup]
+backend-tests	Run python -m pytest -q	2026-09-20T09:13:34.5293010Z ...sssssssssssssssssssssssssssss........................................ [ 18%]
+backend-tests	Run python -m pytest -q	2026-09-20T09:13:36.1796449Z ........................................................................ [ 36%]
+backend-tests	Run python -m pytest -q	2026-09-20T09:13:37.5039825Z ........................................................................ [ 54%]
+backend-tests	Run python -m pytest -q	2026-09-20T09:13:54.8366900Z ........................................................................ [ 73%]
+backend-tests	Run python -m pytest -q	2026-09-20T09:14:02.6781879Z ........................................................................ [ 91%]
+backend-tests	Run python -m pytest -q	2026-09-20T09:14:04.4073842Z .................................                                        [100%]
+backend-tests	Run python -m pytest -q	2026-09-20T09:14:04.4074925Z =============================== warnings summary ===============================
+backend-tests	Run python -m pytest -q	2026-09-20T09:14:04.4076342Z ../../../../../opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/site-packages/fastapi/testclient.py:1
+backend-tests	Run python -m pytest -q	2026-09-20T09:14:04.4078391Z   /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+backend-tests	Run python -m pytest -q	2026-09-20T09:14:04.4080674Z     from starlette.testclient import TestClient as TestClient  # noqa
+backend-tests	Run python -m pytest -q	2026-09-20T09:14:04.4081353Z 
+backend-tests	Run python -m pytest -q	2026-09-20T09:14:04.4082005Z ../../../../../opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/site-packages/starlette/testclient.py:53
+backend-tests	Run python -m pytest -q	2026-09-20T09:14:04.4083912Z   /opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+backend-tests	Run python -m pytest -q	2026-09-20T09:14:04.4085825Z     _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+backend-tests	Run python -m pytest -q	2026-09-20T09:14:04.4086579Z 
+backend-tests	Run python -m pytest -q	2026-09-20T09:14:04.4087093Z -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+backend-tests	Run python -m pytest -q	2026-09-20T09:14:04.4087955Z 364 passed, 29 skipped, 2 warnings in 34.91s
+backend-tests	Post Run actions/setup-python@v5	﻿2026-09-20T09:14:04.7913645Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+backend-tests	Post Run actions/setup-python@v5	2026-09-20T09:14:04.7914944Z Post job cleanup.
+backend-tests	Post Run actions/setup-python@v5	2026-09-20T09:14:04.9170352Z Cache hit occurred on the primary key setup-python-Linux-x64-24.04-Ubuntu-python-3.12.14-pip-2f9ed411ca248562667c409cda37f2868bb21346c37d2e23d168bad7a6746865, not saving cache.
+backend-tests	Post Run actions/setup-python@v5	2026-09-20T09:14:04.9172768Z (node:2590) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+backend-tests	Post Run actions/setup-python@v5	2026-09-20T09:14:04.9174203Z (Use `node --trace-deprecation ...` to show where the warning was created)
+backend-tests	Post Run actions/checkout@v4	﻿2026-09-20T09:14:04.9327503Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+backend-tests	Post Run actions/checkout@v4	2026-09-20T09:14:04.9329091Z Post job cleanup.
+backend-tests	Post Run actions/checkout@v4	2026-09-20T09:14:05.0349945Z [command]/usr/bin/git version
+backend-tests	Post Run actions/checkout@v4	2026-09-20T09:14:05.0430975Z git version 2.55.0
+backend-tests	Post Run actions/checkout@v4	2026-09-20T09:14:05.0481427Z Temporarily overriding HOME='/home/runner/work/_temp/19912c82-6cfa-450c-bfa0-0178deff6de7' before making global git config changes
+backend-tests	Post Run actions/checkout@v4	2026-09-20T09:14:05.0484945Z Adding repository directory to the temporary git global config as a safe directory
+backend-tests	Post Run actions/checkout@v4	2026-09-20T09:14:05.0488467Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/OptiShift-AI/OptiShift-AI
+backend-tests	Post Run actions/checkout@v4	2026-09-20T09:14:05.0570278Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+backend-tests	Post Run actions/checkout@v4	2026-09-20T09:14:05.0620298Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+backend-tests	Post Run actions/checkout@v4	2026-09-20T09:14:05.1075932Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+backend-tests	Post Run actions/checkout@v4	2026-09-20T09:14:05.1077779Z http.https://github.com/.extraheader
+backend-tests	Post Run actions/checkout@v4	2026-09-20T09:14:05.1080316Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+backend-tests	Post Run actions/checkout@v4	2026-09-20T09:14:05.1161008Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+backend-tests	Post Run actions/checkout@v4	2026-09-20T09:14:05.1617048Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+backend-tests	Post Run actions/checkout@v4	2026-09-20T09:14:05.1682816Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+backend-tests	Complete job	﻿2026-09-20T09:14:05.2172153Z Cleaning up orphan processes
+backend-tests	Complete job	2026-09-20T09:14:05.2431970Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

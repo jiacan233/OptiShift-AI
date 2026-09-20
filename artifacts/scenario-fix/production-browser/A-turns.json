@@ -1,0 +1,1505 @@
+[
+  {
+    "request": {
+      "browser_workspace_id": "bw_d579850e5ce44dd99ca49dda49fa760d",
+      "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+      "content": "你是谁？",
+      "current_week_start": "2026-10-05"
+    },
+    "terminal": {
+      "intent": "ask",
+      "mutation_requested": false,
+      "context": null,
+      "tool_calls": [],
+      "schedule_result": null,
+      "execution_events": [
+        {
+          "event_id": "5ebf9be267f74ca38dfe57bb7f853bf7",
+          "operation_id": "e635dba5a52c4a4aa164f1794b16b4b8",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+          "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+          "stage": "turn_started",
+          "status": "completed",
+          "label": "已收到请求",
+          "timestamp": "2026-09-20T09:02:43.322727+00:00",
+          "duration_ms": null,
+          "details": {}
+        },
+        {
+          "event_id": "2d4a1e7cdc994b1b8c6bc37cd57c365d",
+          "operation_id": "513242607cc84330a1540581ac70ca20",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+          "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+          "stage": "agent_route",
+          "status": "started",
+          "label": "理解排班请求",
+          "timestamp": "2026-09-20T09:02:43.377116+00:00",
+          "duration_ms": null,
+          "details": {}
+        },
+        {
+          "event_id": "059ddebb4f4641b28df08c59640e9208",
+          "operation_id": "11447fe31fa94d4aa73a8da5ae104d34",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+          "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+          "stage": "agent_route_lite",
+          "status": "started",
+          "label": "Agent Router",
+          "timestamp": "2026-09-20T09:02:43.379017+00:00",
+          "duration_ms": null,
+          "details": {}
+        },
+        {
+          "event_id": "2193edcb38714f5698404628a07ffc5d",
+          "operation_id": "11447fe31fa94d4aa73a8da5ae104d34",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+          "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+          "stage": "agent_route_lite",
+          "status": "completed",
+          "label": "Agent Router",
+          "timestamp": "2026-09-20T09:02:49.278060+00:00",
+          "duration_ms": 5899,
+          "details": {}
+        },
+        {
+          "event_id": "29a9768dc6064127896a1f97def7f470",
+          "operation_id": "513242607cc84330a1540581ac70ca20",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+          "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+          "stage": "agent_route",
+          "status": "completed",
+          "label": "理解排班请求",
+          "timestamp": "2026-09-20T09:02:49.278526+00:00",
+          "duration_ms": 5901,
+          "details": {
+            "intent": "ask",
+            "employees": [],
+            "changes": []
+          }
+        },
+        {
+          "event_id": "decb7d02caea4bad8e5b2bd6a93564dd",
+          "operation_id": "3e1f043e397649e28bbcd7704d388a17",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+          "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+          "stage": "product_lookup",
+          "status": "started",
+          "label": "查询产品知识",
+          "timestamp": "2026-09-20T09:02:49.278778+00:00",
+          "duration_ms": null,
+          "details": {}
+        },
+        {
+          "event_id": "40b1522f3523440fbd6c5ab33d328d6f",
+          "operation_id": "3e1f043e397649e28bbcd7704d388a17",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+          "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+          "stage": "product_lookup",
+          "status": "completed",
+          "label": "查询产品知识",
+          "timestamp": "2026-09-20T09:02:49.278960+00:00",
+          "duration_ms": 0,
+          "details": {}
+        },
+        {
+          "event_id": "a7c3f12643de4223b1433b30bb18ac27",
+          "operation_id": "77e81c2a946f48799809276f4d3b162f",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+          "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+          "stage": "response_compose",
+          "status": "started",
+          "label": "生成回复",
+          "timestamp": "2026-09-20T09:02:49.279106+00:00",
+          "duration_ms": null,
+          "details": {}
+        },
+        {
+          "event_id": "49a45def3ac6447fa23968c2fa5a1cf6",
+          "operation_id": "77e81c2a946f48799809276f4d3b162f",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+          "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+          "stage": "response_compose",
+          "status": "completed",
+          "label": "生成回复",
+          "timestamp": "2026-09-20T09:02:49.279245+00:00",
+          "duration_ms": 0,
+          "details": {}
+        },
+        {
+          "event_id": "e1db3dd2a597461589ec67ef8ba01bc4",
+          "operation_id": "4bf6596ef6bc47e7b16d5edc257c2835",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+          "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+          "stage": "turn_completed",
+          "status": "completed",
+          "label": "排班处理完成",
+          "timestamp": "2026-09-20T09:02:49.369538+00:00",
+          "duration_ms": 6047,
+          "details": {}
+        }
+      ],
+      "user_message": {
+        "message_id": "msg_ba679127fcfb4e63b396508738a290ac",
+        "conversation_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5",
+        "sequence_number": 1,
+        "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+        "role": "user",
+        "content": "你是谁？",
+        "intent": "ask",
+        "mutation_requested": false,
+        "target_week": null,
+        "referenced_schedule_id": null,
+        "referenced_version": null,
+        "metadata": {
+          "turn_status": "processing",
+          "product_help": {
+            "topics": [
+              {
+                "topic_id": "assistant.identity",
+                "matched_alias": "你是谁"
+              }
+            ],
+            "topic_id": "assistant.identity",
+            "matched_alias": "你是谁"
+          },
+          "tool_call_ids": [],
+          "trusted_action": null,
+          "turn_semantics": {
+            "domain": "product",
+            "speech_act": "question",
+            "classification_source": "lite_router+deterministic"
+          },
+          "current_week_start": "2026-10-05"
+        },
+        "metadata_json": {
+          "turn_status": "processing",
+          "product_help": {
+            "topics": [
+              {
+                "topic_id": "assistant.identity",
+                "matched_alias": "你是谁"
+              }
+            ],
+            "topic_id": "assistant.identity",
+            "matched_alias": "你是谁"
+          },
+          "tool_call_ids": [],
+          "trusted_action": null,
+          "turn_semantics": {
+            "domain": "product",
+            "speech_act": "question",
+            "classification_source": "lite_router+deterministic"
+          },
+          "current_week_start": "2026-10-05"
+        },
+        "created_at": "2026-09-20T09:02:43.330552+00:00"
+      },
+      "assistant_message": {
+        "message_id": "msg_6798f0881ed241659d5cceee511c80c6",
+        "conversation_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5",
+        "sequence_number": 2,
+        "client_message_id": null,
+        "role": "assistant",
+        "content": "我是 OptiShift AI 排班助手。\n我可以基于当前员工、规则和排班数据回答问题并提出排班草稿。\n不会仅因聊天修改正式排班。",
+        "intent": "ask",
+        "mutation_requested": false,
+        "target_week": null,
+        "referenced_schedule_id": null,
+        "referenced_version": null,
+        "metadata": {
+          "turn_semantics": {
+            "domain": "product",
+            "speech_act": "question",
+            "classification_source": "lite_router+deterministic"
+          },
+          "tool_call_ids": [],
+          "product_help": {
+            "topic_id": "assistant.identity",
+            "matched_alias": "你是谁",
+            "topics": [
+              {
+                "topic_id": "assistant.identity",
+                "matched_alias": "你是谁"
+              }
+            ]
+          },
+          "execution_events": [
+            {
+              "event_id": "5ebf9be267f74ca38dfe57bb7f853bf7",
+              "operation_id": "e635dba5a52c4a4aa164f1794b16b4b8",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "turn_started",
+              "status": "completed",
+              "label": "已收到请求",
+              "timestamp": "2026-09-20T09:02:43.322727+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "2d4a1e7cdc994b1b8c6bc37cd57c365d",
+              "operation_id": "513242607cc84330a1540581ac70ca20",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "agent_route",
+              "status": "started",
+              "label": "理解排班请求",
+              "timestamp": "2026-09-20T09:02:43.377116+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "059ddebb4f4641b28df08c59640e9208",
+              "operation_id": "11447fe31fa94d4aa73a8da5ae104d34",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "agent_route_lite",
+              "status": "started",
+              "label": "Agent Router",
+              "timestamp": "2026-09-20T09:02:43.379017+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "2193edcb38714f5698404628a07ffc5d",
+              "operation_id": "11447fe31fa94d4aa73a8da5ae104d34",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "agent_route_lite",
+              "status": "completed",
+              "label": "Agent Router",
+              "timestamp": "2026-09-20T09:02:49.278060+00:00",
+              "duration_ms": 5899,
+              "details": {}
+            },
+            {
+              "event_id": "29a9768dc6064127896a1f97def7f470",
+              "operation_id": "513242607cc84330a1540581ac70ca20",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "agent_route",
+              "status": "completed",
+              "label": "理解排班请求",
+              "timestamp": "2026-09-20T09:02:49.278526+00:00",
+              "duration_ms": 5901,
+              "details": {
+                "intent": "ask",
+                "employees": [],
+                "changes": []
+              }
+            },
+            {
+              "event_id": "decb7d02caea4bad8e5b2bd6a93564dd",
+              "operation_id": "3e1f043e397649e28bbcd7704d388a17",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "product_lookup",
+              "status": "started",
+              "label": "查询产品知识",
+              "timestamp": "2026-09-20T09:02:49.278778+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "40b1522f3523440fbd6c5ab33d328d6f",
+              "operation_id": "3e1f043e397649e28bbcd7704d388a17",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "product_lookup",
+              "status": "completed",
+              "label": "查询产品知识",
+              "timestamp": "2026-09-20T09:02:49.278960+00:00",
+              "duration_ms": 0,
+              "details": {}
+            },
+            {
+              "event_id": "a7c3f12643de4223b1433b30bb18ac27",
+              "operation_id": "77e81c2a946f48799809276f4d3b162f",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "response_compose",
+              "status": "started",
+              "label": "生成回复",
+              "timestamp": "2026-09-20T09:02:49.279106+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "49a45def3ac6447fa23968c2fa5a1cf6",
+              "operation_id": "77e81c2a946f48799809276f4d3b162f",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "response_compose",
+              "status": "completed",
+              "label": "生成回复",
+              "timestamp": "2026-09-20T09:02:49.279245+00:00",
+              "duration_ms": 0,
+              "details": {}
+            },
+            {
+              "event_id": "e1db3dd2a597461589ec67ef8ba01bc4",
+              "operation_id": "4bf6596ef6bc47e7b16d5edc257c2835",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "turn_completed",
+              "status": "completed",
+              "label": "排班处理完成",
+              "timestamp": "2026-09-20T09:02:49.369538+00:00",
+              "duration_ms": 6047,
+              "details": {}
+            }
+          ],
+          "in_reply_to_message_id": "msg_ba679127fcfb4e63b396508738a290ac"
+        },
+        "metadata_json": {
+          "turn_semantics": {
+            "domain": "product",
+            "speech_act": "question",
+            "classification_source": "lite_router+deterministic"
+          },
+          "tool_call_ids": [],
+          "product_help": {
+            "topic_id": "assistant.identity",
+            "matched_alias": "你是谁",
+            "topics": [
+              {
+                "topic_id": "assistant.identity",
+                "matched_alias": "你是谁"
+              }
+            ]
+          },
+          "execution_events": [
+            {
+              "event_id": "5ebf9be267f74ca38dfe57bb7f853bf7",
+              "operation_id": "e635dba5a52c4a4aa164f1794b16b4b8",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "turn_started",
+              "status": "completed",
+              "label": "已收到请求",
+              "timestamp": "2026-09-20T09:02:43.322727+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "2d4a1e7cdc994b1b8c6bc37cd57c365d",
+              "operation_id": "513242607cc84330a1540581ac70ca20",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "agent_route",
+              "status": "started",
+              "label": "理解排班请求",
+              "timestamp": "2026-09-20T09:02:43.377116+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "059ddebb4f4641b28df08c59640e9208",
+              "operation_id": "11447fe31fa94d4aa73a8da5ae104d34",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "agent_route_lite",
+              "status": "started",
+              "label": "Agent Router",
+              "timestamp": "2026-09-20T09:02:43.379017+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "2193edcb38714f5698404628a07ffc5d",
+              "operation_id": "11447fe31fa94d4aa73a8da5ae104d34",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "agent_route_lite",
+              "status": "completed",
+              "label": "Agent Router",
+              "timestamp": "2026-09-20T09:02:49.278060+00:00",
+              "duration_ms": 5899,
+              "details": {}
+            },
+            {
+              "event_id": "29a9768dc6064127896a1f97def7f470",
+              "operation_id": "513242607cc84330a1540581ac70ca20",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "agent_route",
+              "status": "completed",
+              "label": "理解排班请求",
+              "timestamp": "2026-09-20T09:02:49.278526+00:00",
+              "duration_ms": 5901,
+              "details": {
+                "intent": "ask",
+                "employees": [],
+                "changes": []
+              }
+            },
+            {
+              "event_id": "decb7d02caea4bad8e5b2bd6a93564dd",
+              "operation_id": "3e1f043e397649e28bbcd7704d388a17",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "product_lookup",
+              "status": "started",
+              "label": "查询产品知识",
+              "timestamp": "2026-09-20T09:02:49.278778+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "40b1522f3523440fbd6c5ab33d328d6f",
+              "operation_id": "3e1f043e397649e28bbcd7704d388a17",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "product_lookup",
+              "status": "completed",
+              "label": "查询产品知识",
+              "timestamp": "2026-09-20T09:02:49.278960+00:00",
+              "duration_ms": 0,
+              "details": {}
+            },
+            {
+              "event_id": "a7c3f12643de4223b1433b30bb18ac27",
+              "operation_id": "77e81c2a946f48799809276f4d3b162f",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "response_compose",
+              "status": "started",
+              "label": "生成回复",
+              "timestamp": "2026-09-20T09:02:49.279106+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "49a45def3ac6447fa23968c2fa5a1cf6",
+              "operation_id": "77e81c2a946f48799809276f4d3b162f",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "response_compose",
+              "status": "completed",
+              "label": "生成回复",
+              "timestamp": "2026-09-20T09:02:49.279245+00:00",
+              "duration_ms": 0,
+              "details": {}
+            },
+            {
+              "event_id": "e1db3dd2a597461589ec67ef8ba01bc4",
+              "operation_id": "4bf6596ef6bc47e7b16d5edc257c2835",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_504c28f5a909460cbb47082733e674cb",
+              "client_message_id": "cm_504c28f5a909460cbb47082733e674cb",
+              "stage": "turn_completed",
+              "status": "completed",
+              "label": "排班处理完成",
+              "timestamp": "2026-09-20T09:02:49.369538+00:00",
+              "duration_ms": 6047,
+              "details": {}
+            }
+          ],
+          "in_reply_to_message_id": "msg_ba679127fcfb4e63b396508738a290ac"
+        },
+        "created_at": "2026-09-20T09:02:49.363380+00:00"
+      }
+    }
+  },
+  {
+    "request": {
+      "browser_workspace_id": "bw_d579850e5ce44dd99ca49dda49fa760d",
+      "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+      "content": "你能干嘛？",
+      "current_week_start": "2026-10-05"
+    },
+    "terminal": {
+      "intent": "ask",
+      "mutation_requested": false,
+      "context": null,
+      "tool_calls": [],
+      "schedule_result": null,
+      "execution_events": [
+        {
+          "event_id": "3bd36fd6735443fe86d7f3c689a7876a",
+          "operation_id": "6e94d0ea3362465fbf0932b08ce80091",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+          "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+          "stage": "turn_started",
+          "status": "completed",
+          "label": "已收到请求",
+          "timestamp": "2026-09-20T09:02:49.776271+00:00",
+          "duration_ms": null,
+          "details": {}
+        },
+        {
+          "event_id": "17ff83f0a8bb44b1b82201eb464f184a",
+          "operation_id": "b7a4f24f0f814c418072ac02dc831c87",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+          "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+          "stage": "agent_route",
+          "status": "started",
+          "label": "理解排班请求",
+          "timestamp": "2026-09-20T09:02:49.815564+00:00",
+          "duration_ms": null,
+          "details": {}
+        },
+        {
+          "event_id": "9a5542c322934a408b321649651b9ffd",
+          "operation_id": "5ea33f93cbfa4f368a92b676b8730ef3",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+          "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+          "stage": "agent_route_lite",
+          "status": "started",
+          "label": "Agent Router",
+          "timestamp": "2026-09-20T09:02:49.817933+00:00",
+          "duration_ms": null,
+          "details": {}
+        },
+        {
+          "event_id": "5aefec46457a4bca8eb741a418777a4e",
+          "operation_id": "5ea33f93cbfa4f368a92b676b8730ef3",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+          "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+          "stage": "agent_route_lite",
+          "status": "completed",
+          "label": "Agent Router",
+          "timestamp": "2026-09-20T09:02:54.266150+00:00",
+          "duration_ms": 4448,
+          "details": {}
+        },
+        {
+          "event_id": "96ee8d7ba23d497f9ea490b3aebb30e5",
+          "operation_id": "b7a4f24f0f814c418072ac02dc831c87",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+          "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+          "stage": "agent_route",
+          "status": "completed",
+          "label": "理解排班请求",
+          "timestamp": "2026-09-20T09:02:54.266590+00:00",
+          "duration_ms": 4451,
+          "details": {
+            "intent": "ask",
+            "employees": [],
+            "changes": []
+          }
+        },
+        {
+          "event_id": "964252546ec844c59b845d5b93b4b48d",
+          "operation_id": "d70580f64235408daf6fb58113d475d0",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+          "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+          "stage": "product_lookup",
+          "status": "started",
+          "label": "查询产品知识",
+          "timestamp": "2026-09-20T09:02:54.266851+00:00",
+          "duration_ms": null,
+          "details": {}
+        },
+        {
+          "event_id": "f3def4ce2b1c4eb296dab7392748928b",
+          "operation_id": "d70580f64235408daf6fb58113d475d0",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+          "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+          "stage": "product_lookup",
+          "status": "completed",
+          "label": "查询产品知识",
+          "timestamp": "2026-09-20T09:02:54.267016+00:00",
+          "duration_ms": 0,
+          "details": {}
+        },
+        {
+          "event_id": "efae9cf3a0644d2bbed70c51e0240725",
+          "operation_id": "8b0ecd14e45c4be988e16b809fdf8023",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+          "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+          "stage": "response_compose",
+          "status": "started",
+          "label": "生成回复",
+          "timestamp": "2026-09-20T09:02:54.267174+00:00",
+          "duration_ms": null,
+          "details": {}
+        },
+        {
+          "event_id": "87cba80f2fb84340b87ba5dd38f736ab",
+          "operation_id": "8b0ecd14e45c4be988e16b809fdf8023",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+          "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+          "stage": "response_compose",
+          "status": "completed",
+          "label": "生成回复",
+          "timestamp": "2026-09-20T09:02:54.267308+00:00",
+          "duration_ms": 0,
+          "details": {}
+        },
+        {
+          "event_id": "b1376f03d8b54921a2936218053f620e",
+          "operation_id": "88b4e60f2fac41db837a6237017ab654",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+          "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+          "stage": "turn_completed",
+          "status": "completed",
+          "label": "排班处理完成",
+          "timestamp": "2026-09-20T09:02:54.284146+00:00",
+          "duration_ms": 4508,
+          "details": {}
+        }
+      ],
+      "user_message": {
+        "message_id": "msg_a8d4a15fc0b44e1cb3bbe7eec07a6e43",
+        "conversation_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5",
+        "sequence_number": 3,
+        "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+        "role": "user",
+        "content": "你能干嘛？",
+        "intent": "ask",
+        "mutation_requested": false,
+        "target_week": null,
+        "referenced_schedule_id": null,
+        "referenced_version": null,
+        "metadata": {
+          "turn_status": "processing",
+          "product_help": {
+            "topics": [
+              {
+                "topic_id": "assistant.capabilities",
+                "matched_alias": "你能干嘛"
+              }
+            ],
+            "topic_id": "assistant.capabilities",
+            "matched_alias": "你能干嘛"
+          },
+          "tool_call_ids": [],
+          "trusted_action": null,
+          "turn_semantics": {
+            "domain": "product",
+            "speech_act": "explanation_request",
+            "classification_source": "lite_router+deterministic"
+          },
+          "current_week_start": "2026-10-05"
+        },
+        "metadata_json": {
+          "turn_status": "processing",
+          "product_help": {
+            "topics": [
+              {
+                "topic_id": "assistant.capabilities",
+                "matched_alias": "你能干嘛"
+              }
+            ],
+            "topic_id": "assistant.capabilities",
+            "matched_alias": "你能干嘛"
+          },
+          "tool_call_ids": [],
+          "trusted_action": null,
+          "turn_semantics": {
+            "domain": "product",
+            "speech_act": "explanation_request",
+            "classification_source": "lite_router+deterministic"
+          },
+          "current_week_start": "2026-10-05"
+        },
+        "created_at": "2026-09-20T09:02:49.785344+00:00"
+      },
+      "assistant_message": {
+        "message_id": "msg_90735f28be274782af710b29ddda3e86",
+        "conversation_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5",
+        "sequence_number": 4,
+        "client_message_id": null,
+        "role": "assistant",
+        "content": "我可以查询排班和员工安排、解释规则、分析人数与技能覆盖、工作量和可行性，提供建议、生成草稿并按明确条件重新排班；强制生成需要精确授权。\n排班操作经过求解和独立校验。\n不能通过聊天确认正式排班、修改员工主数据、编造员工日期规则或静默忽略硬规则。",
+        "intent": "ask",
+        "mutation_requested": false,
+        "target_week": null,
+        "referenced_schedule_id": null,
+        "referenced_version": null,
+        "metadata": {
+          "turn_semantics": {
+            "domain": "product",
+            "speech_act": "explanation_request",
+            "classification_source": "lite_router+deterministic"
+          },
+          "tool_call_ids": [],
+          "product_help": {
+            "topic_id": "assistant.capabilities",
+            "matched_alias": "你能干嘛",
+            "topics": [
+              {
+                "topic_id": "assistant.capabilities",
+                "matched_alias": "你能干嘛"
+              }
+            ]
+          },
+          "execution_events": [
+            {
+              "event_id": "3bd36fd6735443fe86d7f3c689a7876a",
+              "operation_id": "6e94d0ea3362465fbf0932b08ce80091",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "turn_started",
+              "status": "completed",
+              "label": "已收到请求",
+              "timestamp": "2026-09-20T09:02:49.776271+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "17ff83f0a8bb44b1b82201eb464f184a",
+              "operation_id": "b7a4f24f0f814c418072ac02dc831c87",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "agent_route",
+              "status": "started",
+              "label": "理解排班请求",
+              "timestamp": "2026-09-20T09:02:49.815564+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "9a5542c322934a408b321649651b9ffd",
+              "operation_id": "5ea33f93cbfa4f368a92b676b8730ef3",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "agent_route_lite",
+              "status": "started",
+              "label": "Agent Router",
+              "timestamp": "2026-09-20T09:02:49.817933+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "5aefec46457a4bca8eb741a418777a4e",
+              "operation_id": "5ea33f93cbfa4f368a92b676b8730ef3",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "agent_route_lite",
+              "status": "completed",
+              "label": "Agent Router",
+              "timestamp": "2026-09-20T09:02:54.266150+00:00",
+              "duration_ms": 4448,
+              "details": {}
+            },
+            {
+              "event_id": "96ee8d7ba23d497f9ea490b3aebb30e5",
+              "operation_id": "b7a4f24f0f814c418072ac02dc831c87",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "agent_route",
+              "status": "completed",
+              "label": "理解排班请求",
+              "timestamp": "2026-09-20T09:02:54.266590+00:00",
+              "duration_ms": 4451,
+              "details": {
+                "intent": "ask",
+                "employees": [],
+                "changes": []
+              }
+            },
+            {
+              "event_id": "964252546ec844c59b845d5b93b4b48d",
+              "operation_id": "d70580f64235408daf6fb58113d475d0",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "product_lookup",
+              "status": "started",
+              "label": "查询产品知识",
+              "timestamp": "2026-09-20T09:02:54.266851+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "f3def4ce2b1c4eb296dab7392748928b",
+              "operation_id": "d70580f64235408daf6fb58113d475d0",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "product_lookup",
+              "status": "completed",
+              "label": "查询产品知识",
+              "timestamp": "2026-09-20T09:02:54.267016+00:00",
+              "duration_ms": 0,
+              "details": {}
+            },
+            {
+              "event_id": "efae9cf3a0644d2bbed70c51e0240725",
+              "operation_id": "8b0ecd14e45c4be988e16b809fdf8023",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "response_compose",
+              "status": "started",
+              "label": "生成回复",
+              "timestamp": "2026-09-20T09:02:54.267174+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "87cba80f2fb84340b87ba5dd38f736ab",
+              "operation_id": "8b0ecd14e45c4be988e16b809fdf8023",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "response_compose",
+              "status": "completed",
+              "label": "生成回复",
+              "timestamp": "2026-09-20T09:02:54.267308+00:00",
+              "duration_ms": 0,
+              "details": {}
+            },
+            {
+              "event_id": "b1376f03d8b54921a2936218053f620e",
+              "operation_id": "88b4e60f2fac41db837a6237017ab654",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "turn_completed",
+              "status": "completed",
+              "label": "排班处理完成",
+              "timestamp": "2026-09-20T09:02:54.284146+00:00",
+              "duration_ms": 4508,
+              "details": {}
+            }
+          ],
+          "in_reply_to_message_id": "msg_a8d4a15fc0b44e1cb3bbe7eec07a6e43"
+        },
+        "metadata_json": {
+          "turn_semantics": {
+            "domain": "product",
+            "speech_act": "explanation_request",
+            "classification_source": "lite_router+deterministic"
+          },
+          "tool_call_ids": [],
+          "product_help": {
+            "topic_id": "assistant.capabilities",
+            "matched_alias": "你能干嘛",
+            "topics": [
+              {
+                "topic_id": "assistant.capabilities",
+                "matched_alias": "你能干嘛"
+              }
+            ]
+          },
+          "execution_events": [
+            {
+              "event_id": "3bd36fd6735443fe86d7f3c689a7876a",
+              "operation_id": "6e94d0ea3362465fbf0932b08ce80091",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "turn_started",
+              "status": "completed",
+              "label": "已收到请求",
+              "timestamp": "2026-09-20T09:02:49.776271+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "17ff83f0a8bb44b1b82201eb464f184a",
+              "operation_id": "b7a4f24f0f814c418072ac02dc831c87",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "agent_route",
+              "status": "started",
+              "label": "理解排班请求",
+              "timestamp": "2026-09-20T09:02:49.815564+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "9a5542c322934a408b321649651b9ffd",
+              "operation_id": "5ea33f93cbfa4f368a92b676b8730ef3",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "agent_route_lite",
+              "status": "started",
+              "label": "Agent Router",
+              "timestamp": "2026-09-20T09:02:49.817933+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "5aefec46457a4bca8eb741a418777a4e",
+              "operation_id": "5ea33f93cbfa4f368a92b676b8730ef3",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "agent_route_lite",
+              "status": "completed",
+              "label": "Agent Router",
+              "timestamp": "2026-09-20T09:02:54.266150+00:00",
+              "duration_ms": 4448,
+              "details": {}
+            },
+            {
+              "event_id": "96ee8d7ba23d497f9ea490b3aebb30e5",
+              "operation_id": "b7a4f24f0f814c418072ac02dc831c87",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "agent_route",
+              "status": "completed",
+              "label": "理解排班请求",
+              "timestamp": "2026-09-20T09:02:54.266590+00:00",
+              "duration_ms": 4451,
+              "details": {
+                "intent": "ask",
+                "employees": [],
+                "changes": []
+              }
+            },
+            {
+              "event_id": "964252546ec844c59b845d5b93b4b48d",
+              "operation_id": "d70580f64235408daf6fb58113d475d0",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "product_lookup",
+              "status": "started",
+              "label": "查询产品知识",
+              "timestamp": "2026-09-20T09:02:54.266851+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "f3def4ce2b1c4eb296dab7392748928b",
+              "operation_id": "d70580f64235408daf6fb58113d475d0",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "product_lookup",
+              "status": "completed",
+              "label": "查询产品知识",
+              "timestamp": "2026-09-20T09:02:54.267016+00:00",
+              "duration_ms": 0,
+              "details": {}
+            },
+            {
+              "event_id": "efae9cf3a0644d2bbed70c51e0240725",
+              "operation_id": "8b0ecd14e45c4be988e16b809fdf8023",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "response_compose",
+              "status": "started",
+              "label": "生成回复",
+              "timestamp": "2026-09-20T09:02:54.267174+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "87cba80f2fb84340b87ba5dd38f736ab",
+              "operation_id": "8b0ecd14e45c4be988e16b809fdf8023",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "response_compose",
+              "status": "completed",
+              "label": "生成回复",
+              "timestamp": "2026-09-20T09:02:54.267308+00:00",
+              "duration_ms": 0,
+              "details": {}
+            },
+            {
+              "event_id": "b1376f03d8b54921a2936218053f620e",
+              "operation_id": "88b4e60f2fac41db837a6237017ab654",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_c3eadba605a34c31acb74b7ed449ad39",
+              "client_message_id": "cm_c3eadba605a34c31acb74b7ed449ad39",
+              "stage": "turn_completed",
+              "status": "completed",
+              "label": "排班处理完成",
+              "timestamp": "2026-09-20T09:02:54.284146+00:00",
+              "duration_ms": 4508,
+              "details": {}
+            }
+          ],
+          "in_reply_to_message_id": "msg_a8d4a15fc0b44e1cb3bbe7eec07a6e43"
+        },
+        "created_at": "2026-09-20T09:02:54.278299+00:00"
+      }
+    }
+  },
+  {
+    "request": {
+      "browser_workspace_id": "bw_d579850e5ce44dd99ca49dda49fa760d",
+      "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+      "content": "你能重新排班吗？",
+      "current_week_start": "2026-10-05"
+    },
+    "terminal": {
+      "intent": "ask",
+      "mutation_requested": false,
+      "context": null,
+      "tool_calls": [],
+      "schedule_result": null,
+      "execution_events": [
+        {
+          "event_id": "128698192405464eacd6d1919ff7e742",
+          "operation_id": "d9bd9c98564c4f9abbdf81467cc4957e",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "stage": "turn_started",
+          "status": "completed",
+          "label": "已收到请求",
+          "timestamp": "2026-09-20T09:02:54.667303+00:00",
+          "duration_ms": null,
+          "details": {}
+        },
+        {
+          "event_id": "f4bcf125d46e4b909395333fe4b4d98d",
+          "operation_id": "99947f836d1041aa960e6a33fae50405",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "stage": "agent_route",
+          "status": "started",
+          "label": "理解排班请求",
+          "timestamp": "2026-09-20T09:02:54.708191+00:00",
+          "duration_ms": null,
+          "details": {}
+        },
+        {
+          "event_id": "0656a435cc4940c6ba2576b2c78a400d",
+          "operation_id": "e44270e13c8645aaa3bfc30107038dc2",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "stage": "agent_route_lite",
+          "status": "started",
+          "label": "Agent Router",
+          "timestamp": "2026-09-20T09:02:54.710540+00:00",
+          "duration_ms": null,
+          "details": {}
+        },
+        {
+          "event_id": "02e0d76f8856483eb9fdd7c752c8b671",
+          "operation_id": "e44270e13c8645aaa3bfc30107038dc2",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "stage": "agent_route_lite",
+          "status": "completed",
+          "label": "Agent Router",
+          "timestamp": "2026-09-20T09:03:00.470496+00:00",
+          "duration_ms": 5760,
+          "details": {}
+        },
+        {
+          "event_id": "bee1affcc6844e8dbb4935486d1a6b17",
+          "operation_id": "99947f836d1041aa960e6a33fae50405",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "stage": "agent_route",
+          "status": "completed",
+          "label": "理解排班请求",
+          "timestamp": "2026-09-20T09:03:00.470969+00:00",
+          "duration_ms": 5763,
+          "details": {
+            "intent": "ask",
+            "employees": [],
+            "changes": []
+          }
+        },
+        {
+          "event_id": "9c268522d58349f6b45c40702f1b6150",
+          "operation_id": "b4739f664f7f4577a8f6b1a128b50bb7",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "stage": "product_lookup",
+          "status": "started",
+          "label": "查询产品知识",
+          "timestamp": "2026-09-20T09:03:00.471218+00:00",
+          "duration_ms": null,
+          "details": {}
+        },
+        {
+          "event_id": "e648f5e964d44be5a76ecd3f0adcae1d",
+          "operation_id": "b4739f664f7f4577a8f6b1a128b50bb7",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "stage": "product_lookup",
+          "status": "completed",
+          "label": "查询产品知识",
+          "timestamp": "2026-09-20T09:03:00.471384+00:00",
+          "duration_ms": 0,
+          "details": {}
+        },
+        {
+          "event_id": "9e1989e85a9f49a8888d58e792c6de1b",
+          "operation_id": "e827ecd4112142fb9cc1a75420b6ebd0",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "stage": "response_compose",
+          "status": "started",
+          "label": "生成回复",
+          "timestamp": "2026-09-20T09:03:00.471531+00:00",
+          "duration_ms": null,
+          "details": {}
+        },
+        {
+          "event_id": "bdc9e4376a4348dd916f0a1cfa484483",
+          "operation_id": "e827ecd4112142fb9cc1a75420b6ebd0",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "stage": "response_compose",
+          "status": "completed",
+          "label": "生成回复",
+          "timestamp": "2026-09-20T09:03:00.471667+00:00",
+          "duration_ms": 0,
+          "details": {}
+        },
+        {
+          "event_id": "0870237aec374ad1b282d35d9aeda3cc",
+          "operation_id": "fce0d3d0cd8242f7b9f097bd0095320d",
+          "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+          "stage": "turn_completed",
+          "status": "completed",
+          "label": "排班处理完成",
+          "timestamp": "2026-09-20T09:03:00.489150+00:00",
+          "duration_ms": 5822,
+          "details": {}
+        }
+      ],
+      "user_message": {
+        "message_id": "msg_0a9ac90d421546b3af72d16ffee8a9a8",
+        "conversation_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5",
+        "sequence_number": 5,
+        "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+        "role": "user",
+        "content": "你能重新排班吗？",
+        "intent": "ask",
+        "mutation_requested": false,
+        "target_week": null,
+        "referenced_schedule_id": null,
+        "referenced_version": null,
+        "metadata": {
+          "turn_status": "processing",
+          "product_help": {
+            "topics": [
+              {
+                "topic_id": "workflow.replan",
+                "matched_alias": "重新排班"
+              }
+            ],
+            "topic_id": "workflow.replan",
+            "matched_alias": "重新排班"
+          },
+          "tool_call_ids": [],
+          "trusted_action": null,
+          "turn_semantics": {
+            "domain": "product",
+            "speech_act": "capability_question",
+            "classification_source": "lite_router+deterministic"
+          },
+          "current_week_start": "2026-10-05"
+        },
+        "metadata_json": {
+          "turn_status": "processing",
+          "product_help": {
+            "topics": [
+              {
+                "topic_id": "workflow.replan",
+                "matched_alias": "重新排班"
+              }
+            ],
+            "topic_id": "workflow.replan",
+            "matched_alias": "重新排班"
+          },
+          "tool_call_ids": [],
+          "trusted_action": null,
+          "turn_semantics": {
+            "domain": "product",
+            "speech_act": "capability_question",
+            "classification_source": "lite_router+deterministic"
+          },
+          "current_week_start": "2026-10-05"
+        },
+        "created_at": "2026-09-20T09:02:54.676205+00:00"
+      },
+      "assistant_message": {
+        "message_id": "msg_b42fe2a70c8740c59b9959c7efe0933c",
+        "conversation_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5",
+        "sequence_number": 6,
+        "client_message_id": null,
+        "role": "assistant",
+        "content": "可以根据明确条件重新求解当前正式排班，并尽量减少改动。\n成功后创建新的待确认草稿，不会自动发布。\n仍受当前规则、独立校验、待确认草稿和版本保护约束。\n前提：目标周须有正式排班，且没有待确认草稿。\n限制：能力询问本身不会执行重排。",
+        "intent": "ask",
+        "mutation_requested": false,
+        "target_week": null,
+        "referenced_schedule_id": null,
+        "referenced_version": null,
+        "metadata": {
+          "turn_semantics": {
+            "domain": "product",
+            "speech_act": "capability_question",
+            "classification_source": "lite_router+deterministic"
+          },
+          "tool_call_ids": [],
+          "product_help": {
+            "topic_id": "workflow.replan",
+            "matched_alias": "重新排班",
+            "topics": [
+              {
+                "topic_id": "workflow.replan",
+                "matched_alias": "重新排班"
+              }
+            ]
+          },
+          "execution_events": [
+            {
+              "event_id": "128698192405464eacd6d1919ff7e742",
+              "operation_id": "d9bd9c98564c4f9abbdf81467cc4957e",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "turn_started",
+              "status": "completed",
+              "label": "已收到请求",
+              "timestamp": "2026-09-20T09:02:54.667303+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "f4bcf125d46e4b909395333fe4b4d98d",
+              "operation_id": "99947f836d1041aa960e6a33fae50405",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "agent_route",
+              "status": "started",
+              "label": "理解排班请求",
+              "timestamp": "2026-09-20T09:02:54.708191+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "0656a435cc4940c6ba2576b2c78a400d",
+              "operation_id": "e44270e13c8645aaa3bfc30107038dc2",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "agent_route_lite",
+              "status": "started",
+              "label": "Agent Router",
+              "timestamp": "2026-09-20T09:02:54.710540+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "02e0d76f8856483eb9fdd7c752c8b671",
+              "operation_id": "e44270e13c8645aaa3bfc30107038dc2",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "agent_route_lite",
+              "status": "completed",
+              "label": "Agent Router",
+              "timestamp": "2026-09-20T09:03:00.470496+00:00",
+              "duration_ms": 5760,
+              "details": {}
+            },
+            {
+              "event_id": "bee1affcc6844e8dbb4935486d1a6b17",
+              "operation_id": "99947f836d1041aa960e6a33fae50405",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "agent_route",
+              "status": "completed",
+              "label": "理解排班请求",
+              "timestamp": "2026-09-20T09:03:00.470969+00:00",
+              "duration_ms": 5763,
+              "details": {
+                "intent": "ask",
+                "employees": [],
+                "changes": []
+              }
+            },
+            {
+              "event_id": "9c268522d58349f6b45c40702f1b6150",
+              "operation_id": "b4739f664f7f4577a8f6b1a128b50bb7",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "product_lookup",
+              "status": "started",
+              "label": "查询产品知识",
+              "timestamp": "2026-09-20T09:03:00.471218+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "e648f5e964d44be5a76ecd3f0adcae1d",
+              "operation_id": "b4739f664f7f4577a8f6b1a128b50bb7",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "product_lookup",
+              "status": "completed",
+              "label": "查询产品知识",
+              "timestamp": "2026-09-20T09:03:00.471384+00:00",
+              "duration_ms": 0,
+              "details": {}
+            },
+            {
+              "event_id": "9e1989e85a9f49a8888d58e792c6de1b",
+              "operation_id": "e827ecd4112142fb9cc1a75420b6ebd0",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "response_compose",
+              "status": "started",
+              "label": "生成回复",
+              "timestamp": "2026-09-20T09:03:00.471531+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "bdc9e4376a4348dd916f0a1cfa484483",
+              "operation_id": "e827ecd4112142fb9cc1a75420b6ebd0",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "response_compose",
+              "status": "completed",
+              "label": "生成回复",
+              "timestamp": "2026-09-20T09:03:00.471667+00:00",
+              "duration_ms": 0,
+              "details": {}
+            },
+            {
+              "event_id": "0870237aec374ad1b282d35d9aeda3cc",
+              "operation_id": "fce0d3d0cd8242f7b9f097bd0095320d",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "turn_completed",
+              "status": "completed",
+              "label": "排班处理完成",
+              "timestamp": "2026-09-20T09:03:00.489150+00:00",
+              "duration_ms": 5822,
+              "details": {}
+            }
+          ],
+          "in_reply_to_message_id": "msg_0a9ac90d421546b3af72d16ffee8a9a8"
+        },
+        "metadata_json": {
+          "turn_semantics": {
+            "domain": "product",
+            "speech_act": "capability_question",
+            "classification_source": "lite_router+deterministic"
+          },
+          "tool_call_ids": [],
+          "product_help": {
+            "topic_id": "workflow.replan",
+            "matched_alias": "重新排班",
+            "topics": [
+              {
+                "topic_id": "workflow.replan",
+                "matched_alias": "重新排班"
+              }
+            ]
+          },
+          "execution_events": [
+            {
+              "event_id": "128698192405464eacd6d1919ff7e742",
+              "operation_id": "d9bd9c98564c4f9abbdf81467cc4957e",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "turn_started",
+              "status": "completed",
+              "label": "已收到请求",
+              "timestamp": "2026-09-20T09:02:54.667303+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "f4bcf125d46e4b909395333fe4b4d98d",
+              "operation_id": "99947f836d1041aa960e6a33fae50405",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "agent_route",
+              "status": "started",
+              "label": "理解排班请求",
+              "timestamp": "2026-09-20T09:02:54.708191+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "0656a435cc4940c6ba2576b2c78a400d",
+              "operation_id": "e44270e13c8645aaa3bfc30107038dc2",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "agent_route_lite",
+              "status": "started",
+              "label": "Agent Router",
+              "timestamp": "2026-09-20T09:02:54.710540+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "02e0d76f8856483eb9fdd7c752c8b671",
+              "operation_id": "e44270e13c8645aaa3bfc30107038dc2",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "agent_route_lite",
+              "status": "completed",
+              "label": "Agent Router",
+              "timestamp": "2026-09-20T09:03:00.470496+00:00",
+              "duration_ms": 5760,
+              "details": {}
+            },
+            {
+              "event_id": "bee1affcc6844e8dbb4935486d1a6b17",
+              "operation_id": "99947f836d1041aa960e6a33fae50405",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "agent_route",
+              "status": "completed",
+              "label": "理解排班请求",
+              "timestamp": "2026-09-20T09:03:00.470969+00:00",
+              "duration_ms": 5763,
+              "details": {
+                "intent": "ask",
+                "employees": [],
+                "changes": []
+              }
+            },
+            {
+              "event_id": "9c268522d58349f6b45c40702f1b6150",
+              "operation_id": "b4739f664f7f4577a8f6b1a128b50bb7",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "product_lookup",
+              "status": "started",
+              "label": "查询产品知识",
+              "timestamp": "2026-09-20T09:03:00.471218+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "e648f5e964d44be5a76ecd3f0adcae1d",
+              "operation_id": "b4739f664f7f4577a8f6b1a128b50bb7",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "product_lookup",
+              "status": "completed",
+              "label": "查询产品知识",
+              "timestamp": "2026-09-20T09:03:00.471384+00:00",
+              "duration_ms": 0,
+              "details": {}
+            },
+            {
+              "event_id": "9e1989e85a9f49a8888d58e792c6de1b",
+              "operation_id": "e827ecd4112142fb9cc1a75420b6ebd0",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "response_compose",
+              "status": "started",
+              "label": "生成回复",
+              "timestamp": "2026-09-20T09:03:00.471531+00:00",
+              "duration_ms": null,
+              "details": {}
+            },
+            {
+              "event_id": "bdc9e4376a4348dd916f0a1cfa484483",
+              "operation_id": "e827ecd4112142fb9cc1a75420b6ebd0",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "response_compose",
+              "status": "completed",
+              "label": "生成回复",
+              "timestamp": "2026-09-20T09:03:00.471667+00:00",
+              "duration_ms": 0,
+              "details": {}
+            },
+            {
+              "event_id": "0870237aec374ad1b282d35d9aeda3cc",
+              "operation_id": "fce0d3d0cd8242f7b9f097bd0095320d",
+              "turn_id": "conv_49fb6cbe7f6e4398a9c8a6658d711cd5:cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "client_message_id": "cm_d7390da2cfe042ecab8af0a70960d3bd",
+              "stage": "turn_completed",
+              "status": "completed",
+              "label": "排班处理完成",
+              "timestamp": "2026-09-20T09:03:00.489150+00:00",
+              "duration_ms": 5822,
+              "details": {}
+            }
+          ],
+          "in_reply_to_message_id": "msg_0a9ac90d421546b3af72d16ffee8a9a8"
+        },
+        "created_at": "2026-09-20T09:03:00.483477+00:00"
+      }
+    }
+  }
+]

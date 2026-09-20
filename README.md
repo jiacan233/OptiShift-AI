@@ -310,6 +310,11 @@ Provider 请求统一通过 `AgentLLMClient`，路由、旧版意图解析和说
 | --- | ---: | --- |
 | `LLM_CONNECT_TIMEOUT_SECONDS` | 8 | DNS、连接、TLS |
 | `LLM_READ_TIMEOUT_SECONDS` | 120 | 等待 Provider 响应数据 |
+| `LLM_ROUTER_TIMEOUT_SECONDS` | 25 | Router 分类阶段墙钟预算，最大 30 秒 |
+| `LLM_ROUTER_BUDGET_SECONDS` | 60 | Router 所有阶段和兼容重试共用预算，最大 60 秒 |
+| `LLM_SEMANTIC_BUDGET_SECONDS` | 20 | 条件/授权语义提取阶段墙钟预算，最大 30 秒 |
+| `LLM_RESPONSE_BUDGET_SECONDS` | 8 | 可选回复组织和说明润色墙钟预算，最大 15 秒 |
+| `LLM_SCHEMA_RETRY_BUDGET_SECONDS` | 10 | 明确不支持 strict/schema 时唯一一次兼容重试预算 |
 | `LLM_WRITE_TIMEOUT_SECONDS` | 50 | 发送请求 |
 | `LLM_POOL_TIMEOUT_SECONDS` | 8 | 等待连接池 |
 | `LLM_HEALTH_READ_TIMEOUT_SECONDS` | 30 | AI 健康探针等待响应数据 |
@@ -319,9 +324,11 @@ Provider 请求统一通过 `AgentLLMClient`，路由、旧版意图解析和说
 
 所有秒数必须是有限正数，`0`、负数、文本、`NaN` 和 `inf` 均回退到上述默认值。旧 `LLM_TIMEOUT_SECONDS` 已废弃并被忽略，避免遗留的 5 秒配置继续影响聊天。生产配置由 CloudBase 控制台环境变量注入；不使用 `.env.cloudbase`。
 
-Provider read timeout 不等于 Agent turn timeout：单次正常请求默认允许等待 120 秒，整轮 300 秒预算供路由、数据读取和回复生成等多个阶段共用。健康检查的基础聊天与结构化探针各使用独立的 30 秒 read timeout；每个请求构造自己的 timeout，不修改共享客户端配置，也不自动重试 Provider。剩余整轮预算更短时仍按剩余时间截断。read timeout 限制等待数据的空闲时间，并非严格的 HTTP 总时限。Solver timeout 是 CP-SAT 求解预算，不是 LLM timeout，仍为 10 秒。
+Provider read timeout 不等于 Agent turn timeout：120 秒是底层空闲读取上限，业务请求另受 Router、语义提取、回复组织的较短墙钟预算限制，整轮 300 秒预算供所有阶段共用。健康检查的基础聊天与结构化探针各使用独立的 30 秒预算；每个请求构造自己的 timeout，不修改共享客户端配置。连接、读取和其他网络失败不重试；只有 Provider 明确拒绝 strict/schema 功能时，Router 才在剩余预算内进行一次非 strict 兼容请求，格式错误不会触发这个兼容路径。剩余整轮预算更短时按剩余时间截断，回复组织额外预留结果返回时间。限量后台 HTTP worker 超时后不能执行业务写入，也不能覆盖超时结果。Solver timeout 仍是每次 CP-SAT 求解的 10 秒预算。
 
-`.env.example` 不代表生产运行时配置。发布前后须读取 CloudBase Run 服务 `optishift-ai` 当前版本的实际 `EnvParams`，核对上表八个变量。更新时先读取现有配置，仅合并这八个 timeout key，保留 `LLM_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`、`DATABASE_URL`、`APP_ENV` 及其他变量；不得打印或提交 secret。无权限读取或修改时，必须报告生产配置尚未确认，不能以代码默认值代替线上验证。
+日志中的 `llm_complete` / `LLM request failed` 关联脱敏服务标识、模型、阶段、请求 ID、conversation/client message、耗时和错误分类；Router 阶段记录 attempt、retry_reason 与预算。测试观测可读取当前 `ExecutionTrace.provider_requests`，统计真实业务请求次数和结果；其中不保存提示词、密钥或隐藏推理，健康探针应单独统计。
+
+`.env.example` 不代表生产运行时配置。发布前后须读取 CloudBase Run 服务 `optishift-ai` 当前版本的实际 `EnvParams`，核对上表预算变量。更新时先读取现有配置，仅合并需要调整的 timeout/budget key，保留 `LLM_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`、`DATABASE_URL`、`APP_ENV` 及其他变量；不得打印或提交 secret。无权限读取或修改时，必须报告生产配置尚未确认，不能以代码默认值代替线上验证。
 
 执行预算在关键阶段和写入前检查，Provider/CP-SAT 按剩余预算缩短等待。不强杀线程或数据库事务；正在进行的网络阶段或事务收尾可能使实际耗时略超过预算。已持久化草稿优先恢复，不因回复失败重新求解。lease 实际值至少为执行预算加 30 秒，每隔最多 15 秒续租；lease 不是 HTTP 超时。
 

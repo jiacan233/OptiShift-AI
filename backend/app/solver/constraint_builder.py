@@ -8,8 +8,7 @@ from datetime import date
 from ortools.sat.python import cp_model
 
 from ..core import SchedulingFacts
-from ..models import Day, SchedulingContext, Shift, Skill, WEEK_DAYS, SHIFTS
-
+from ..models import SHIFTS, WEEK_DAYS, Day, SchedulingContext, Shift, Skill
 
 VariableKey = tuple[str, Day, Shift]
 CoverageKey = tuple[str, Day, Shift]
@@ -79,8 +78,8 @@ class ConstraintBuilder:
         for employee_id in employee_ids:
             policy = facts.policies[employee_id]
             for day in WEEK_DAYS:
-                if not policy.can_work(day):
-                    for shift in SHIFTS:
+                for shift in SHIFTS:
+                    if not policy.can_work(day, shift):
                         if not has_r08_override(employee_id, day, shift):
                             model.Add(assignment_vars[(employee_id, day, shift)] == 0)
             for day, shift in policy.forced_assignments:
@@ -88,7 +87,8 @@ class ConstraintBuilder:
             for day, shift in policy.forced_unassignments:
                 model.Add(assignment_vars[(employee_id, day, shift)] == 0)
         for assignment in context.user_forced_assignments:
-            model.Add(assignment_vars[(assignment.employee_id, assignment.day, assignment.shift)] == 1)
+            key = (assignment.employee_id, assignment.day, assignment.shift)
+            model.Add(assignment_vars[key] == 1)
 
         # R01-R04. Diagnosis and exact authorized slots may receive shortage slack.
         staffing_slacks: dict[CoverageKey, cp_model.IntVar] = {}
@@ -131,7 +131,9 @@ class ConstraintBuilder:
                         authorized_violation_terms=authorized_violation_terms,
                         authorized_magnitude_terms=authorized_magnitude_terms,
                     )
-                all_staff = [assignment_vars[(employee_id, day, shift)] for employee_id in employee_ids]
+                all_staff = [
+                    assignment_vars[(employee_id, day, shift)] for employee_id in employee_ids
+                ]
                 self._add_coverage(
                     model,
                     staffing_slacks,
@@ -158,7 +160,9 @@ class ConstraintBuilder:
         for employee_id in employee_ids:
             for day in WEEK_DAYS:
                 for shift in SHIFTS:
-                    if has_r08_override(employee_id, day, shift) and not facts.policies[employee_id].can_work(day):
+                    if has_r08_override(employee_id, day, shift) and not facts.policies[
+                        employee_id
+                    ].can_work(day, shift):
                         variable = assignment_vars[(employee_id, day, shift)]
                         authorized_violation_terms.append(variable)
                         authorized_magnitude_terms.append(variable)
@@ -207,10 +211,7 @@ class ConstraintBuilder:
                 )
 
         preference_terms = [
-            assignment_vars[(employee.id, day, facts.policies[employee.id].preferred_shift)]
-            for employee in context.employees
-            if facts.policies[employee.id].preferred_shift is not None
-            for day in WEEK_DAYS
+            assignment_vars[key] for key in facts.preference_keys()
         ]
 
         workload_gap: cp_model.IntVar | None = None
@@ -283,11 +284,15 @@ class ConstraintBuilder:
     ) -> None:
         if diagnostic or allowed_shortage > 0:
             upper_bound = min(required, allowed_shortage if not diagnostic else required)
-            shortage = model.NewIntVar(0, upper_bound, f"shortage_{key[0]}_{key[1].value}_{key[2].value}")
+            shortage = model.NewIntVar(
+                0, upper_bound, f"shortage_{key[0]}_{key[1].value}_{key[2].value}"
+            )
             model.Add(sum(variables) + shortage >= required)
             slacks[key] = shortage
             if not diagnostic and allowed_shortage > 0:
-                used = model.NewBoolVar(f"authorized_shortage_{key[0]}_{key[1].value}_{key[2].value}")
+                used = model.NewBoolVar(
+                    f"authorized_shortage_{key[0]}_{key[1].value}_{key[2].value}"
+                )
                 model.Add(shortage == 0).OnlyEnforceIf(used.Not())
                 model.Add(shortage >= 1).OnlyEnforceIf(used)
                 if authorized_violation_terms is not None:

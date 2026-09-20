@@ -1,0 +1,134 @@
+{
+  "name": "router-force_missing_scope",
+  "input": "就算违反规则也先给我排出来",
+  "model": "gpt-5.6-sol",
+  "status": "passed",
+  "failures": [],
+  "duration_seconds": 10.75,
+  "router_latency_ms": 10735,
+  "fallback_used": false,
+  "error_type": null,
+  "schema_bytes": 1345,
+  "lite_result": {
+    "intent": "generate",
+    "domain": "scheduling",
+    "speech_act": "action_request",
+    "mutation_requested": true,
+    "employees": [],
+    "force_or_override_intent": true,
+    "clarification_required": false,
+    "question_type": "general_question"
+  },
+  "parser_results": {
+    "agent_route_lite": {
+      "intent": "generate",
+      "domain": "scheduling",
+      "speech_act": "action_request",
+      "mutation_requested": true,
+      "employees": [],
+      "force_or_override_intent": true,
+      "clarification_required": false,
+      "question_type": "general_question"
+    },
+    "agent_force": {
+      "requested_overrides": [],
+      "forced_assignments": [],
+      "clarification": "缺少明确的例外范围，不能将“就算违反规则也先排出来”视为全局授权。请指定：R08 需要员工、日期和班次；R01-R04 需要规则、日期、班次及允许缺员人数。"
+    }
+  },
+  "stages": [
+    {
+      "stage": "agent_route_lite",
+      "parser_name": "agent_route_lite",
+      "model": "gpt-5.6-sol",
+      "schema_name": "agent_route_lite",
+      "schema_bytes": 1277,
+      "message_count": 2,
+      "request_bytes": 3571,
+      "fallback_used": false,
+      "error_type": null,
+      "latency_ms": 5750,
+      "parser_latency_ms": 5750
+    },
+    {
+      "stage": "agent_force",
+      "parser_name": "agent_force",
+      "model": "gpt-5.6-sol",
+      "schema_name": "agent_force",
+      "schema_bytes": 1345,
+      "message_count": 2,
+      "request_bytes": 6692,
+      "fallback_used": false,
+      "error_type": null,
+      "latency_ms": 4985,
+      "parser_latency_ms": 4985
+    }
+  ],
+  "final_route": {
+    "intent": "clarification",
+    "domain": "scheduling",
+    "speech_act": "question",
+    "classification_source": "deterministic",
+    "read_query": null,
+    "mutation_requested": false,
+    "target_week": null,
+    "target_iso_year": null,
+    "target_iso_week": null,
+    "employees": [],
+    "changes": [],
+    "operations": [],
+    "operation": "add",
+    "minimize_changes": false,
+    "override_requested": false,
+    "force_generate": false,
+    "requested_overrides": [],
+    "forced_assignments": [],
+    "authorization_reason": null,
+    "reference": {
+      "type": "none",
+      "suggestion_id": null
+    },
+    "clarification": {
+      "required": true,
+      "question": "请明确要授权的规则、员工、日期、班次及允许缺口。"
+    }
+  },
+  "provider_outputs": [
+    {
+      "stage": "agent_route_lite",
+      "raw_content": "{\"clarification_required\":false,\"domain\":\"scheduling\",\"employees\":[],\"force_or_override_intent\":true,\"intent\":\"generate\",\"mutation_requested\":true,\"question_type\":\"general_question\",\"speech_act\":\"action_request\"}",
+      "latency_ms": 5750,
+      "provider_status": 200
+    },
+    {
+      "stage": "agent_route_lite",
+      "output": {
+        "clarification_required": false,
+        "domain": "scheduling",
+        "employees": [],
+        "force_or_override_intent": true,
+        "intent": "generate",
+        "mutation_requested": true,
+        "question_type": "general_question",
+        "speech_act": "action_request"
+      },
+      "duration_ms": 5750
+    },
+    {
+      "stage": "agent_force",
+      "raw_content": "{\"clarification\":\"缺少明确的例外范围，不能将“就算违反规则也先排出来”视为全局授权。请指定：R08 需要员工、日期和班次；R01-R04 需要规则、日期、班次及允许缺员人数。\",\"forced_assignments\":[],\"requested_overrides\":[]}",
+      "latency_ms": 4984,
+      "provider_status": 200
+    },
+    {
+      "stage": "agent_force",
+      "output": {
+        "clarification": "缺少明确的例外范围，不能将“就算违反规则也先排出来”视为全局授权。请指定：R08 需要员工、日期和班次；R01-R04 需要规则、日期、班次及允许缺员人数。",
+        "forced_assignments": [],
+        "requested_overrides": []
+      },
+      "duration_ms": 4985
+    }
+  ],
+  "database_unchanged": true
+}

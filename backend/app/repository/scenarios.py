@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from ..database import Database, utc_now
 from ..models import ScenarioPatch, ScenarioState
 from ..models.scenario_changes import apply_scenario_patch, apply_scenario_patches
-from ..models.orm import ConversationScenarioRecord, ConversationRecord
+from ..models.orm import ConversationScenarioRecord, ConversationRecord, ConversationDialogueRecord
 from .conversations import ConversationBusyError, ConversationNotFoundError
 
 
@@ -50,6 +50,14 @@ class ScenarioRepository:
                 record.revision += 1
                 record.updated_at = utc_now()
             conversation.summary = None
+            dialogue = session.get(ConversationDialogueRecord, (conversation_id, week_start))
+            if dialogue:
+                from ..models.dialogue import DialogueState
+                dialogue.revision += 1
+                dialogue.payload = DialogueState(
+                    revision=dialogue.revision, scenario_revision=record.revision if record else 0,
+                ).model_dump(mode="json")
+                dialogue.updated_at = utc_now()
 
     @staticmethod
     def _state(record: ConversationScenarioRecord) -> ScenarioState:

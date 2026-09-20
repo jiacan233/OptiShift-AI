@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { AgentTrace } from '@/components/agent/AgentTrace'
 import { ConversationHistory } from '@/components/agent/ConversationHistory'
 import { MessageBubble } from '@/components/agent/MessageBubble'
+import { ScenarioState } from '@/components/agent/ScenarioState'
 import { api, apiErrorMessage, type LlmHealthResult } from '@/api/client'
 import { errorCodeLabel, problemDetail, problemMessage } from '@/lib/presentation'
 import { weekLabel } from '@/lib/isoWeek'
@@ -129,6 +130,7 @@ export function AgentPanel() {
         ) : (
           <>
             <div ref={scrollRef} className="soft-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#F8FAFC] p-4">
+              <ScenarioState scenario={agent.scenario} />
               <div className="mb-4 rounded-xl border border-emerald-100/60 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-800">
                 <span className="flex items-center gap-2 font-semibold"><ShieldCheck className="h-3.5 w-3.5 shrink-0" />确定性求解引擎 · OR-Tools CP-SAT</span>
                 <p className="mt-1 text-[10px] text-emerald-700">{agent.isSending ? '正在处理请求 · 执行状态见下方进度' : schedule.result?.solver_status ? `最近求解状态：${schedule.result.solver_status}` : '执行状态将在实际请求后显示'}</p>
@@ -154,16 +156,16 @@ export function AgentPanel() {
               ) : (
                 <div className="space-y-4">
                   {agent.messages.map((message) => (
-                    <MessageBubble key={message.message_id} message={message} trace={agent.tracesByMessage[message.message_id] ?? []} suggestionsDisabled={busy || !!schedule.draftSchedule} onViewPlan={() => { schedule.setPage('schedule'); agent.closeChat(); requestAnimationFrame(() => { const plan = document.getElementById('schedule-plans'); plan?.scrollIntoView({ behavior: 'smooth', block: 'start' }); plan?.focus({ preventScroll: true }) }) }} onApplySuggestion={(suggestion) => {
-                      if (suggestion.scenario_patch) {
-                        void agent.sendMessage(`按 ${suggestion.suggestion_id} 调整试排。`)
-                        return
+                    <MessageBubble key={message.message_id} message={message} trace={agent.tracesByMessage[message.message_id] ?? []} suggestionsDisabled={busy} draftBlocked={!!schedule.draftSchedule} onViewPlan={() => { schedule.setPage('schedule'); agent.closeChat(); requestAnimationFrame(() => { const plan = document.getElementById('schedule-plans'); plan?.scrollIntoView({ behavior: 'smooth', block: 'start' }); plan?.focus({ preventScroll: true }) }) }} onApplySuggestion={(suggestion, execution) => {
+                      const action: TrustedAgentAction = {
+                        intent: execution === 'create_draft' ? (suggestion.action === 'replan' ? 'replan' : 'generate') : 'advice',
+                        target_week: suggestion.target_week ?? schedule.activeWeekStart,
+                        suggestion_id: suggestion.suggestion_id,
+                        suggestion_set_id: suggestion.suggestion_set_id,
+                        execution,
                       }
-                      if (suggestion.action === 'generate' || !suggestion.based_on_schedule_id) {
-                        void agent.sendMessage(`按 ${suggestion.suggestion_id} 生成草稿。`, { intent: 'generate', target_week: suggestion.target_week ?? schedule.activeWeekStart })
-                        return
-                      }
-                      void agent.sendMessage(`按 ${suggestion.suggestion_id} 调整。`)
+                      const verb = execution === 'record' ? '仅采纳' : execution === 'preview' ? '采纳并试排' : '采纳并生成草稿'
+                      void agent.sendMessage(`${verb}：${suggestion.title || suggestion.description || '这条建议'}。`, action)
                     }} />
                   ))}
 

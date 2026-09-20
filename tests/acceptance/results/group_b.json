@@ -1,0 +1,195 @@
+{
+  "run_start": "2026-09-20T09:46:21.278870",
+  "run_end": "2026-09-20T09:46:33.727585",
+  "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/",
+  "cases_ran": [
+    "02",
+    "03",
+    "04"
+  ],
+  "results": [
+    {
+      "case_id": "Case 02",
+      "case_key": "02",
+      "description": "多轮Slot Filling，不允许每轮失忆",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "我想重新排一下本周，把E02安排进去。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 2,
+          "user": "就周二。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 3,
+          "user": "晚班。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 4,
+          "user": "先别生成。你现在理解我要改什么？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 5,
+          "user": "再加一个要求，E20周五请假。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 6,
+          "user": "这两个条件放一起会影响哪些班次？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 7,
+          "user": "尽量少动其他人的班，告诉我你准备怎么改。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 8,
+          "user": "现在按\"E02周二晚班上班 + E20周五请假\"重新排班。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        }
+      ],
+      "draft_created": false,
+      "draft_text_sample": "",
+      "overall_result": "BLOCKED",
+      "failed_turn_count": 0,
+      "blocked_turn_count": 8,
+      "total_turns": 8
+    },
+    {
+      "case_id": "Case 03",
+      "case_key": "03",
+      "description": "Advice Suggestion ID / 第二个方案引用",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "看一下这周哪些班次比较适合再放一个人进去？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 2,
+          "user": "如果是E02呢？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 3,
+          "user": "给我两个不同的调整方案，先不要生成。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 4,
+          "user": "第二个方案为什么这么调？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 5,
+          "user": "第二个方案如果再加E11周四晚班优先，会怎么样？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 6,
+          "user": "先做反事实分析，看两个要求一起能不能满足所有硬约束。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 7,
+          "user": "把你准备使用的两个变更条件和目标周复述给我。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 8,
+          "user": "可以，按第二个方案加上E11周四晚班优先，重新排班。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        }
+      ],
+      "draft_created": false,
+      "draft_text_sample": "",
+      "overall_result": "BLOCKED",
+      "failed_turn_count": 0,
+      "blocked_turn_count": 8,
+      "total_turns": 8
+    },
+    {
+      "case_id": "Case 04",
+      "case_key": "04",
+      "description": "话题切换，测试历史污染",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "如果E17周三请假，会有什么影响？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 2,
+          "user": "给我两个解决建议。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 3,
+          "user": "第二条为什么？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 4,
+          "user": "先别改，我只是分析。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 5,
+          "user": "换个问题：周日早班为什么安排现在这些人？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 6,
+          "user": "那E02这周为什么没排班？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 7,
+          "user": "好，现在回到调整：E17周三请假，同时把E02放到周二晚班。先分析这两个要求。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 8,
+          "user": "没问题的话，就按这两个条件重新排。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        }
+      ],
+      "draft_created": false,
+      "draft_text_sample": "",
+      "overall_result": "BLOCKED",
+      "failed_turn_count": 0,
+      "blocked_turn_count": 8,
+      "total_turns": 8
+    }
+  ]
+}

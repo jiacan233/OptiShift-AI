@@ -1,0 +1,142 @@
+{
+  "name": "router-e17_unspecified",
+  "input": "把 E17 随便排到哪一天都行",
+  "model": "gpt-5.6-sol",
+  "status": "passed",
+  "failures": [],
+  "duration_seconds": 11.5,
+  "router_latency_ms": 11500,
+  "fallback_used": false,
+  "error_type": null,
+  "schema_bytes": 1277,
+  "lite_result": {
+    "intent": "clarification",
+    "domain": "scheduling",
+    "speech_act": "action_request",
+    "mutation_requested": true,
+    "employees": [
+      "E17"
+    ],
+    "force_or_override_intent": false,
+    "clarification_required": true,
+    "question_type": "general_question"
+  },
+  "parser_results": {
+    "agent_route_lite": {
+      "intent": "clarification",
+      "domain": "scheduling",
+      "speech_act": "action_request",
+      "mutation_requested": true,
+      "employees": [
+        "E17"
+      ],
+      "force_or_override_intent": false,
+      "clarification_required": true,
+      "question_type": "general_question"
+    },
+    "agent_mutation": {
+      "operations": [],
+      "minimize_changes": true,
+      "clarification": "请明确要把 E17 安排在哪一天，以及早班还是晚班。"
+    }
+  },
+  "stages": [
+    {
+      "stage": "agent_route_lite",
+      "parser_name": "agent_route_lite",
+      "model": "gpt-5.6-sol",
+      "schema_name": "agent_route_lite",
+      "schema_bytes": 1277,
+      "message_count": 2,
+      "request_bytes": 3567,
+      "fallback_used": false,
+      "error_type": null,
+      "latency_ms": 8688,
+      "parser_latency_ms": 8688
+    },
+    {
+      "stage": "agent_mutation",
+      "parser_name": "agent_mutation",
+      "model": "gpt-5.6-sol",
+      "schema_name": "agent_mutation",
+      "schema_bytes": 990,
+      "message_count": 2,
+      "request_bytes": 7042,
+      "fallback_used": false,
+      "error_type": null,
+      "latency_ms": 2812,
+      "parser_latency_ms": 2812
+    }
+  ],
+  "final_route": {
+    "intent": "clarification",
+    "domain": "scheduling",
+    "speech_act": "question",
+    "classification_source": "deterministic",
+    "read_query": null,
+    "mutation_requested": false,
+    "target_week": null,
+    "target_iso_year": null,
+    "target_iso_week": null,
+    "employees": [
+      "E17"
+    ],
+    "changes": [],
+    "operations": [],
+    "operation": "add",
+    "minimize_changes": false,
+    "override_requested": false,
+    "force_generate": false,
+    "requested_overrides": [],
+    "forced_assignments": [],
+    "authorization_reason": null,
+    "reference": {
+      "type": "none",
+      "suggestion_id": null
+    },
+    "clarification": {
+      "required": true,
+      "question": "请明确要把 E17 安排在哪一天，以及早班还是晚班。"
+    }
+  },
+  "provider_outputs": [
+    {
+      "stage": "agent_route_lite",
+      "raw_content": "{\"clarification_required\":true,\"domain\":\"scheduling\",\"employees\":[\"E17\"],\"force_or_override_intent\":false,\"intent\":\"clarification\",\"mutation_requested\":true,\"question_type\":\"general_question\",\"speech_act\":\"action_request\"}",
+      "latency_ms": 8693,
+      "provider_status": 200
+    },
+    {
+      "stage": "agent_route_lite",
+      "output": {
+        "clarification_required": true,
+        "domain": "scheduling",
+        "employees": [
+          "E17"
+        ],
+        "force_or_override_intent": false,
+        "intent": "clarification",
+        "mutation_requested": true,
+        "question_type": "general_question",
+        "speech_act": "action_request"
+      },
+      "duration_ms": 8688
+    },
+    {
+      "stage": "agent_mutation",
+      "raw_content": "{\"clarification\":\"请明确要把 E17 安排在哪一天，以及早班还是晚班。\",\"minimize_changes\":true,\"operations\":[]}",
+      "latency_ms": 2806,
+      "provider_status": 200
+    },
+    {
+      "stage": "agent_mutation",
+      "output": {
+        "clarification": "请明确要把 E17 安排在哪一天，以及早班还是晚班。",
+        "minimize_changes": true,
+        "operations": []
+      },
+      "duration_ms": 2812
+    }
+  ],
+  "database_unchanged": true
+}

@@ -1,0 +1,133 @@
+{
+  "run_start": "2026-09-20T09:46:24.450939",
+  "run_end": "2026-09-20T09:46:33.837315",
+  "url": "https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/",
+  "cases_ran": [
+    "05",
+    "06"
+  ],
+  "results": [
+    {
+      "case_id": "Case 05",
+      "case_key": "05",
+      "description": "口语化Mutation — 塞进/排进",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "周二晚班现在是什么情况？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 2,
+          "user": "我感觉这班人不少，那如果把E02塞进去会怎么样？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 3,
+          "user": "那如果是周四早班呢？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 4,
+          "user": "先别动。我还希望E11周四晚上优先上。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 5,
+          "user": "你对比一下：E02周二晚班+E11周四晚班优先，跟现在不改有什么区别？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 6,
+          "user": "预计主要会换掉谁？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 7,
+          "user": "如果所有硬约束都能满足，就尽量少动其他人。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 8,
+          "user": "需要重新排班：把E02排进周二晚班，同时E11周四晚班优先。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        }
+      ],
+      "draft_created": false,
+      "draft_text_sample": "",
+      "overall_result": "BLOCKED",
+      "failed_turn_count": 0,
+      "blocked_turn_count": 8,
+      "total_turns": 8
+    },
+    {
+      "case_id": "Case 06",
+      "case_key": "06",
+      "description": "同一个员工两个条件，防止cross-product/丢条件",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "E02这周现在是什么排班情况？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 2,
+          "user": "如果让E02周二晚班上，会有什么影响？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 3,
+          "user": "我还希望他周五晚班也优先安排。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 4,
+          "user": "先别生成，检查一下这样会不会让E02一周班次太多。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 5,
+          "user": "连续工作天数呢？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 6,
+          "user": "晚班接第二天早班的规则有没有风险？",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 7,
+          "user": "把你现在理解的两个条件逐条列出来。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        },
+        {
+          "turn": 8,
+          "user": "按这两个条件重新排班，尽量少改其他人。",
+          "reply": "(BLOCKED: could not find input box)",
+          "result": "BLOCKED"
+        }
+      ],
+      "draft_created": false,
+      "draft_text_sample": "",
+      "overall_result": "BLOCKED",
+      "failed_turn_count": 0,
+      "blocked_turn_count": 8,
+      "total_turns": 8
+    }
+  ]
+}

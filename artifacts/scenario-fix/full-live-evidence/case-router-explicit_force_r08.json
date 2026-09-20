@@ -1,0 +1,184 @@
+{
+  "name": "router-explicit_force_r08",
+  "input": "我知道 E01 周三请假，但就是让 E01 周三早班上班，强制生成。",
+  "model": "gpt-5.6-sol",
+  "status": "passed",
+  "failures": [],
+  "duration_seconds": 14.719000000040978,
+  "router_latency_ms": 14703,
+  "fallback_used": false,
+  "error_type": null,
+  "schema_bytes": 1345,
+  "lite_result": {
+    "intent": "generate",
+    "domain": "scheduling",
+    "speech_act": "action_request",
+    "mutation_requested": true,
+    "employees": [
+      "E01"
+    ],
+    "force_or_override_intent": true,
+    "clarification_required": false,
+    "question_type": "general_question"
+  },
+  "parser_results": {
+    "agent_route_lite": {
+      "intent": "generate",
+      "domain": "scheduling",
+      "speech_act": "action_request",
+      "mutation_requested": true,
+      "employees": [
+        "E01"
+      ],
+      "force_or_override_intent": true,
+      "clarification_required": false,
+      "question_type": "general_question"
+    },
+    "agent_force": {
+      "requested_overrides": [
+        {
+          "rule_id": "R08",
+          "day": "Wed",
+          "shift": "morning",
+          "employee_id": "E01",
+          "allowed_shortage": null
+        }
+      ],
+      "forced_assignments": [
+        {
+          "employee_id": "E01",
+          "day": "Wed",
+          "shift": "morning"
+        }
+      ],
+      "clarification": null
+    }
+  },
+  "stages": [
+    {
+      "stage": "agent_route_lite",
+      "parser_name": "agent_route_lite",
+      "model": "gpt-5.6-sol",
+      "schema_name": "agent_route_lite",
+      "schema_bytes": 1277,
+      "message_count": 2,
+      "request_bytes": 3614,
+      "fallback_used": false,
+      "error_type": null,
+      "latency_ms": 9625,
+      "parser_latency_ms": 9625
+    },
+    {
+      "stage": "agent_force",
+      "parser_name": "agent_force",
+      "model": "gpt-5.6-sol",
+      "schema_name": "agent_force",
+      "schema_bytes": 1345,
+      "message_count": 2,
+      "request_bytes": 6735,
+      "fallback_used": false,
+      "error_type": null,
+      "latency_ms": 5078,
+      "parser_latency_ms": 5078
+    }
+  ],
+  "final_route": {
+    "intent": "generate",
+    "domain": "scheduling",
+    "speech_act": "action_request",
+    "classification_source": "deterministic",
+    "read_query": null,
+    "mutation_requested": true,
+    "target_week": null,
+    "target_iso_year": null,
+    "target_iso_week": null,
+    "employees": [
+      "E01"
+    ],
+    "changes": [],
+    "operations": [],
+    "operation": "add",
+    "minimize_changes": false,
+    "override_requested": true,
+    "force_generate": true,
+    "requested_overrides": [
+      {
+        "rule_id": "R08",
+        "day": "Wed",
+        "shift": "morning",
+        "employee_id": "E01",
+        "allowed_shortage": null
+      }
+    ],
+    "forced_assignments": [
+      {
+        "employee_id": "E01",
+        "day": "Wed",
+        "shift": "morning"
+      }
+    ],
+    "authorization_reason": "我知道 E01 周三请假，但就是让 E01 周三早班上班，强制生成。",
+    "reference": {
+      "type": "none",
+      "suggestion_id": null
+    },
+    "clarification": {
+      "required": false,
+      "question": null
+    }
+  },
+  "provider_outputs": [
+    {
+      "stage": "agent_route_lite",
+      "raw_content": "{\"clarification_required\":false,\"domain\":\"scheduling\",\"employees\":[\"E01\"],\"force_or_override_intent\":true,\"intent\":\"generate\",\"mutation_requested\":true,\"question_type\":\"general_question\",\"speech_act\":\"action_request\"}",
+      "latency_ms": 9626,
+      "provider_status": 200
+    },
+    {
+      "stage": "agent_route_lite",
+      "output": {
+        "clarification_required": false,
+        "domain": "scheduling",
+        "employees": [
+          "E01"
+        ],
+        "force_or_override_intent": true,
+        "intent": "generate",
+        "mutation_requested": true,
+        "question_type": "general_question",
+        "speech_act": "action_request"
+      },
+      "duration_ms": 9625
+    },
+    {
+      "stage": "agent_force",
+      "raw_content": "{\"clarification\":null,\"forced_assignments\":[{\"day\":\"Wed\",\"employee_id\":\"E01\",\"shift\":\"morning\"}],\"requested_overrides\":[{\"allowed_shortage\":null,\"day\":\"Wed\",\"employee_id\":\"E01\",\"rule_id\":\"R08\",\"shift\":\"morning\"}]}",
+      "latency_ms": 5084,
+      "provider_status": 200
+    },
+    {
+      "stage": "agent_force",
+      "output": {
+        "clarification": null,
+        "forced_assignments": [
+          {
+            "day": "Wed",
+            "employee_id": "E01",
+            "shift": "morning"
+          }
+        ],
+        "requested_overrides": [
+          {
+            "allowed_shortage": null,
+            "day": "Wed",
+            "employee_id": "E01",
+            "rule_id": "R08",
+            "shift": "morning"
+          }
+        ]
+      },
+      "duration_ms": 5078
+    }
+  ],
+  "database_unchanged": true
+}

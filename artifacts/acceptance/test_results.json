@@ -1,0 +1,192 @@
+{
+  "startedAt": "2026-09-20T04:27:09.941Z",
+  "baseline": null,
+  "cases": {
+    "F01": {
+      "caseId": "F01",
+      "input": "你是谁？",
+      "durationMs": 10207,
+      "pass": true,
+      "status": "PASS",
+      "hasDraft": false,
+      "assistantText": "我是 OptiShift AI 排班助手。 我可以基于当前员工、规则和排班数据回答问题并提出排班草稿。 不会仅因聊天修改正式排班。",
+      "hasRawMarkdownBold": false,
+      "screenshot": "F01-RESULT.png"
+    },
+    "F02": {
+      "caseId": "F02",
+      "input": "你能干嘛？",
+      "durationMs": 6082,
+      "pass": true,
+      "status": "PASS",
+      "hasDraft": false,
+      "assistantText": "我可以查询排班和员工安排、解释规则、分析人数与技能覆盖、工作量和可行性，提供建议、生成草稿并按明确条件重新排班；强制生成需要精确授权。 排班操作经过求解和独立校验。 不能通过聊天确认正式排班、修改员工主数据、编造员工日期规则或静默忽略硬规则。",
+      "hasRawMarkdownBold": false,
+      "screenshot": "F02-RESULT.png"
+    },
+    "F03": {
+      "caseId": "F03",
+      "input": "你能重新排班吗？",
+      "durationMs": 6097,
+      "pass": true,
+      "status": "PASS",
+      "hasDraft": false,
+      "assistantText": "可以根据明确条件重新求解当前正式排班，并尽量减少改动。 成功后创建新的待确认草稿，不会自动发布。 仍受当前规则、独立校验、待确认草稿和版本保护约束。 前提：目标周须有正式排班，且没有待确认草稿。 限制：能力询问本身不会执行重排。",
+      "hasRawMarkdownBold": false,
+      "screenshot": "F03-RESULT.png"
+    },
+    "R01": {
+      "caseId": "R01",
+      "input": "周日为什么安排这么多人？",
+      "durationMs": 14152,
+      "pass": true,
+      "status": "PASS",
+      "hasDraft": false,
+      "assistantText": "周日早班：实际 7 人，最低 6 人，超出最低人数 1 人；店长 3/1（达标）；饮品 6/2（达标）；收银 5/1（达标）。\n\n周日晚班：实际 7 人，最低 6 人，超出最低人数 1 人；店长 1/1（达标）；饮品 7/2（达标）；收银 5/1（达标）。\n\n周日早班上班员工：E01、E03、E05、E07、E09、E13、E15。\n\n周日晚班上班员工：E04、E06、E08、E10、E12、E14、E16。\n\n读取 2026-10-05 周的已确认版本 v5（sch_55898ae95446）。\n\n当前只是分析，没有修改排班。",
+      "hasRawMarkdownBold": false,
+      "screenshot": "R01-RESULT.png"
+    },
+    "R02": {
+      "caseId": "R02",
+      "input": "那周六呢？",
+      "durationMs": 12137,
+      "pass": true,
+      "status": "PASS",
+      "hasDraft": false,
+      "assistantText": "周六早班：实际 6 人，最低 6 人，超出最低人数 0 人；店长 1/1（达标）；饮品 4/2（达标）；收银 4/1（达标）。\n\n周六早班上班员工：E03、E07、E09、E11、E13、E15。\n\n周六晚班：实际 6 人，最低 6 人，超出最低人数 0 人；店长 1/1（达标）；饮品 6/2（达标）；收银 4/1（达标）。\n\n周六晚班上班员工：E04、E06、E08、E12、E14、E16。\n\n读取 2026-10-05 周的已确认版本 v5（sch_55898ae95446）。\n\n当前只是分析，没有修改排班。",
+      "hasRawMarkdownBold": false,
+      "screenshot": "R02-RESULT.png"
+    },
+    "M01": {
+      "caseId": "M01",
+      "input": "E01 周一请假，帮我按最小改动重新排一下，只生成待确认方案。",
+      "durationMs": 15233,
+      "pass": false,
+      "status": "FAIL",
+      "hasDraft": false,
+      "draftVersion": null,
+      "confirmedVersion": "5",
+      "e01RowSummary": "星期\n周一\n星期\n周二\n星期\n周三\n星期\n周四\n星期\n周五\n星期\n周六\n星期\n周日\n早班\n09:00–17:00\n09:00–17:00\n4 人\nAAA\nE07\n🍹\nE09\n🍹\nE11\n09:00–17:00\n4 人\nE01\n🍹\nE11\nE17\n🍹\nE20\n🍹\n09:00–17:00\n4 人\nE03\n🍹\nE04\n🍹\nE09\n🍹\nE20\n🍹\n09:00–17:00\n4 人\nE01\n",
+      "assistantText": "场景试排仍不可行（场景版本 1）。我已返回最接近可行的试排结果和覆盖缺口，正式排班未改变。",
+      "hasRawMarkdownBold": false,
+      "screenshots": [
+        "M01-BEFORE.png",
+        "M01-PROGRESS.png",
+        "M01-AFTER.png"
+      ]
+    },
+    "M02": {
+      "caseId": "M02",
+      "input": "E01 周一周二请假，E02 周三晚班优先，帮我重新排一下，只生成待确认方案。",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 15263,
+          "pass": false,
+          "status": "FAIL",
+          "hasDraft": false,
+          "draftVersion": null,
+          "isClarification": false,
+          "condition1Met": true,
+          "condition2Met": false,
+          "condition3Met": true,
+          "e01Row": "星期\n周一\n星期\n周二\n星期\n周三\n星期\n周四\n星期\n周五\n星期\n周六\n星期\n周日\n早班\n09:00–17:00\n09:00–17:00\n4 人\nAAA\nE07\n🍹\nE09\n🍹\nE11\n09:00–17:00\n4 人\nE01\n🍹\nE11\nE17\n🍹\nE20\n🍹\n09:00–17:00\n4 人\nE03\n🍹\nE04\n🍹\nE09\n🍹\nE20\n🍹\n09:00–17:00\n4 人\nE01\n",
+          "e02Row": "星期\n周一\n星期\n周二\n星期\n周三\n星期\n周四\n星期\n周五\n星期\n周六\n星期\n周日\n早班\n09:00–17:00\n09:00–17:00\n4 人\nAAA\nE07\n🍹\nE09\n🍹\nE11\n09:00–17:00\n4 人\nE01\n🍹\nE11\nE17\n🍹\nE20\n🍹\n09:00–17:00\n4 人\nE03\n🍹\nE04\n🍹\nE09\n🍹\nE20\n🍹\n09:00–17:00\n4 人\nE01\n",
+          "assistantText": "1 validation error for ScheduleChange Value error, shift is required for change type preference [type=value_error, input_value={'employee_id': 'E02', 't...'day': <Day.WED: 'Wed'>}, input_type=dict] For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+        },
+        {
+          "run": 2,
+          "durationMs": 12231,
+          "pass": false,
+          "status": "FAIL",
+          "hasDraft": false,
+          "draftVersion": null,
+          "isClarification": false,
+          "condition1Met": true,
+          "condition2Met": false,
+          "condition3Met": true,
+          "e01Row": "星期\n周一\n星期\n周二\n星期\n周三\n星期\n周四\n星期\n周五\n星期\n周六\n星期\n周日\n早班\n09:00–17:00\n09:00–17:00\n4 人\nAAA\nE07\n🍹\nE09\n🍹\nE11\n09:00–17:00\n4 人\nE01\n🍹\nE11\nE17\n🍹\nE20\n🍹\n09:00–17:00\n4 人\nE03\n🍹\nE04\n🍹\nE09\n🍹\nE20\n🍹\n09:00–17:00\n4 人\nE01\n",
+          "e02Row": "星期\n周一\n星期\n周二\n星期\n周三\n星期\n周四\n星期\n周五\n星期\n周六\n星期\n周日\n早班\n09:00–17:00\n09:00–17:00\n4 人\nAAA\nE07\n🍹\nE09\n🍹\nE11\n09:00–17:00\n4 人\nE01\n🍹\nE11\nE17\n🍹\nE20\n🍹\n09:00–17:00\n4 人\nE03\n🍹\nE04\n🍹\nE09\n🍹\nE20\n🍹\n09:00–17:00\n4 人\nE01\n",
+          "assistantText": "1 validation error for ScheduleChange Value error, shift is required for change type preference [type=value_error, input_value={'employee_id': 'E02', 't...'day': <Day.WED: 'Wed'>}, input_type=dict] For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+        },
+        {
+          "run": 3,
+          "durationMs": 11195,
+          "pass": false,
+          "status": "FAIL",
+          "hasDraft": false,
+          "draftVersion": null,
+          "isClarification": false,
+          "condition1Met": true,
+          "condition2Met": false,
+          "condition3Met": true,
+          "e01Row": "星期\n周一\n星期\n周二\n星期\n周三\n星期\n周四\n星期\n周五\n星期\n周六\n星期\n周日\n早班\n09:00–17:00\n09:00–17:00\n4 人\nAAA\nE07\n🍹\nE09\n🍹\nE11\n09:00–17:00\n4 人\nE01\n🍹\nE11\nE17\n🍹\nE20\n🍹\n09:00–17:00\n4 人\nE03\n🍹\nE04\n🍹\nE09\n🍹\nE20\n🍹\n09:00–17:00\n4 人\nE01\n",
+          "e02Row": "星期\n周一\n星期\n周二\n星期\n周三\n星期\n周四\n星期\n周五\n星期\n周六\n星期\n周日\n早班\n09:00–17:00\n09:00–17:00\n4 人\nAAA\nE07\n🍹\nE09\n🍹\nE11\n09:00–17:00\n4 人\nE01\n🍹\nE11\nE17\n🍹\nE20\n🍹\n09:00–17:00\n4 人\nE03\n🍹\nE04\n🍹\nE09\n🍹\nE20\n🍹\n09:00–17:00\n4 人\nE01\n",
+          "assistantText": "1 validation error for ScheduleChange Value error, shift is required for change type preference [type=value_error, input_value={'employee_id': 'E02', 't...'day': <Day.WED: 'Wed'>}, input_type=dict] For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+        }
+      ],
+      "summary": "0/3 PASS",
+      "pass": false,
+      "status": "FAIL"
+    },
+    "C01": {
+      "caseId": "C01",
+      "input": "我问一下，你这个周日为什么安排这么多人？",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 13173,
+          "pass": false,
+          "status": "FAIL",
+          "answersSunday": true,
+          "hasCrosstalk": true,
+          "assistantText": "周日早班：实际 7 人，最低 6 人，超出最低人数 1 人；店长 3/1（达标）；饮品 6/2（达标）；收银 5/1（达标）。\n\n周日晚班：实际 7 人，最低 6 人，超出最低人数 1 人；店长 1/1（达标）；饮品 7/2（达标）；收银 5/1（达标）。\n\n周日早班上班员工：E01、E03、E05、E07、E09、E13、E15。\n\n周日晚班上班员工：E04、E06、E08、E10、E12、E14、E16。\n\n读取 2026-10-05 周的已确认版本 v5（sch_55898ae95446）。\n\n当前只是分析，没有修改排班。"
+        },
+        {
+          "run": 2,
+          "durationMs": 12192,
+          "pass": false,
+          "status": "FAIL",
+          "answersSunday": true,
+          "hasCrosstalk": true,
+          "assistantText": "周日早班：实际 7 人，最低 6 人，超出最低人数 1 人；店长 3/1（达标）；饮品 6/2（达标）；收银 5/1（达标）。\n\n周日晚班：实际 7 人，最低 6 人，超出最低人数 1 人；店长 1/1（达标）；饮品 7/2（达标）；收银 5/1（达标）。\n\n周日早班上班员工：E01、E03、E05、E07、E09、E13、E15。\n\n周日晚班上班员工：E04、E06、E08、E10、E12、E14、E16。\n\n读取 2026-10-05 周的已确认版本 v5（sch_55898ae95446）。\n\n当前只是分析，没有修改排班。"
+        },
+        {
+          "run": 3,
+          "durationMs": 13202,
+          "pass": false,
+          "status": "FAIL",
+          "answersSunday": true,
+          "hasCrosstalk": true,
+          "assistantText": "周日早班：实际 7 人，最低 6 人，超出最低人数 1 人；店长 3/1（达标）；饮品 6/2（达标）；收银 5/1（达标）。\n\n周日晚班：实际 7 人，最低 6 人，超出最低人数 1 人；店长 1/1（达标）；饮品 7/2（达标）；收银 5/1（达标）。\n\n周日早班上班员工：E01、E03、E05、E07、E09、E13、E15。\n\n周日晚班上班员工：E04、E06、E08、E10、E12、E14、E16。\n\n读取 2026-10-05 周的已确认版本 v5（sch_55898ae95446）。\n\n当前只是分析，没有修改排班。"
+        }
+      ],
+      "summary": "0/3 PASS",
+      "pass": false,
+      "status": "FAIL"
+    },
+    "CLEANUP": {
+      "caseId": "CLEANUP",
+      "draftCleaned": true,
+      "confirmedVersion": "5",
+      "status": "PASS",
+      "screenshot": "CLEANUP-AFTER.png"
+    }
+  },
+  "stability": {},
+  "visualAudit": {
+    "isPanelFixedOverlay": true,
+    "workbenchWidth": 1312,
+    "rawMarkdownBoldFound": false,
+    "panelComputedWidth": "460px"
+  },
+  "sseAnalysis": {},
+  "networkSummary": {
+    "totalRequests": 26,
+    "streamRequests": 24,
+    "scheduleRequests": 2
+  },
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+}

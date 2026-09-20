@@ -7,14 +7,13 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 from ..models import (
+    WEEK_DAYS,
     Assignment,
     ChangeType,
     Day,
-    Employee,
     HistoryStatus,
     SchedulingContext,
     Shift,
-    WEEK_DAYS,
 )
 
 
@@ -29,9 +28,38 @@ class EffectiveEmployeePolicy:
     preferred_shift: Shift | None
     forced_assignments: frozenset[tuple[Day, Shift]]
     forced_unassignments: frozenset[tuple[Day, Shift]]
+    day_preferences: frozenset[tuple[Day, Shift]] = frozenset()
+    available_slots: frozenset[tuple[Day, Shift]] = frozenset()
+    unavailable_slots: frozenset[tuple[Day, Shift]] = frozenset()
 
-    def can_work(self, day: Day) -> bool:
+    def can_work(self, day: Day, shift: Shift | None = None) -> bool:
+        """Resolve an exact slot; a date-only query means any shift is available.
+
+        A slot-specific AVAILABLE is a narrow exception to whole-day policy.
+        Explicit slot restrictions still win if a contradictory batch reaches
+        the solver. Availability never creates a required assignment.
+        """
+        if shift is None:
+            return any(self.can_work(day, candidate) for candidate in Shift)
+        if (day, shift) in self.unavailable_slots:
+            return False
+        if (day, shift) in self.available_slots:
+            return True
         return day in self.available_days and day not in self.leave_days
+
+    def preferred_shifts_for(self, day: Day) -> frozenset[Shift]:
+        """Explicit date preferences replace the default on that date only.
+
+        Repeated identical requests have no additional weight. If more than
+        one shift is preferred on a day, either can earn the day's one reward;
+        H01 still forbids working both. Preferences never grant availability.
+        """
+        explicit = frozenset(
+            shift for requested_day, shift in self.day_preferences if requested_day is day
+        )
+        if explicit:
+            return explicit
+        return frozenset({self.preferred_shift}) if self.preferred_shift else frozenset()
 
 
 class SchedulingFacts:
@@ -56,6 +84,9 @@ class SchedulingFacts:
                 "available": set(employee.available_days),
                 "leave": set(employee.leave_days),
                 "preferred": employee.preferred_shift,
+                "day_preferences": set(),
+                "available_slots": set(),
+                "unavailable_slots": set(),
                 "assign": set(),
                 "unassign": set(),
             }
@@ -63,12 +94,18 @@ class SchedulingFacts:
         for change in self.context.requested_changes:
             policy = mutable[change.employee_id]
             if change.type in {ChangeType.LEAVE, ChangeType.UNAVAILABLE}:
-                policy["leave"].add(change.day)  # type: ignore[union-attr]
+                if change.shift is None:
+                    policy["leave"].add(change.day)  # type: ignore[union-attr]
+                else:
+                    policy["unavailable_slots"].add((change.day, change.shift))  # type: ignore[union-attr]
             elif change.type is ChangeType.AVAILABLE:
-                policy["available"].add(change.day)  # type: ignore[union-attr]
-                policy["leave"].discard(change.day)  # type: ignore[union-attr]
-            elif change.type is ChangeType.PREFERENCE:
-                policy["preferred"] = change.shift
+                if change.shift is None:
+                    policy["available"].add(change.day)  # type: ignore[union-attr]
+                    policy["leave"].discard(change.day)  # type: ignore[union-attr]
+                else:
+                    policy["available_slots"].add((change.day, change.shift))  # type: ignore[union-attr]
+            elif change.type is ChangeType.PREFERENCE and change.shift is not None:
+                policy["day_preferences"].add((change.day, change.shift))  # type: ignore[union-attr]
             elif change.type is ChangeType.ASSIGN and change.shift is not None:
                 policy["assign"].add((change.day, change.shift))  # type: ignore[union-attr]
             elif change.type is ChangeType.UNASSIGN and change.shift is not None:
@@ -81,12 +118,60 @@ class SchedulingFacts:
                 preferred_shift=policy["preferred"],  # type: ignore[arg-type]
                 forced_assignments=frozenset(policy["assign"]),  # type: ignore[arg-type]
                 forced_unassignments=frozenset(policy["unassign"]),  # type: ignore[arg-type]
+                day_preferences=frozenset(policy["day_preferences"]),  # type: ignore[arg-type]
+                available_slots=frozenset(policy["available_slots"]),  # type: ignore[arg-type]
+                unavailable_slots=frozenset(policy["unavailable_slots"]),  # type: ignore[arg-type]
             )
             for employee_id, policy in mutable.items()
         }
 
-    def employee_can_work(self, employee_id: str, day: Day) -> bool:
-        return self.policies[employee_id].can_work(day)
+    def employee_can_work(self, employee_id: str, day: Day, shift: Shift | None = None) -> bool:
+        return self.policies[employee_id].can_work(day, shift)
+
+    def preference_keys(self) -> tuple[tuple[str, Day, Shift], ...]:
+        """Return stable, deduplicated reward slots for both solver and metrics."""
+        return tuple(
+            (employee.id, day, shift)
+            for employee in self.context.employees
+            for day in WEEK_DAYS
+            for shift in Shift
+            if shift in self.policies[employee.id].preferred_shifts_for(day)
+        )
+
+    def preference_metrics(self, assignments: list[Assignment]) -> dict[str, int | float | str]:
+        """Count rewards against the effective employee-day preference set.
+
+        An unscheduled preferred day is unsatisfied, rather than disappearing
+        from the denominator. A day contributes at most one opportunity and
+        one reward, consistent with H01 and the solver's objective. Explicit
+        date requests also have separate counters so a default preference
+        elsewhere in the week cannot conceal an unsatisfied date request.
+        """
+        preference_keys = set(self.preference_keys())
+        actual = {(item.employee_id, item.day, item.shift) for item in assignments}
+        opportunities = {(employee_id, day) for employee_id, day, _ in preference_keys}
+        satisfied = {(employee_id, day) for employee_id, day, _ in actual & preference_keys}
+        explicit_keys = {
+            (employee_id, day, shift)
+            for employee_id, policy in self.policies.items()
+            for day, shift in policy.day_preferences
+        }
+        explicit_opportunities = {(employee_id, day) for employee_id, day, _ in explicit_keys}
+        explicit_satisfied = {
+            (employee_id, day) for employee_id, day, _ in actual & explicit_keys
+        }
+        return {
+            "preference_satisfied": len(satisfied),
+            "preference_opportunities": len(opportunities),
+            "preference_rate": len(satisfied) / len(opportunities) if opportunities else 1.0,
+            "preference_scope": "effective_employee_days",
+            "day_preference_satisfied": len(explicit_satisfied),
+            "day_preference_opportunities": len(explicit_opportunities),
+            "day_preference_rate": (
+                len(explicit_satisfied) / len(explicit_opportunities)
+                if explicit_opportunities else 1.0
+            ),
+        }
 
     def base_assignment_keys(self) -> set[tuple[str, Day, Shift]]:
         if self.context.base_schedule is None:
