@@ -142,6 +142,7 @@ class AgentTools:
         conversation_id: str,
         target_week: date,
         changes: list[ScheduleChange],
+        staffing_constraints: list[Any] | None = None,
         operation: str = "add",
         operations: list[dict[str, Any]] | None = None,
         expected_revision: int | None = None,
@@ -169,6 +170,7 @@ class AgentTools:
             week_start=target_week,
             patches=patches,
             base_schedule=base_schedule,
+            staffing_constraints=staffing_constraints,
         )
         result["scenario_revision"] = state.revision if state else 0
         result["target_week"] = target_week.isoformat()
@@ -396,12 +398,14 @@ class AgentTools:
         source_conversation_id: str,
         source_client_message_id: str,
         source_user_message_id: str,
+        staffing_constraints: list[Any] | None = None,
         _before_commit: Callable[[], None] | None = None,
         _turn_guard: tuple[str, str, str] | None = None,
     ) -> dict[str, Any]:
         return self.scheduling.generate(
             week_start=target_week,
             changes=changes,
+            staffing_constraints=staffing_constraints,
             prompt="",
             metadata_extra={
                 "agent_conversation_id": source_conversation_id,
@@ -455,6 +459,7 @@ class AgentTools:
         source_conversation_id: str,
         source_client_message_id: str,
         source_user_message_id: str,
+        staffing_constraints: list[Any] | None = None,
         minimize_changes: bool = True,
         _before_commit: Callable[[], None] | None = None,
         _turn_guard: tuple[str, str, str] | None = None,
@@ -466,6 +471,7 @@ class AgentTools:
             base_schedule_id=confirmed["schedule_id"],
             base_version=confirmed["version"],
             changes=changes,
+            staffing_constraints=staffing_constraints,
             minimize_changes=minimize_changes,
             prompt="",
             metadata_extra={

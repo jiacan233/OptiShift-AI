@@ -1,5 +1,5 @@
 import { CheckCircle2, Clock3, Coffee, Shield, X } from 'lucide-react'
-import { DAY_LABELS, roleLabel, SHIFT_LABELS, SHIFT_TIMES, skillLabel } from '@/lib/presentation'
+import { DAY_LABELS, roleLabel, SHIFT_LABELS, SHIFT_TIMES, skillLabel, staffingRequirementText } from '@/lib/presentation'
 import type { CoverageCheck, Day, Employee, Schedule, ShiftType, ValidationResult } from '@/types'
 import { ViolationDetails } from './ViolationDetails'
 
@@ -85,14 +85,14 @@ export function ShiftDrawer({
 }
 
 function DrawerRule({ check }: { check: CoverageCheck }) {
-  const { rule_id: id, actual: current, expected: required, passed } = check
+  const { rule_id: id, actual: current, passed } = check
   const label = ({ R01: '店长覆盖', R02: '饮品制作覆盖', R03: '收银覆盖', R04: '最低在岗人数' } as Record<string, string>)[id]
   return (
     <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
       {passed ? <CheckCircle2 className="h-5 w-5 text-emerald-500" /> : <X className="h-5 w-5 text-red-500" />}
       <div className="flex-1">
         <p className="text-sm font-bold text-slate-700">{id} {label}</p>
-        <p className="text-[11px] text-slate-400">{current} / ≥{required}</p>
+        <p className="text-[11px] text-slate-400">{current} / {staffingRequirementText(check)}</p>
       </div>
       <span className={`text-xs font-extrabold ${passed ? 'text-emerald-600' : 'text-red-600'}`}>{passed ? '已满足' : '有缺口'}</span>
     </div>

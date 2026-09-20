@@ -89,9 +89,12 @@ def classify_validation(validation: dict, week: date,
     for raw in result.get("violations", []):
         rule = raw["rule_id"]
         details = raw.get("details") or {}
-        expected = details.get("expected", details.get("required", details.get("maximum")))
+        expected = details.get("expected", details.get("required", details.get("maximum", details.get("target"))))
         actual = details.get("actual")
-        shortage = max(0, expected - actual) if rule in {"R01", "R02", "R03", "R04"} else None
+        minimum = details.get("minimum", details.get("required"))
+        maximum = details.get("maximum")
+        target = details.get("target")
+        shortage = max(0, minimum - actual) if rule in {"R01", "R02", "R03", "R04"} and minimum is not None and actual is not None else None
         cid = constraint_id(week.isoformat(), rule, raw.get("day"), raw.get("shift"), raw.get("employee_id"))
         match = next((item for item in (authorizations or []) if
                       item.status in {"ACTIVE", "CONSUMED"} and
@@ -111,7 +114,8 @@ def classify_validation(validation: dict, week: date,
                 "rule_name": RULE_NAMES.get(rule, rule), "category": category,
                 "constraint_id": cid, "expected": "not_scheduled" if rule == "R08" else expected,
                 "actual": "scheduled" if rule == "R08" else actual, "shortage": shortage,
-                "excess": max(0, actual - expected) if rule == "R05" and actual is not None else None,
+                "min_count": minimum, "target_count": target, "max_count": maximum,
+                "excess": max(0, actual - maximum) if maximum is not None and actual is not None else None,
                 "authorized": group == "authorized_violations",
                 "authorization_id": match.override_id if match else None,
                 "authorization_source": match.authorization_source if match else None}

@@ -1,5 +1,5 @@
 import { ArrowUpRight, CheckCircle2, Coffee, Shield, UsersRound } from 'lucide-react'
-import { DAY_LABELS, SHIFT_LABELS, SHIFT_TIMES } from '@/lib/presentation'
+import { DAY_LABELS, SHIFT_LABELS, SHIFT_TIMES, staffingRequirementText } from '@/lib/presentation'
 import type { Assignment, CoverageCheck, Day, Employee, ShiftType, Violation } from '@/types'
 
 export function ShiftCard({
@@ -71,7 +71,7 @@ function Coverage({ check }: { check: CoverageCheck }) {
   return (
     <div className="flex items-center justify-between gap-1">
       <span className="text-slate-400">{label}</span>
-      <span className={`font-bold ${check.passed ? 'text-emerald-600' : 'text-red-600'}`}>{check.actual}/{check.expected}{!check.passed && ' ⚠'}</span>
+      <span className={`font-bold ${check.passed ? 'text-emerald-600' : 'text-red-600'}`}>{check.actual}/{staffingRequirementText(check)}{!check.passed && ' ⚠'}</span>
     </div>
   )
 }

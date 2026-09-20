@@ -10,7 +10,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ..execution import traced
-from ..models import Assignment, ChangeType, Day, Employee, OverrideScope, ScheduleChange, Shift
+from ..models import Assignment, ChangeType, Day, Employee, OverrideScope, ScheduleChange, Shift, StaffingConstraint, StaffingScope
 from .intent_parser import DAY_TOKENS, IntentParser, _normalize_identifier_text
 from .read_query import ReadQueryPlan, QuestionType, explicit_reference, is_counterfactual, is_read_only_question, normalize_plan
 from .router_stages import RouterRun, parse_stage, schema_bytes
@@ -148,6 +148,7 @@ class AgentRoute(BaseModel):
     authorization_reason: str | None = Field(default=None, max_length=2000)
     reference: AgentReference = Field(default_factory=AgentReference)
     clarification: AgentClarification = Field(default_factory=AgentClarification)
+    staffing_constraints: list[StaffingConstraint] = Field(default_factory=list)
 
 
 class RouterDecision(BaseModel):
@@ -628,6 +629,11 @@ class AgentRouter:
             raise UnknownAgentEmployeeError(unknown)
         employee_ids = sorted(referenced_ids)
 
+        # Headcount language is a scheduling constraint, even when no employee
+        # IDs are named. Parse it deterministically so the solver and validator
+        # receive one typed contract instead of relying on prompt wording.
+        staffing_constraints = cls._extract_staffing_constraints(text, normalized)
+
         if is_read_only_question(content) or is_counterfactual(content) or cls._negative_mutation(content):
             return AgentRoute(intent=AgentIntent.EXPLAIN if is_read_only_question(content) or is_counterfactual(content) else AgentIntent.ASK,
                               employees=employee_ids, read_query=normalize_plan(content, employees))
@@ -843,7 +849,55 @@ class AgentRouter:
             requested_overrides=requested_overrides,
             forced_assignments=forced_assignments,
             authorization_reason=text if force_generate else None,
+            staffing_constraints=staffing_constraints,
         ))
+
+    @staticmethod
+    def _extract_staffing_constraints(text: str, normalized: str) -> list[StaffingConstraint]:
+        import re
+        numbers = [int(value) for value in re.findall(r"(?<!\d)(\d{1,2})\s*(?:人|个人|名)", text)]
+        if not numbers:
+            return []
+        days = IntentParser.extract_days(text)
+        if not days:
+            days = list(Day)
+        scope = StaffingScope.SHIFT if re.search(r"每班|每个班|每一班|每个时段", normalized) else StaffingScope.DAY
+        shifts = [shift for shift, tokens in ((Shift.MORNING, ("早班", "morning")), (Shift.EVENING, ("晚班", "evening"))) if any(token in normalized for token in tokens)]
+        if scope is StaffingScope.SHIFT and not shifts:
+            shifts = list(Shift)
+        exact = bool(re.search(r"就\s*\d+|固定\s*\d+|不要多排|不多排|恰好|正好", normalized))
+        minimum = bool(re.search(r"至少|不少于|不低于|minimum|at least", normalized))
+        maximum = bool(re.search(r"最多|不超过|不多于|max(?:imum)?|at most", normalized))
+        range_match = re.search(r"(\d+)\s*(?:到|至|-|~)\s*(\d+)\s*(?:人|个人|名)", text)
+        if range_match:
+            lo, hi = map(int, range_match.groups())
+            # A single sentence may contain weekday/weekend clauses. Split
+            # those into independent constraints so weekend requirements do not
+            # overwrite weekday targets.
+            result = []
+            for subset, pattern in (([Day.MON, Day.TUE, Day.WED, Day.THU, Day.FRI], r"工作日[^。；,，]*?\d+\s*(?:人|个人|名)"), ([Day.SAT, Day.SUN], r"周末[^。；,，]*?\d+\s*(?:人|个人|名)")):
+                match = re.search(pattern, text)
+                if match:
+                    val = int(re.search(r"\d+", match.group()).group())
+                    result.append(StaffingConstraint(scope=scope, days=subset, shifts=shifts, min_count=val, target_count=val if exact else None, max_count=val if exact else None))
+            if result:
+                return result
+            return [StaffingConstraint(scope=scope, days=days, shifts=shifts, min_count=lo, max_count=hi)]
+        result = []
+        for subset, pattern in (([Day.MON, Day.TUE, Day.WED, Day.THU, Day.FRI], r"工作日[^。；,，]*?(\d+)\s*(?:人|个人|名)"), ([Day.SAT, Day.SUN], r"周末[^。；,，]*?(\d+)\s*(?:人|个人|名)")):
+            match = re.search(pattern, text)
+            if match:
+                val = int(match.group(1))
+                result.append(StaffingConstraint(scope=scope, days=subset, shifts=shifts, min_count=val, target_count=val if exact else None, max_count=val if exact else None))
+        if result:
+            return result
+        value = numbers[0]
+        soft_target = bool(re.search(r"最好|尽量|prefer|ideally|target", normalized))
+        if soft_target and not exact:
+            return [StaffingConstraint(scope=scope, days=days, shifts=shifts, target_count=value)]
+        if exact or (not minimum and not maximum):
+            return [StaffingConstraint(scope=scope, days=days, shifts=shifts, min_count=value, target_count=value, max_count=value)]
+        return [StaffingConstraint(scope=scope, days=days, shifts=shifts, min_count=value if minimum else None, max_count=value if maximum else None)]
 
     @staticmethod
     def _extract_changes(

@@ -24,6 +24,11 @@ export interface Violation {
   shift?: ShiftType | null
   employee_id?: string | null
   expected?: number | string | null
+  /** Canonical staffing constraint bounds (when supplied by the validator). */
+  min_count?: number | null
+  target_count?: number | null
+  max_count?: number | null
+  scope?: 'DAY' | 'SHIFT' | string | null
   actual?: number | string | null
   shortage?: number | null
   excess?: number | null
@@ -39,6 +44,11 @@ export interface CoverageCheck {
   day: Day
   shift: ShiftType
   expected: number
+  /** Canonical staffing constraint bounds. `expected` is retained for legacy API payloads. */
+  min_count?: number | null
+  target_count?: number | null
+  max_count?: number | null
+  scope?: 'DAY' | 'SHIFT' | string | null
   actual: number
   passed: boolean
 }

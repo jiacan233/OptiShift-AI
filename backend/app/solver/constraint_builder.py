@@ -8,7 +8,7 @@ from datetime import date
 from ortools.sat.python import cp_model
 
 from ..core import SchedulingFacts
-from ..models import SHIFTS, WEEK_DAYS, Day, SchedulingContext, Shift, Skill
+from ..models import SHIFTS, WEEK_DAYS, Day, SchedulingContext, Shift, Skill, StaffingScope
 
 VariableKey = tuple[str, Day, Shift]
 CoverageKey = tuple[str, Day, Shift]
@@ -27,6 +27,7 @@ class BuiltSchedulingModel:
     preference_terms: list[cp_model.IntVar]
     change_terms: list[cp_model.IntVar]
     workload_gap: cp_model.IntVar | None
+    staffing_target_penalties: list[cp_model.IntVar]
 
 
 class ConstraintBuilder:
@@ -92,6 +93,7 @@ class ConstraintBuilder:
 
         # R01-R04. Diagnosis and exact authorized slots may receive shortage slack.
         staffing_slacks: dict[CoverageKey, cp_model.IntVar] = {}
+        staffing_target_penalties: list[cp_model.IntVar] = []
         # These terms describe actual use of an authorized exception.  They
         # are kept separate from the normal objective so Force solving can be
         # lexicographic instead of relying on a large arbitrary weight.
@@ -154,6 +156,16 @@ class ConstraintBuilder:
                     authorized_violation_terms=authorized_violation_terms,
                     authorized_magnitude_terms=authorized_magnitude_terms,
                 )
+                # Request-scoped headcount constraints share the same model as
+                # the default R04 minimum. Exact bounds are hard in normal
+                # mode; diagnostic/Force paths expose only authorized gaps.
+                for index, constraint in enumerate(rules.staffing_for(day, shift)):
+                    key = (f"HC{index}", day, shift)
+                    self._add_headcount(
+                        model, staffing_slacks, key, all_staff,
+                        constraint.min_count, constraint.target_count,
+                        constraint.max_count, diagnostic, staffing_target_penalties,
+                    )
 
         # R08 is normally hard above.  An authorized slot is permitted, but
         # each actual assignment remains an exception and is minimized first.
@@ -251,6 +263,8 @@ class ConstraintBuilder:
                 objective -= weights.workload_gap_penalty * workload_gap
             if change_terms:
                 objective -= weights.schedule_change_penalty * sum(change_terms)
+            if staffing_target_penalties:
+                objective -= sum(staffing_target_penalties)
             model.Maximize(objective)
 
         return BuiltSchedulingModel(
@@ -265,6 +279,7 @@ class ConstraintBuilder:
             preference_terms=preference_terms,
             change_terms=change_terms,
             workload_gap=workload_gap,
+            staffing_target_penalties=staffing_target_penalties,
         )
 
     @staticmethod
@@ -298,3 +313,24 @@ class ConstraintBuilder:
                     authorized_magnitude_terms.append(shortage)
         else:
             model.Add(sum(variables) >= required)
+
+    @staticmethod
+    def _add_headcount(model, slacks, key, variables, minimum, target, maximum, diagnostic, target_penalties):
+        actual = sum(variables)
+        if minimum is not None:
+            if diagnostic:
+                shortage = model.NewIntVar(0, minimum, f"shortage_{key[0]}_{key[1].value}_{key[2].value}")
+                model.Add(actual + shortage >= minimum)
+                slacks[key] = shortage
+            else:
+                model.Add(actual >= minimum)
+        if maximum is not None:
+            model.Add(actual <= maximum)
+        # A target without equal hard bounds is a soft preference. Penalize
+        # absolute distance so the normal business objective still decides
+        # among equally close schedules without turning the target into a
+        # hidden minimum/maximum.
+        if target is not None and not (minimum == target == maximum):
+            distance = model.NewIntVar(0, len(variables), f"target_distance_{key[0]}_{key[1].value}_{key[2].value}")
+            model.AddAbsEquality(distance, actual - target)
+            target_penalties.append(distance)

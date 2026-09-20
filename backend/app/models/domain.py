@@ -51,6 +51,13 @@ class Shift(StringEnum):
 SHIFTS: tuple[Shift, ...] = (Shift.MORNING, Shift.EVENING)
 
 
+class StaffingScope(StringEnum):
+    """The unit over which a headcount constraint is evaluated."""
+
+    DAY = "DAY"
+    SHIFT = "SHIFT"
+
+
 class Skill(StringEnum):
     MANAGER = "manager"
     BEVERAGE = "beverage"
@@ -188,12 +195,50 @@ class ObjectiveWeights(StrictModel):
     schedule_change_penalty: int = Field(default=8, ge=0)
 
 
+class StaffingConstraint(StrictModel):
+    """A normalized staffing requirement supplied by a scheduling request.
+
+    ``days`` and ``shifts`` scope the constraint to the supplied week.  A DAY
+    constraint counts all assignments on a day, while SHIFT counts one shift
+    at a time.  ``target_count`` is a soft target unless it is accompanied by
+    equal min/max values (the exact form produced for "就 N 人" requests).
+    """
+
+    scope: StaffingScope
+    days: list[Day] = Field(default_factory=list)
+    shifts: list[Shift] = Field(default_factory=list)
+    min_count: int | None = Field(default=None, ge=0)
+    target_count: int | None = Field(default=None, ge=0)
+    max_count: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def validate_bounds(self) -> "StaffingConstraint":
+        if self.min_count is None and self.target_count is None and self.max_count is None:
+            raise ValueError("staffing constraint requires min_count, target_count or max_count")
+        if self.min_count is not None and self.max_count is not None and self.min_count > self.max_count:
+            raise ValueError("staffing constraint min_count cannot exceed max_count")
+        if self.target_count is not None:
+            if self.min_count is not None and self.target_count < self.min_count:
+                raise ValueError("staffing target cannot be below min_count")
+            if self.max_count is not None and self.target_count > self.max_count:
+                raise ValueError("staffing target cannot exceed max_count")
+        return self
+
+    def applies(self, day: Day, shift: Shift | None = None) -> bool:
+        if self.days and day not in self.days:
+            return False
+        if self.scope is StaffingScope.DAY:
+            return shift is None
+        return shift is not None and (not self.shifts or shift in self.shifts)
+
+
 class RuleConfig(StrictModel):
     manager_per_shift: int = Field(default=1, ge=0)
     beverage_per_shift: int = Field(default=2, ge=0)
     cashier_per_shift: int = Field(default=1, ge=0)
     weekday_min_staff: int = Field(default=4, ge=0)
     weekend_min_staff: int = Field(default=6, ge=0)
+    staffing_constraints: list[StaffingConstraint] = Field(default_factory=list)
     max_shifts_per_week: int = Field(default=5, ge=0)
     max_consecutive_days: int = Field(default=5, ge=1)
     max_time_seconds: float = Field(default=8.0, gt=0)
@@ -203,6 +248,10 @@ class RuleConfig(StrictModel):
 
     def minimum_staff(self, day: Day) -> int:
         return self.weekend_min_staff if day in {Day.SAT, Day.SUN} else self.weekday_min_staff
+
+    def staffing_for(self, day: Day, shift: Shift | None = None) -> list[StaffingConstraint]:
+        """Return request-scoped constraints matching a day/shift unit."""
+        return [item for item in self.staffing_constraints if item.applies(day, shift)]
 
 
 class SchedulingContext(StrictModel):
@@ -219,6 +268,7 @@ class SchedulingContext(StrictModel):
     employees: list[Employee]
     rules: RuleConfig = Field(default_factory=RuleConfig)
     requested_changes: list[ScheduleChange] = Field(default_factory=list)
+    staffing_constraints: list[StaffingConstraint] = Field(default_factory=list)
     history_status: HistoryStatus = HistoryStatus.KNOWN_EMPTY
     minimize_changes: bool = False
 

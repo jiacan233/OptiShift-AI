@@ -41,6 +41,7 @@ class ContextBuilder:
         user_forced_assignments: list[Any] | None = None,
         override_scopes: list[dict[str, Any]] | None = None,
         rule_config: dict[str, Any] | None = None,
+        staffing_constraints: list[Any] | None = None,
     ) -> SchedulingContext:
         if rule_config is None and base_schedule is not None:
             record = self.schedule_repository.get_record(base_schedule.schedule_id)
@@ -81,6 +82,9 @@ class ContextBuilder:
             )
             for assignment in following.assignments
         ] if following is not None else []
+        effective_rules = RuleConfig.model_validate(rule_config) if rule_config else self.rules
+        if staffing_constraints is not None:
+            effective_rules = effective_rules.model_copy(update={"staffing_constraints": staffing_constraints})
         return SchedulingContext(
             base_schedule=base_schedule,
             previous_days=history,
@@ -97,7 +101,8 @@ class ContextBuilder:
                 if employees is not None
                 else self.employee_repository.list_with_revision()[0]
             ),
-            rules=RuleConfig.model_validate(rule_config) if rule_config else self.rules,
+            rules=effective_rules,
+            staffing_constraints=list(effective_rules.staffing_constraints),
             requested_changes=changes or [],
             history_status=history_status,
             minimize_changes=minimize_changes,

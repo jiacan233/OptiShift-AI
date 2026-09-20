@@ -133,6 +133,44 @@ export function localizeMessage(message: string | undefined, fallback: string) {
   return fallback
 }
 
+/**
+ * Render the canonical staffing constraint in a compact form suitable for
+ * coverage cards and violation details. Older responses only contain
+ * `expected`, which remains the minimum-count fallback.
+ */
+export function staffingRequirementText(item: {
+  expected?: number | string | null
+  min_count?: number | null
+  target_count?: number | null
+  max_count?: number | null
+}) {
+  const min = typeof item.min_count === 'number' ? item.min_count : null
+  const target = typeof item.target_count === 'number' ? item.target_count : null
+  const max = typeof item.max_count === 'number' ? item.max_count : null
+  if (target != null && min != null && max != null && min === target && target === max) return String(target)
+  if (min != null && max != null) return `${min}–${max}`
+  if (min != null) return `至少 ${min}`
+  if (max != null) return `最多 ${max}`
+  if (target != null) return `目标 ${target}`
+  return item.expected == null ? '—' : String(item.expected)
+}
+
+/** Determine pass/fail from canonical bounds, with legacy `expected` fallback. */
+export function staffingConstraintPassed(item: {
+  expected?: number | string | null
+  min_count?: number | null
+  target_count?: number | null
+  max_count?: number | null
+  actual?: number | string | null
+  passed?: boolean
+}) {
+  if (typeof item.passed === 'boolean') return item.passed
+  if (typeof item.actual !== 'number') return undefined
+  const min = typeof item.min_count === 'number' ? item.min_count : (typeof item.expected === 'number' ? item.expected : null)
+  const max = typeof item.max_count === 'number' ? item.max_count : null
+  return (min == null || item.actual >= min) && (max == null || item.actual <= max)
+}
+
 export function ruleCheckMessage(ruleId: string, passed: boolean, message?: string) {
   const rule = rulePresentation(ruleId)
   if (message === 'Passed') return `${rule.name}：已通过`

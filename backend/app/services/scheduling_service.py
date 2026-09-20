@@ -190,6 +190,7 @@ class SchedulingService:
         week_start: date,
         patches: list[ScenarioPatch],
         base_schedule: Schedule | None = None,
+        staffing_constraints: list[Any] | None = None,
     ) -> dict[str, Any]:
         employee_list, _ = self.employees.list_with_revision()
         changes = scenario_patches_to_schedule_changes(patches)
@@ -201,6 +202,7 @@ class SchedulingService:
             minimize_changes=True,
             employees=employee_list,
             allow_history_bootstrap=True,
+            staffing_constraints=staffing_constraints,
         )
         result = self.solver.solve(context, week_start=week_start, version=1)
         if result.status in {SolverStatus.OPTIMAL, SolverStatus.FEASIBLE} and result.schedule is not None:
@@ -408,6 +410,7 @@ class SchedulingService:
         weekend_min_staff: int | None = None,
         max_consecutive_days: int | None = None,
         changes: list[ScheduleChange] | None = None,
+        staffing_constraints: list[Any] | None = None,
         metadata_extra: dict[str, Any] | None = None,
         before_commit: Callable[[], None] | None = None,
         agent_turn_guard: tuple[str, str, str] | None = None,
@@ -439,6 +442,7 @@ class SchedulingService:
             minimize_changes=minimize_changes,
             employees=employee_list,
             allow_history_bootstrap=True,
+            staffing_constraints=staffing_constraints,
         )
         if max_consecutive_days is not None and not 1 <= max_consecutive_days <= 7:
             raise ValueError("max_consecutive_days must be between 1 and 7")
@@ -674,6 +678,7 @@ class SchedulingService:
         week_start: date,
         preview: dict[str, Any],
         changes: list[ScheduleChange],
+        staffing_constraints: list[Any] | None = None,
         metadata_extra: dict[str, Any] | None = None,
         before_commit: Callable[[], None] | None = None,
         agent_turn_guard: tuple[str, str, str] | None = None,
@@ -693,6 +698,7 @@ class SchedulingService:
             minimize_changes=True,
             employees=employee_list,
             allow_history_bootstrap=True,
+            staffing_constraints=staffing_constraints,
         )
         schedule = Schedule.model_validate(preview["schedule"]).model_copy(update={
             "schedule_id": self._new_schedule_id(),
@@ -751,6 +757,7 @@ class SchedulingService:
         base_schedule_id: str,
         base_version: int,
         changes: list[ScheduleChange],
+        staffing_constraints: list[Any] | None = None,
         minimize_changes: bool = True,
         prompt: str = "",
         metadata_extra: dict[str, Any] | None = None,
@@ -777,6 +784,7 @@ class SchedulingService:
             minimize_changes=minimize_changes,
             employees=employee_list,
             allow_history_bootstrap=False,
+            staffing_constraints=staffing_constraints,
         )
         schedule_id = self._new_schedule_id()
         result = self.solver.solve(

@@ -171,6 +171,34 @@ class RuleValidator:
                             details={"required": required_staff, "actual": actual_staff},
                         )
                     )
+                # Validate request-scoped headcount bounds independently from
+                # the default minimum rule. This keeps Exact and max requests
+                # visible even when the baseline R04 minimum passes.
+                for index, constraint in enumerate(effective_rules.staffing_for(day, shift)):
+                    minimum = constraint.min_count
+                    maximum = constraint.max_count
+                    target = constraint.target_count
+                    if minimum is not None and actual_staff < minimum:
+                        violations["R04"].append(RuleViolation(
+                            rule_id="R04", day=day, shift=shift,
+                            message="Staffing is below the requested minimum.",
+                            details={"constraint_index": index, "required": minimum, "actual": actual_staff},
+                        ))
+                    if maximum is not None and actual_staff > maximum:
+                        violations["R04"].append(RuleViolation(
+                            rule_id="R04", day=day, shift=shift,
+                            message="Staffing exceeds the requested maximum.",
+                            details={"constraint_index": index, "maximum": maximum, "actual": actual_staff, "excess": actual_staff - maximum},
+                        ))
+                    if target is not None and minimum is not None and maximum is not None and minimum == maximum == target and actual_staff != target:
+                        violations["R04"].append(RuleViolation(
+                            rule_id="R04", day=day, shift=shift,
+                            message="Exact staffing target was not met.",
+                            details={"constraint_index": index, "target": target, "actual": actual_staff, "excess": max(0, actual_staff-target), "shortage": max(0, target-actual_staff)},
+                        ))
+                    coverage.append(dict(rule_id="R04", day=day, shift=shift, expected=target if target is not None else (minimum if minimum is not None else maximum),
+                                         target_count=target, min_count=minimum, max_count=maximum,
+                                         passed=not ((minimum is not None and actual_staff < minimum) or (maximum is not None and actual_staff > maximum))))
 
         # R05 counts unique employee/day/shift keys; duplicates already fail H01.
         workload: dict[str, int] = defaultdict(int)

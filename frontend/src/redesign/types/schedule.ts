@@ -94,6 +94,7 @@ export interface RuleViolationIssue {
   message: string
   current: number
   required: number
+  excess?: number
 }
 
 export interface ShiftCoverage {

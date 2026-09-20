@@ -124,6 +124,7 @@ export function calculateDayCoverage(
         const existing = ruleIssues.find((issue) => issue.ruleId === ruleId)
         if (existing) {
           existing.message = `${violation.authorized ? '已授权违规：' : ''}${violation.message}`
+          existing.excess = typeof violation.excess === 'number' ? violation.excess : existing.excess
           continue
         }
         ruleIssues.push({
@@ -133,6 +134,7 @@ export function calculateDayCoverage(
           message: `${violation.authorized ? '已授权违规：' : ''}${violation.message}`,
           current: typeof violation.actual === 'number' ? violation.actual : 0,
           required: typeof violation.expected === 'number' ? violation.expected : 0,
+          excess: typeof violation.excess === 'number' ? violation.excess : undefined,
         })
       }
 
@@ -174,7 +176,10 @@ export function calculateDayCoverage(
     let status: 'normal' | 'shortage' | 'conflict' = 'normal'
     let statusText = '✓ 覆盖正常'
 
-    if (allIssues.some((i) => i.ruleId !== 'R-04')) {
+    // R-04 is normally a minimum-only check. It can also carry an exact or
+    // maximum staffing violation; those must make the day visibly conflicted
+    // even when there is no shortage.
+    if (allIssues.some((i) => i.ruleId !== 'R-04') || (allIssues.length > 0 && dayGaps === 0)) {
       status = 'conflict'
       statusText = `⚠ ${conflictCount} 条规则冲突`
     } else if (dayGaps > 0) {

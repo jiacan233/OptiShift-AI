@@ -1723,6 +1723,13 @@ class AgentService:
                     ),
                     trace=trace,
                 )
+                if route.staffing_constraints:
+                    schedule_result = self.tools.scheduling.preview_scenario(
+                        week_start=target.week_start,
+                        patches=self.tools.scenarios.get(conversation_id, target.week_start).patches if self.tools.scenarios.get(conversation_id, target.week_start) else [],
+                        base_schedule=(Schedule.model_validate(current["display"]["schedule"]) if current.get("display") else None),
+                        staffing_constraints=route.staffing_constraints,
+                    )
                 tool_output = schedule_result
                 metadata["scenario_preview"] = dict(schedule_result)
                 metadata["scenario_revision"] = schedule_result.get("scenario_revision", 0)
@@ -1827,6 +1834,8 @@ class AgentService:
                             owner_token,
                         ),
                     }
+                    if route.staffing_constraints:
+                        inputs["staffing_constraints"] = route.staffing_constraints
                     if tool_name == "replan_schedule":
                         inputs["minimize_changes"] = route.minimize_changes or True
                     elif tool_name == "force_generate_schedule":
