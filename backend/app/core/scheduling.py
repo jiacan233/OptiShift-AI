@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import date, timedelta
 
@@ -232,7 +233,9 @@ class SchedulingFacts:
         )
 
     def following_work_vector(self, employee_id: str) -> list[int]:
-        """Return the next confirmed week's first five days, oldest first."""
+        """Return enough of the next week for its own R06 limit, oldest first."""
+        length = min(7, self.context.following_max_consecutive_days or
+                     self.context.rules.max_consecutive_days)
         dated = {
             item.assignment_date for item in self.context.following_days
             if item.employee_id == employee_id and item.assignment_date is not None
@@ -240,12 +243,26 @@ class SchedulingFacts:
         if self.week_start is not None and dated:
             return [
                 int(self.week_start + timedelta(days=offset) in dated)
-                for offset in range(7, 12)
+                for offset in range(7, 7 + length)
             ]
         worked_days = {
             item.day for item in self.context.following_days if item.employee_id == employee_id
         }
-        return [int(day in worked_days) for day in WEEK_DAYS[:5]]
+        return [int(day in worked_days) for day in WEEK_DAYS[:length]]
+
+    def r06_windows(self, previous_length: int, timeline_length: int) -> Iterator[tuple[int, int, int]]:
+        """Use this week's limit until Sunday and the successor's across Sunday."""
+        current_end = previous_length + len(WEEK_DAYS)
+        current_maximum = self.context.rules.max_consecutive_days
+        following_maximum = self.context.following_max_consecutive_days or current_maximum
+        for maximum in dict.fromkeys((current_maximum, following_maximum)):
+            for start in range(timeline_length - maximum):
+                end = start + maximum + 1
+                if end <= previous_length or start >= current_end:
+                    continue
+                applicable_maximum = following_maximum if end > current_end else current_maximum
+                if maximum == applicable_maximum:
+                    yield start, end, maximum
 
     def following_monday_morning(self, employee_id: str) -> int:
         dated = [

@@ -211,6 +211,9 @@ class SchedulingContext(StrictModel):
     base_schedule: Schedule | None = None
     previous_days: list[HistoricalAssignment] = Field(default_factory=list)
     following_days: list[HistoricalAssignment] = Field(default_factory=list)
+    following_schedule_id: str | None = None
+    following_schedule_version: int | None = Field(default=None, ge=1)
+    following_max_consecutive_days: int | None = Field(default=None, ge=1)
     history_schedule_id: str | None = None
     history_schedule_version: int | None = Field(default=None, ge=1)
     employees: list[Employee]

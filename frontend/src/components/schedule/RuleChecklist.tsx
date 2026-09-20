@@ -22,15 +22,20 @@ export function RuleChecklist({ validation }: { validation: ValidationResult | n
   }
 
   const authorized = validation.checks.filter((check) => check.classification === 'VIOLATED_AUTHORIZED').length
-  const hasAcceptedExceptions = validation.compliance_status === 'authorized_violations'
-  const tone = validation.passed ? 'text-emerald-700' : hasAcceptedExceptions ? 'text-amber-700' : 'text-red-700'
-  const summary = authorized ? `${validation.passed_count} 项满足 · ${authorized} 项已授权例外` : `${validation.passed_count} / ${validation.total} ${validation.passed ? '全部通过' : '存在冲突'}`
+  const stale = validation.freshness_valid === false
+  const blocked = stale || validation.confirmable === false
+  const passed = validation.passed && !blocked
+  const hasAcceptedExceptions = blocked || validation.compliance_status === 'authorized_violations'
+  const tone = passed ? 'text-emerald-700' : hasAcceptedExceptions ? 'text-amber-700' : 'text-red-700'
+  const summary = blocked
+    ? stale ? '草稿已过期 · 请重新生成' : '草稿不可确认 · 请检查规则或重新生成'
+    : authorized ? `${validation.passed_count} 项满足 · ${authorized} 项已授权例外` : `${validation.passed_count} / ${validation.total} ${passed ? '全部通过' : '存在冲突'}`
   return (
     <div className="panel overflow-hidden">
-      <div className={`p-5 ${validation.passed ? 'bg-emerald-50/70' : hasAcceptedExceptions ? 'bg-amber-50/70' : 'bg-red-50/70'}`}>
+      <div className={`p-5 ${passed ? 'bg-emerald-50/70' : hasAcceptedExceptions ? 'bg-amber-50/70' : 'bg-red-50/70'}`}>
         <div className="flex items-center gap-3">
-          <span className={`grid h-10 w-10 place-items-center rounded-xl ${validation.passed ? 'bg-emerald-100 text-emerald-700' : hasAcceptedExceptions ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
-            {validation.passed ? <ShieldCheck className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
+          <span className={`grid h-10 w-10 place-items-center rounded-xl ${passed ? 'bg-emerald-100 text-emerald-700' : hasAcceptedExceptions ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+            {passed ? <ShieldCheck className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
           </span>
           <div>
             <p className="text-sm font-extrabold text-ink">硬约束检查</p>
@@ -40,6 +45,7 @@ export function RuleChecklist({ validation }: { validation: ValidationResult | n
           </div>
         </div>
       </div>
+      {blocked && <p role="status" className="px-5 py-3 text-xs text-amber-800">{validation.conflict?.message ?? '规则检查结果不能代表草稿仍可确认，请取消后重新生成。'}</p>}
       <div className="max-h-[490px] space-y-1 overflow-y-auto p-3 soft-scrollbar">
         {validation.checks.map((check) => (
           <div key={check.rule_id} title={ruleCheckMessage(check.rule_id, check.passed, check.message)} className="flex items-center gap-2 rounded-lg px-2.5 py-2 hover:bg-slate-50">
@@ -51,9 +57,9 @@ export function RuleChecklist({ validation }: { validation: ValidationResult | n
           </div>
         ))}
       </div>
-      <div className={`border-t px-5 py-4 text-center ${validation.passed ? 'border-emerald-100 bg-emerald-50' : hasAcceptedExceptions ? 'border-amber-100 bg-amber-50' : 'border-red-100 bg-red-50'}`}>
+      <div className={`border-t px-5 py-4 text-center ${passed ? 'border-emerald-100 bg-emerald-50' : hasAcceptedExceptions ? 'border-amber-100 bg-amber-50' : 'border-red-100 bg-red-50'}`}>
         <p className={`text-sm font-black tracking-tight ${tone}`}>
-          {authorized ? summary : `${validation.passed_count} / ${validation.total} 项 ${validation.passed ? '全部通过' : '存在未通过项'}`}
+          {summary}
         </p>
       </div>
     </div>

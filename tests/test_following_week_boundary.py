@@ -21,6 +21,8 @@ from backend.app.models import (
     Shift,
 )
 from backend.app.services.scheduling_service import SchedulingService
+from backend.app.repository import VersionConflictError
+from backend.app.models.orm import ScheduleRecord
 from backend.app.solver import candidate_blocking_analysis
 from backend.app.validator import RuleValidator
 
@@ -29,13 +31,15 @@ def _assignments(days, shift=Shift.MORNING):
     return [Assignment(employee_id="E01", day=day, shift=shift) for day in days]
 
 
-def _setup_service(repositories, employee_factory, week_start, following_assignments):
+def _setup_service(repositories, employee_factory, week_start, following_assignments,
+                   *, current_maximum=5, following_maximum=None):
     employees, schedules = repositories
     employees.create(employee_factory("E01", preferred_shift=Shift.MORNING))
     service = SchedulingService(employees, schedules)
     service.context_builder.rules = RuleConfig(
         manager_per_shift=0, beverage_per_shift=0, cashier_per_shift=0,
         weekday_min_staff=0, weekend_min_staff=0,
+        max_consecutive_days=current_maximum,
     )
     service.context_builder.build(week_start)  # Persist the known-empty history boundary.
     for identity, week, assignments in (
@@ -46,7 +50,10 @@ def _setup_service(repositories, employee_factory, week_start, following_assignm
             Schedule(schedule_id=identity, week_start=week, assignments=assignments),
             lineage_id=identity, base_schedule_id=None, base_version=None,
             validation={"passed": True},
-            metadata={"rule_config": service.context_builder.rules.model_dump(mode="json")},
+            metadata={"rule_config": service.context_builder.rules.model_copy(update={
+                "max_consecutive_days": following_maximum or current_maximum,
+            }).model_dump(mode="json") if identity == "following" else
+                service.context_builder.rules.model_dump(mode="json")},
         )
         service.confirm(identity, 1)
     return service
@@ -190,3 +197,92 @@ def test_diagnostic_candidates_respect_following_boundary(employee_factory, week
                                   required=1, actual=0, shortage=1)
     blocked = candidate_blocking_analysis(context, [conflict], week_start=week_start)
     assert rule in {reason.rule_id for reason in blocked[0].reasons}
+
+
+def _advance_following(service, week_start):
+    # Preserve assignments to isolate dependency freshness from rule validity.
+    record = service.schedules.current_confirmed_record_for_week(week_start + timedelta(days=7))
+    draft = record["schedule"].model_copy(update={
+        "schedule_id": "following-v2", "version": 2, "parent_schedule_id": "following",
+    })
+    service.schedules.save_draft(
+        draft, lineage_id="following", base_schedule_id="following", base_version=1,
+        validation={"passed": True}, metadata=record["metadata"],
+    )
+    return service.confirm(draft.schedule_id, draft.version)
+
+
+@pytest.mark.parametrize("change", ["version", "removed", "added"])
+def test_following_dependency_changes_make_otherwise_valid_draft_stale(
+    repositories, employee_factory, week_start, change,
+):
+    service = _setup_service(repositories, employee_factory, week_start, [])
+    if change == "added":
+        with service.schedules.database.transaction(immediate=True) as session:
+            session.get(ScheduleRecord, "following").status = "cancelled"
+    draft = service.generate(week_start=week_start)
+    metadata = service.schedules.get_record(draft["schedule_id"])["metadata"]
+    assert metadata["following_schedule_id"] == (None if change == "added" else "following")
+    assert metadata["following_schedule_version"] == (None if change == "added" else 1)
+    if change == "version":
+        _advance_following(service, week_start)
+    else:
+        with service.schedules.database.transaction(immediate=True) as session:
+            session.get(ScheduleRecord, "following").status = (
+                "confirmed" if change == "added" else "cancelled"
+            )
+
+    for validation in (
+        service.validate_stored(draft["schedule_id"]),
+        service.schedules.current_records_for_week(week_start)[1]["validation"],
+    ):
+        assert validation["passed"] is True
+        assert validation["passed_count"] == 10
+        assert validation["freshness_valid"] is False
+        assert validation["freshness_reason"] == "following_dependency_stale"
+        assert validation["confirmable"] is False
+        assert validation["conflict"]["code"] == "following_dependency_conflict"
+    for confirm in (service.confirm, service.schedules.confirm):
+        with pytest.raises(VersionConflictError) as error:
+            confirm(draft["schedule_id"], draft["version"])
+        assert error.value.code == "following_dependency_conflict"
+    assert service.schedules.confirmed_for_week(week_start).schedule_id == "base"
+
+
+def test_following_change_during_generation_rejects_save(repositories, employee_factory, week_start):
+    service = _setup_service(repositories, employee_factory, week_start, [])
+    with pytest.raises(VersionConflictError) as error:
+        service.generate(week_start=week_start, before_commit=lambda: _advance_following(service, week_start))
+    assert error.value.code == "following_dependency_conflict"
+    assert service.schedules.current_draft_record_for_week(week_start) is None
+
+
+@pytest.mark.parametrize("current_maximum,following_maximum,tail,prefix,feasible", [
+    (5, 3, 2, 2, False),  # A stricter successor owns the crossing window.
+    (3, 5, 3, 2, True),   # Do not apply this week's stricter limit to next week.
+    (3, 5, 4, 1, False),  # This week's internal limit still applies.
+    (5, 2, 1, 1, True),
+])
+def test_generation_and_confirm_use_the_same_r06_boundary_limit(
+    repositories, employee_factory, week_start, current_maximum, following_maximum,
+    tail, prefix, feasible,
+):
+    service = _setup_service(
+        repositories, employee_factory, week_start, _assignments(WEEK_DAYS[:prefix]),
+        current_maximum=current_maximum, following_maximum=following_maximum,
+    )
+    context = service.context_builder.build(week_start)
+    assert context.rules.max_consecutive_days == current_maximum
+    assert context.following_max_consecutive_days == following_maximum
+    required = _assignments(WEEK_DAYS[-tail:])
+    changes = [ScheduleChange(**item.model_dump(), type=ChangeType.ASSIGN) for item in required]
+    result = service.generate(week_start=week_start, changes=changes)
+    if feasible:
+        assert result["status"] == "feasible"
+        assert service.confirm(result["schedule_id"], result["version"])["status"] == "confirmed"
+    else:
+        assert result["status"] == "infeasible"
+        violation = next(item for item in result["conflicts"] if item["rule_id"] == "R06")
+        expected_limit = current_maximum if tail > current_maximum else following_maximum
+        assert violation["details"]["maximum"] == expected_limit
+        assert service.schedules.current_draft_record_for_week(week_start) is None

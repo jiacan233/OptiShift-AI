@@ -62,6 +62,7 @@ class VersionConflictError(RuntimeError):
         self.message = {
             "current_week_base_conflict": "本周正式排班已发生变化，请基于最新正式排班重新生成草稿。",
             "history_dependency_conflict": "上一周正式排班已发生变化，本周草稿需要基于最新排班重新生成。",
+            "following_dependency_conflict": "下一周正式排班已发生变化，本周草稿已过期，请重新生成。",
             "draft_version_conflict": "草稿版本已发生变化，请重新读取当前草稿后再操作。",
         }[code]
         self.details = {
@@ -315,12 +316,42 @@ class ScheduleRepository:
                 raise conflict()
 
     @classmethod
+    def _assert_following_dependency(
+        cls, session: Session, *, week_start: date | str, metadata: dict[str, Any],
+        draft_schedule_id: str | None = None, draft_version: int | None = None,
+        lock: bool = True,
+    ) -> None:
+        week = cls._as_date(week_start)
+        expected_id = metadata.get("following_schedule_id")
+        expected_version = metadata.get("following_schedule_version")
+        current = cls._current_confirmed_record(session, week + timedelta(days=7), lock=lock)
+        current_id = current.schedule_id if current else None
+        current_version = current.version if current else None
+        if (current_id, current_version) != (expected_id, expected_version):
+            raise VersionConflictError(
+                current_version, expected_version, code="following_dependency_conflict",
+                details={
+                    "target_week_start": week.isoformat(),
+                    "draft_schedule_id": draft_schedule_id, "draft_version": draft_version,
+                    "dependency_week_start": (week + timedelta(days=7)).isoformat(),
+                    "expected_following_schedule_id": expected_id,
+                    "expected_following_version": expected_version,
+                    "current_following_schedule_id": current_id,
+                    "current_following_version": current_version,
+                },
+            )
+
+    @classmethod
     def _assert_draft_dependencies(cls, session: Session, draft: ScheduleRecord, *, lock: bool) -> None:
         cls._assert_current_week_base(
             session, week_start=draft.week_start, base_schedule_id=draft.base_schedule_id,
             base_version=draft.base_version, lock=lock,
         )
         cls._assert_history_dependency(
+            session, week_start=draft.week_start, metadata=draft.metadata_json,
+            draft_schedule_id=draft.schedule_id, draft_version=draft.version, lock=lock,
+        )
+        cls._assert_following_dependency(
             session, week_start=draft.week_start, metadata=draft.metadata_json,
             draft_schedule_id=draft.schedule_id, draft_version=draft.version, lock=lock,
         )
@@ -334,7 +365,10 @@ class ScheduleRepository:
                 return {
                     "freshness_valid": False,
                     "freshness_state": "stale",
-                    "freshness_reason": "history_dependency_stale" if exc.code == "history_dependency_conflict" else "current_week_base_stale",
+                    "freshness_reason": {
+                        "history_dependency_conflict": "history_dependency_stale",
+                        "following_dependency_conflict": "following_dependency_stale",
+                    }.get(exc.code, "current_week_base_stale"),
                     "conflict": {"code": exc.code, "message": exc.message, "details": exc.details},
                 }
         return {"freshness_valid": True, "freshness_state": "fresh", "freshness_reason": None, "conflict": None}
@@ -458,6 +492,10 @@ class ScheduleRepository:
                 metadata=metadata_payload,
                 draft_schedule_id=schedule.schedule_id,
                 draft_version=schedule.version,
+            )
+            self._assert_following_dependency(
+                session, week_start=schedule.week_start, metadata=metadata_payload,
+                draft_schedule_id=schedule.schedule_id, draft_version=schedule.version,
             )
 
             schedule_record = ScheduleRecord(

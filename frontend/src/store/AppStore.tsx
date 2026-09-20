@@ -303,7 +303,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   const confirmDraft = useCallback(async () => {
     const draft = state.draftSchedule
-    if (!draft || confirmingRef.current || state.result?.validation.confirmable === false) return
+    if (!draft || confirmingRef.current || state.result?.validation.confirmable === false || state.result?.validation.freshness_valid === false) return
     confirmingRef.current = true
     dispatch({ type: 'PATCH', patch: { isRunning: true, error: null, notice: null } })
     try {
@@ -316,7 +316,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       const problem = confirmationError(error)
-      if (['history_dependency_conflict', 'current_week_base_conflict', 'draft_version_conflict'].includes(problem.code)) {
+      if (['history_dependency_conflict', 'following_dependency_conflict', 'current_week_base_conflict', 'draft_version_conflict'].includes(problem.code)) {
         await loadWeek(draft.week_start)
       }
       dispatch({ type: 'PATCH', patch: { error: problem } })

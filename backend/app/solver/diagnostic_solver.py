@@ -291,14 +291,13 @@ def candidate_blocking_analysis(
                         },
                     )
                 )
-            if _would_break_r06(
-                employee.id, conflict.day, workdays, facts, context.rules.max_consecutive_days
-            ):
+            r06_maximum = _would_break_r06(employee.id, conflict.day, workdays, facts)
+            if r06_maximum is not None:
                 reasons.append(
                     BlockingReason(
                         rule_id="R06",
                         message="Adding this shift would exceed the consecutive-day limit.",
-                        details={"maximum": context.rules.max_consecutive_days},
+                        details={"maximum": r06_maximum},
                     )
                 )
             r07_reason = _r07_block(
@@ -365,19 +364,17 @@ def _would_break_r06(
     target_day: Day,
     workdays: set[tuple[str, Day]],
     facts: SchedulingFacts,
-    maximum: int,
-) -> bool:
+) -> int | None:
     previous = facts.previous_work_vector(employee_id)
     current = [
         int(day is target_day or (employee_id, day) in workdays) for day in WEEK_DAYS
     ]
     timeline = previous + current + facts.following_work_vector(employee_id)
-    window_length = maximum + 1
     target_index = len(previous) + WEEK_DAYS.index(target_day)
-    for start in range(max(0, target_index - maximum), min(target_index, len(timeline) - window_length) + 1):
-        if sum(timeline[start : start + window_length]) > maximum:
-            return True
-    return False
+    for start, end, maximum in facts.r06_windows(len(previous), len(timeline)):
+        if start <= target_index < end and sum(timeline[start:end]) > maximum:
+            return maximum
+    return None
 
 
 def _r07_block(

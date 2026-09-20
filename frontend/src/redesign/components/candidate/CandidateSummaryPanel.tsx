@@ -24,7 +24,7 @@ export function CandidateSummaryPanel({ plan, busy, onConfirm, onCancel, onViewA
     `${plan.schedule.assignments.length} 条班次安排 · v${plan.schedule.version}`,
     ...(result ? [`偏好满足率 ${Math.round(result.metrics.preference_rate * 100)}% · 工作量差距 ${result.metrics.workload_gap} 班`] : []),
     ...(force && !validation ? [`非标准合规 · ${plan?.version?.authorized_violation_count ?? '待读取'} 项已授权规则冲突`] : []),
-    ...(validation ? [force ? `非标准合规 · ${validation.authorized_violations?.length ?? 0} 项已授权规则冲突` : validation.passed ? `规则校验 ${validation.passed_count}/${validation.total} 项通过` : '存在规则冲突，请查看校验明细'] : []),
+    ...(validation ? [stale ? '草稿已过期 · 请重新生成' : !confirmable ? '草稿不可确认 · 请检查规则或重新生成' : force ? `非标准合规 · ${validation.authorized_violations?.length ?? 0} 项已授权规则冲突` : validation.passed ? `规则校验 ${validation.passed_count}/${validation.total} 项通过` : '存在规则冲突，请查看校验明细'] : []),
   ] : []
   return (
     <div className="bg-gradient-to-br from-blue-50/40 via-white to-purple-50/30 rounded-2xl p-3 border border-slate-200/80 shadow-2xs h-full flex flex-col justify-between relative overflow-hidden">

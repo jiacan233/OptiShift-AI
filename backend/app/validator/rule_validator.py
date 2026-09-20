@@ -60,6 +60,9 @@ class RuleValidator:
                 base_schedule=context.base_schedule,
                 previous_days=context.previous_days,
                 following_days=context.following_days,
+                following_schedule_id=context.following_schedule_id,
+                following_schedule_version=context.following_schedule_version,
+                following_max_consecutive_days=context.following_max_consecutive_days,
                 history_schedule_id=context.history_schedule_id,
                 history_schedule_version=context.history_schedule_version,
                 employees=employees,
@@ -211,16 +214,12 @@ class RuleValidator:
             ]
 
         # R06 checks only windows that intersect the current week.
-        window_length = effective_rules.max_consecutive_days + 1
         for employee_id in employee_by_id:
             previous = facts.previous_work_vector(employee_id)
             current = [int((employee_id, day) in by_employee_day) for day in WEEK_DAYS]
             timeline = previous + current + facts.following_work_vector(employee_id)
-            for start in range(0, len(timeline) - window_length + 1):
-                end = start + window_length
-                if end <= len(previous) or start >= len(previous) + len(WEEK_DAYS):
-                    continue
-                if sum(timeline[start:end]) > effective_rules.max_consecutive_days:
+            for start, end, maximum in facts.r06_windows(len(previous), len(timeline)):
+                if sum(timeline[start:end]) > maximum:
                     first_current = max(0, start - len(previous))
                     last_current = min(len(WEEK_DAYS) - 1, end - len(previous) - 1)
                     assignments = assignment_details(
@@ -238,12 +237,12 @@ class RuleValidator:
                             day=WEEK_DAYS[last_current],
                             message=(
                                 f"员工 {employee_id} 在 {assignments[0]['date']} 至 "
-                                f"{assignments[-1]['date']} 连续工作 {window_length} 天，"
-                                f"违反 R06（最多 {effective_rules.max_consecutive_days} 天）。"
+                                f"{assignments[-1]['date']} 连续工作 {end - start} 天，"
+                                f"违反 R06（最多 {maximum} 天）。"
                                 f"具体班次：{assignment_text}。"
                             ),
                             details={
-                                "maximum": effective_rules.max_consecutive_days,
+                                "maximum": maximum,
                                 "actual": sum(timeline[start:end]),
                                 "assignments": assignments,
                                 "current_week_window": [

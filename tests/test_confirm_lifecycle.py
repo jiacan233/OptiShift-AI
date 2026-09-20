@@ -205,12 +205,17 @@ def test_confirm_preserves_protected_following_week_rules(repositories, employee
     service.context_builder.build(week_start)  # Persist known-empty initial history.
 
     def save(identity, week, days, base=None):
+        context = service.context_builder.build(week)
         schedule = Schedule(schedule_id=identity, week_start=week,
                             version=2 if base else 1, parent_schedule_id=base,
                             assignments=[Assignment(employee_id='E01', day=d, shift=s) for d, s in days])
         schedules.save_draft(schedule, lineage_id='base' if base else identity,
                              base_schedule_id=base, base_version=1 if base else None,
-                             validation={'passed': True}, metadata={'rule_config': rules.model_dump(mode='json')})
+                             validation={'passed': True}, metadata={
+                                 'rule_config': rules.model_dump(mode='json'),
+                                 'following_schedule_id': context.following_schedule_id,
+                                 'following_schedule_version': context.following_schedule_version,
+                             })
         return schedule
 
     save('base', week_start, [])
@@ -242,7 +247,7 @@ def test_successor_created_after_validation_is_rejected(client, monkeypatch):
     monkeypatch.setattr(schedule_repository, 'confirm', race)
     response = confirm(client, draft)
     assert response.status_code == 409, response.text
-    assert response.json()['error']['code'] == 'following_week_changed'
+    assert response.json()['error']['code'] == 'following_dependency_conflict'
     assert client.get('/api/schedules/latest?status=confirmed&week_start=2026-09-21').json()['schedule_id'] == base['schedule_id']
 
 
@@ -254,6 +259,7 @@ def test_repository_does_not_skip_successor_validation(repositories, week_start)
         schedules.confirm(name, 1)
     schedules.save_draft(Schedule(schedule_id='draft', week_start=week_start, version=2,
                                  parent_schedule_id='base'), lineage_id='base',
-                         base_schedule_id='base', base_version=1, validation={'passed': True})
+                         base_schedule_id='base', base_version=1, validation={'passed': True},
+                         metadata={'following_schedule_id': 'next', 'following_schedule_version': 1})
     with pytest.raises(ConfirmationConflictError):
         schedules.confirm('draft', 2)

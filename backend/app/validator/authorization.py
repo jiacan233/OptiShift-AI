@@ -46,6 +46,9 @@ def context_snapshot(context: SchedulingContext, week_start: date) -> dict:
     # Preserve existing authorization hashes when there is no new boundary.
     if not payload.get("following_days"):
         payload.pop("following_days", None)
+    for key in ("following_schedule_id", "following_schedule_version", "following_max_consecutive_days"):
+        if payload.get(key) is None:
+            payload.pop(key, None)
     return payload
 
 

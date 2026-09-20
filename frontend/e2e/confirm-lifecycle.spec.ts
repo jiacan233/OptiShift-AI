@@ -79,7 +79,7 @@ test.describe.serial('canonical draft confirmation', () => {
 
   for (const [status, code, message] of [
     [404, 'entity_not_found', '该草稿已失效，请重新生成排班。'],
-    [409, 'version_conflict', '正式排班已经更新，请刷新当前周后再试。'],
+    [409, 'version_conflict', '排班所依据的版本已变化，请重新读取排班并检查草稿状态。'],
     [422, 'validation_error', '确认请求参数异常，请刷新后重试。'],
     [500, 'internal_error', '确认失败，请稍后重试。'],
   ] as const) {

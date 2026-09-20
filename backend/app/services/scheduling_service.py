@@ -341,6 +341,8 @@ class SchedulingService:
             "history_status": context.history_status.value,
             "history_schedule_id": context.history_schedule_id,
             "history_schedule_version": context.history_schedule_version,
+            "following_schedule_id": context.following_schedule_id,
+            "following_schedule_version": context.following_schedule_version,
             "employee_revision": employee_revision,
             "compliance_status": validation["compliance_status"],
         }

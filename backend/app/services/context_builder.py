@@ -62,7 +62,15 @@ class ContextBuilder:
                         + timedelta(days=DAY_OFFSETS[assignment.day.value]),
                     )
                 )
-        following = self.schedule_repository.confirmed_for_week(week_start + timedelta(days=7))
+        following_record = self.schedule_repository.current_confirmed_record_for_week(
+            week_start + timedelta(days=7)
+        )
+        following = following_record["schedule"] if following_record else None
+        following_rules = (
+            RuleConfig.model_validate(following_record["metadata"].get("rule_config") or
+                                      self.rules.model_dump())
+            if following_record else None
+        )
         following_days = [
             HistoricalAssignment(
                 employee_id=assignment.employee_id,
@@ -77,6 +85,11 @@ class ContextBuilder:
             base_schedule=base_schedule,
             previous_days=history,
             following_days=following_days,
+            following_schedule_id=following.schedule_id if following else None,
+            following_schedule_version=following.version if following else None,
+            following_max_consecutive_days=(
+                following_rules.max_consecutive_days if following_rules else None
+            ),
             history_schedule_id=(previous.schedule_id if previous is not None else None),
             history_schedule_version=(previous.version if previous is not None else None),
             employees=(
