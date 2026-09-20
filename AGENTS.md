@@ -57,8 +57,9 @@ For Agent / scheduling bugs, read only as needed:
 
 - `artifacts/`
 - `tests/acceptance/screenshots/`
+- `tests/acceptance/results/`
 - `report/*.png`
-- Browser page-source dumps (`*.html`)
+- Browser page-source dumps (`*.html`, `*_html.txt`)
 - Playwright output
 - Historical logs (`*.log`)
 - Generated transcripts (`transcript.json`, etc.)
