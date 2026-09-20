@@ -147,14 +147,9 @@ async def version_conflict(_request: Request, exc: VersionConflictError):
         status_code=409,
         content={
             "error": {
-                "code": "version_conflict",
-                "message": "The confirmed schedule changed; refresh before retrying.",
-                "details": {
-                    "status": "version_conflict",
-                    "current_version": exc.current_version,
-                    "base_version": exc.base_version,
-                    "action": "refresh_required",
-                },
+                "code": exc.code,
+                "message": exc.message,
+                "details": exc.details,
             }
         },
     )

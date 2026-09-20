@@ -188,10 +188,10 @@ def test_api_returns_version_conflict_shape(client):
     assert stale.status_code == 409
     details = stale.json()["error"]["details"]
     assert details == {
-        "status": "version_conflict",
+        "status": "current_week_base_conflict",
         "current_version": confirmed_v2["version"],
         "base_version": 1,
-        "action": "refresh_required",
+        "action": "regenerate_draft",
     }
 
 

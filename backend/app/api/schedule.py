@@ -161,7 +161,7 @@ def validate_schedule(body: ValidateBody) -> dict[str, Any]:
     if record is None or "schedule" not in record:
         raise ScheduleNotFoundError(body.schedule_id)
     if body.version is not None and record["version"] != body.version:
-        raise VersionConflictError(record["version"], body.version)
+        raise VersionConflictError(record["version"], body.version, code="draft_version_conflict")
     validation = scheduling_service.validate_stored(body.schedule_id or "")
     metadata = record.get("metadata", {})
     return {

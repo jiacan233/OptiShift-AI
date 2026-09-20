@@ -913,15 +913,27 @@ class SchedulingService:
             and stored_revision != employee_revision
         )
         validation["rules_data_stale"] = record["status"] == "draft" and rules_changed
+        validation["rules_valid"] = validation["passed"]
+        validation.update({key: record["validation"][key] for key in (
+            "freshness_valid", "freshness_state", "freshness_reason", "conflict",
+        )})
         if validation["employee_data_stale"] or validation["rules_data_stale"]:
+            validation["freshness_valid"] = False
+            validation["freshness_state"] = "stale"
+            validation["freshness_reason"] = validation["freshness_reason"] or (
+                "employee_data_stale" if validation["employee_data_stale"] else "rules_data_stale"
+            )
+        if not validation["freshness_valid"]:
             validation["confirmable"] = False
         return validation
 
     def confirm(self, schedule_id: str, version: int) -> dict[str, Any]:
+        self.schedules.assert_draft_fresh(schedule_id, version)
         validation = self.validate_stored(
             schedule_id,
             enforce_employee_revision=True,
         )
+        self.schedules.assert_draft_fresh(schedule_id, version)
         if not validation["confirmable"]:
             raise SolverOutputError("Draft is no longer valid against current employee data")
         confirmed = self.schedules.confirm(schedule_id, version)
