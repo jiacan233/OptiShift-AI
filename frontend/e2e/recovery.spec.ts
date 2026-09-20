@@ -1,11 +1,17 @@
 import { expect, test } from '@playwright/test'
 
 const API = 'http://127.0.0.1:8001'
+// Keep the recovery fixture on the same target week that the following
+// scheduling suite seeds. The Playwright web server is shared by specs, and
+// the first generated week establishes the known-empty history boundary.
+const RECOVERY_WEEK = '2026-09-28'
 
 test('真实 save_draft 后丢失 terminal，自动 SAME-ID replay 且仅有一个草稿', async ({ page, request }) => {
   await page.goto('/')
   await expect(page.getByLabel('选择排班周次')).toBeEnabled()
-  const week = await page.getByLabel('选择排班周次').inputValue()
+  await page.getByLabel('选择排班周次').selectOption(RECOVERY_WEEK)
+  await expect(page.getByLabel('选择排班周次')).toHaveValue(RECOVERY_WEEK)
+  const week = RECOVERY_WEEK
   const before = await (await request.get(`${API}/api/schedules/week-context?week_start=${week}`)).json()
   expect(before.draft_schedule).toBeNull()
   await page.getByRole('button', { name: '问问 AI' }).click()
