@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import timedelta
 
 from ..core import SchedulingFacts
 from ..execution import traced
@@ -58,6 +59,7 @@ class RuleValidator:
             effective_context = SchedulingContext(
                 base_schedule=context.base_schedule,
                 previous_days=context.previous_days,
+                following_days=context.following_days,
                 history_schedule_id=context.history_schedule_id,
                 history_schedule_version=context.history_schedule_version,
                 employees=employees,
@@ -185,28 +187,65 @@ class RuleValidator:
                     )
                 )
 
-        # R06 checks every current and cross-boundary consecutive-day window.
+        # Keep real dates/shifts in protected-rule explanations, including boundaries.
+        dated_shifts: dict[tuple[str, int], set[str]] = defaultdict(set)
+        for item in valid_assignments:
+            dated_shifts[(item.employee_id, WEEK_DAYS.index(item.day))].add(item.shift.value)
+        for items, week_offset in (
+            (effective_context.previous_days, -7), (effective_context.following_days, 7),
+        ):
+            for item in items:
+                offset = (
+                    (item.assignment_date - schedule.week_start).days
+                    if item.assignment_date is not None else week_offset + WEEK_DAYS.index(item.day)
+                )
+                dated_shifts[(item.employee_id, offset)].add(item.shift.value)
+
+        def assignment_details(employee_id: str, start: int, end: int) -> list[dict]:
+            return [
+                {
+                    "date": (schedule.week_start + timedelta(days=offset)).isoformat(),
+                    "shifts": sorted(dated_shifts[(employee_id, offset)]),
+                }
+                for offset in range(start, end)
+            ]
+
+        # R06 checks only windows that intersect the current week.
         window_length = effective_rules.max_consecutive_days + 1
         for employee_id in employee_by_id:
             previous = facts.previous_work_vector(employee_id)
             current = [int((employee_id, day) in by_employee_day) for day in WEEK_DAYS]
-            timeline = previous + current
+            timeline = previous + current + facts.following_work_vector(employee_id)
             for start in range(0, len(timeline) - window_length + 1):
                 end = start + window_length
-                if end <= len(previous):
+                if end <= len(previous) or start >= len(previous) + len(WEEK_DAYS):
                     continue
                 if sum(timeline[start:end]) > effective_rules.max_consecutive_days:
                     first_current = max(0, start - len(previous))
                     last_current = min(len(WEEK_DAYS) - 1, end - len(previous) - 1)
+                    assignments = assignment_details(
+                        employee_id, start - len(previous), end - len(previous)
+                    )
+                    shift_names = {"morning": "早班", "evening": "晚班"}
+                    assignment_text = "、".join(
+                        item["date"] + "/".join(shift_names[shift] for shift in item["shifts"])
+                        for item in assignments
+                    )
                     violations["R06"].append(
                         RuleViolation(
                             rule_id="R06",
                             employee_id=employee_id,
                             day=WEEK_DAYS[last_current],
-                            message="Employee works too many consecutive days.",
+                            message=(
+                                f"员工 {employee_id} 在 {assignments[0]['date']} 至 "
+                                f"{assignments[-1]['date']} 连续工作 {window_length} 天，"
+                                f"违反 R06（最多 {effective_rules.max_consecutive_days} 天）。"
+                                f"具体班次：{assignment_text}。"
+                            ),
                             details={
                                 "maximum": effective_rules.max_consecutive_days,
                                 "actual": sum(timeline[start:end]),
+                                "assignments": assignments,
                                 "current_week_window": [
                                     day.value for day in WEEK_DAYS[first_current : last_current + 1]
                                 ],
@@ -214,23 +253,37 @@ class RuleValidator:
                         )
                     )
 
-        # R07 checks the historical Sunday boundary and all adjacent current days.
+        def add_r07(employee_id: str, evening_offset: int) -> None:
+            assignments = assignment_details(employee_id, evening_offset, evening_offset + 2)
+            current_index = max(0, min(evening_offset + 1, len(WEEK_DAYS) - 1))
+            violations["R07"].append(RuleViolation(
+                rule_id="R07",
+                employee_id=employee_id,
+                day=WEEK_DAYS[current_index],
+                shift=Shift.EVENING if evening_offset == 6 else Shift.MORNING,
+                message=(
+                    f"员工 {employee_id} 在 {assignments[0]['date']} 晚班后接 "
+                    f"{assignments[1]['date']} 早班，违反 R07（晚班后不能接次日早班）。"
+                ),
+                details={
+                    "previous_day": WEEK_DAYS[evening_offset].value,
+                    "expected": "rest_after_evening", "actual": "morning_after_evening",
+                    "assignments": assignments,
+                },
+            ))
+
+        # R07 checks both confirmed boundaries and all adjacent current days.
         for employee_id in employee_by_id:
             if facts.previous_sunday_evening(employee_id) and (
                 employee_id,
                 Day.MON,
                 Shift.MORNING,
             ) in assignment_keys:
-                violations["R07"].append(
-                    RuleViolation(
-                        rule_id="R07",
-                        employee_id=employee_id,
-                        day=Day.MON,
-                        shift=Shift.MORNING,
-                        message="Monday morning follows a previous Sunday evening shift.",
-                        details={"expected": "rest_after_evening", "actual": "morning_after_evening"},
-                    )
-                )
+                add_r07(employee_id, -1)
+            if facts.following_monday_morning(employee_id) and (
+                employee_id, Day.SUN, Shift.EVENING,
+            ) in assignment_keys:
+                add_r07(employee_id, 6)
             for day_index in range(len(WEEK_DAYS) - 1):
                 current_day = WEEK_DAYS[day_index]
                 next_day = WEEK_DAYS[day_index + 1]
@@ -243,16 +296,7 @@ class RuleValidator:
                     next_day,
                     Shift.MORNING,
                 ) in assignment_keys:
-                    violations["R07"].append(
-                        RuleViolation(
-                            rule_id="R07",
-                            employee_id=employee_id,
-                            day=next_day,
-                            shift=Shift.MORNING,
-                            message="Morning shift follows an evening shift on the prior day.",
-                            details={"previous_day": current_day.value, "expected": "rest_after_evening", "actual": "morning_after_evening"},
-                        )
-                    )
+                    add_r07(employee_id, day_index)
 
         # R08 uses the effective one-run policy, including requested temporary leave.
         for assignment in valid_assignments:

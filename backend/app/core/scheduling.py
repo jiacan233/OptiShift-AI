@@ -231,6 +231,37 @@ class SchedulingFacts:
             )
         )
 
+    def following_work_vector(self, employee_id: str) -> list[int]:
+        """Return the next confirmed week's first five days, oldest first."""
+        dated = {
+            item.assignment_date for item in self.context.following_days
+            if item.employee_id == employee_id and item.assignment_date is not None
+        }
+        if self.week_start is not None and dated:
+            return [
+                int(self.week_start + timedelta(days=offset) in dated)
+                for offset in range(7, 12)
+            ]
+        worked_days = {
+            item.day for item in self.context.following_days if item.employee_id == employee_id
+        }
+        return [int(day in worked_days) for day in WEEK_DAYS[:5]]
+
+    def following_monday_morning(self, employee_id: str) -> int:
+        dated = [
+            item for item in self.context.following_days
+            if item.employee_id == employee_id and item.assignment_date is not None
+        ]
+        if self.week_start is not None and dated:
+            return int(any(
+                item.assignment_date == self.week_start + timedelta(days=7)
+                and item.shift is Shift.MORNING for item in dated
+            ))
+        return int(any(
+            item.employee_id == employee_id and item.day is Day.MON
+            and item.shift is Shift.MORNING for item in self.context.following_days
+        ))
+
     @staticmethod
     def assignment_index(
         assignments: list[Assignment],

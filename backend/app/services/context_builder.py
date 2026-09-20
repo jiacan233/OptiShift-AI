@@ -62,9 +62,21 @@ class ContextBuilder:
                         + timedelta(days=DAY_OFFSETS[assignment.day.value]),
                     )
                 )
+        following = self.schedule_repository.confirmed_for_week(week_start + timedelta(days=7))
+        following_days = [
+            HistoricalAssignment(
+                employee_id=assignment.employee_id,
+                day=assignment.day,
+                shift=assignment.shift,
+                assignment_date=following.week_start
+                + timedelta(days=DAY_OFFSETS[assignment.day.value]),
+            )
+            for assignment in following.assignments
+        ] if following is not None else []
         return SchedulingContext(
             base_schedule=base_schedule,
             previous_days=history,
+            following_days=following_days,
             history_schedule_id=(previous.schedule_id if previous is not None else None),
             history_schedule_version=(previous.version if previous is not None else None),
             employees=(

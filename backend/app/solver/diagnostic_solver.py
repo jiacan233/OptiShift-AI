@@ -19,6 +19,7 @@ from ..models import (
     Day,
     DiagnosisResult,
     DiagnosticConflict,
+    Schedule,
     SchedulingContext,
     Shift,
     Skill,
@@ -96,6 +97,38 @@ class DiagnosticSolver:
         week_start: date,
         primary_status: SolverStatus = SolverStatus.INFEASIBLE,
     ) -> DiagnosisResult:
+        # Required assignments alone can prove a protected conflict. Reuse the
+        # independent validator so diagnosis reports the same dates and shifts.
+        from ..validator import RuleValidator
+
+        facts = SchedulingFacts(context, week_start)
+        required_keys = {
+            (employee_id, day, shift)
+            for employee_id, policy in facts.policies.items()
+            for day, shift in policy.forced_assignments
+        } | {
+            (item.employee_id, item.day, item.shift) for item in context.user_forced_assignments
+        }
+        required_schedule = Schedule(
+            week_start=week_start,
+            assignments=[
+                Assignment(employee_id=employee_id, day=day, shift=shift)
+                for employee_id, day, shift in sorted(required_keys)
+            ],
+        )
+        protected_conflicts = [
+            violation for violation in RuleValidator().validate(
+                required_schedule, context.employees, context=context,
+            ).violations if violation.rule_id in {"R06", "R07"}
+        ]
+        if protected_conflicts:
+            return DiagnosisResult(
+                primary_status=primary_status,
+                diagnostic_status=SolverStatus.INFEASIBLE,
+                protected_conflicts=protected_conflicts,
+                summary=" ".join(item.message for item in protected_conflicts)
+                + " R06/R07 为保护规则，强制生成也不能绕过；请调整上述排班条件。",
+            )
         capacity_conflicts = capacity_precheck(context)
         built = self.constraint_builder.build(
             context, week_start=week_start, diagnostic=True
@@ -142,7 +175,7 @@ class DiagnosticSolver:
                 for (employee_id, day, shift), variable in built.assignment_vars.items()
                 if solver.Value(variable)
             ]
-            from ..models import Schedule, ScheduleStatus
+            from ..models import ScheduleStatus
             preview_schedule = Schedule(
                 schedule_id=f"preview_{week_start.isoformat().replace('-', '')}",
                 version=1,
@@ -338,7 +371,7 @@ def _would_break_r06(
     current = [
         int(day is target_day or (employee_id, day) in workdays) for day in WEEK_DAYS
     ]
-    timeline = previous + current
+    timeline = previous + current + facts.following_work_vector(employee_id)
     window_length = maximum + 1
     target_index = len(previous) + WEEK_DAYS.index(target_day)
     for start in range(max(0, target_index - maximum), min(target_index, len(timeline) - window_length) + 1):
@@ -355,6 +388,12 @@ def _r07_block(
     facts: SchedulingFacts,
 ) -> BlockingReason | None:
     day_index = WEEK_DAYS.index(day)
+    if shift is Shift.EVENING and day is Day.SUN and facts.following_monday_morning(employee_id):
+        return BlockingReason(
+            rule_id="R07",
+            message="The following confirmed Monday morning blocks Sunday evening.",
+            details={"next_day": Day.MON.value},
+        )
     if shift is Shift.MORNING:
         if day is Day.MON and facts.previous_sunday_evening(employee_id):
             return BlockingReason(

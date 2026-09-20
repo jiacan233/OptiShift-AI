@@ -183,24 +183,26 @@ class ConstraintBuilder:
             )
             workload_vars[employee_id] = workload
 
-        # R06: include all windows crossing the preceding confirmed boundary.
+        # R06: fixed confirmed assignments bound both ends of the current week.
         window_length = rules.max_consecutive_days + 1
         for employee_id in employee_ids:
             previous = facts.previous_work_vector(employee_id)
             timeline: list[int | cp_model.IntVar] = previous + [
                 workday_vars[(employee_id, day)] for day in WEEK_DAYS
-            ]
+            ] + facts.following_work_vector(employee_id)
             first_current_index = len(previous)
             for start in range(0, len(timeline) - window_length + 1):
                 end = start + window_length
-                if end <= first_current_index:
+                if end <= first_current_index or start >= first_current_index + len(WEEK_DAYS):
                     continue
                 model.Add(sum(timeline[start:end]) <= rules.max_consecutive_days)
 
-        # R07: previous Sunday evening and every current evening-to-morning pair.
+        # R07: both confirmed boundaries and every current evening-to-morning pair.
         for employee_id in employee_ids:
             if facts.previous_sunday_evening(employee_id):
                 model.Add(assignment_vars[(employee_id, Day.MON, Shift.MORNING)] == 0)
+            if facts.following_monday_morning(employee_id):
+                model.Add(assignment_vars[(employee_id, Day.SUN, Shift.EVENING)] == 0)
             for day_index in range(len(WEEK_DAYS) - 1):
                 current_day = WEEK_DAYS[day_index]
                 next_day = WEEK_DAYS[day_index + 1]

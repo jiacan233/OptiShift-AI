@@ -55,6 +55,27 @@ def test_force_prefers_compliant_strict_solution(demo_service, week_start):
     assert draft["authorized_violations"] == []
 
 
+def test_existing_force_authorization_survives_empty_following_boundary(
+    demo_service, week_start, monkeypatch,
+):
+    from backend.app.services import scheduling_service
+
+    snapshot = scheduling_service.context_snapshot
+
+    def legacy_snapshot(context, week):
+        payload = snapshot(context, week)
+        payload.pop("following_days", None)
+        return payload
+
+    demo_service.employees.update("E01", {"leave_days": [Day.MON]})
+    with monkeypatch.context() as patch:
+        patch.setattr(scheduling_service, "context_snapshot", legacy_snapshot)
+        draft = demo_service.force_generate(week_start=week_start, force_request=request_r08())
+    confirmed = demo_service.confirm(draft["schedule_id"], draft["version"])
+    assert confirmed["compliance_status"] == "authorized_violations"
+    assert confirmed["authorized_violations"] == draft["authorized_violations"]
+
+
 @pytest.mark.parametrize("field", ["employee", "rules", "snapshot"])
 def test_changed_constraints_reject_confirmation(demo_service, week_start, field):
     demo_service.employees.update("E01", {"leave_days": [Day.MON]})

@@ -43,6 +43,9 @@ def context_snapshot(context: SchedulingContext, week_start: date) -> dict:
     payload.pop("override_scopes", None)
     # Optimization choices do not change the authorization's constraint scope.
     payload.pop("minimize_changes", None)
+    # Preserve existing authorization hashes when there is no new boundary.
+    if not payload.get("following_days"):
+        payload.pop("following_days", None)
     return payload
 
 

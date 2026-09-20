@@ -102,7 +102,7 @@ class SchedulingService:
             result.status.value,
             len(raw.get("capacity_conflicts", [])) + len(raw.get("diagnostic_conflicts", [])),
         )
-        conflicts: list[dict[str, Any]] = []
+        conflicts: list[dict[str, Any]] = list(raw.get("protected_conflicts", []))
         for conflict in raw.get("capacity_conflicts", []):
             conflicts.append(conflict)
         for conflict in raw.get("diagnostic_conflicts", []):
@@ -571,6 +571,8 @@ class SchedulingService:
             )
         if strict_result.status is not SolverStatus.INFEASIBLE:
             return {**self._infeasible_response(strict_result), "status": "solver_unknown"}
+        if strict_result.diagnosis and strict_result.diagnosis.protected_conflicts:
+            return self._infeasible_response(strict_result)
         if not force_request.requested_overrides:
             response = self._infeasible_response(strict_result)
             response.update({
@@ -632,7 +634,8 @@ class SchedulingService:
         )
         if result.status is SolverStatus.INFEASIBLE:
             response = self._infeasible_response(result)
-            response["message"] = "Authorized scopes cannot satisfy protected rules or an unapproved hard constraint."
+            if not (result.diagnosis and result.diagnosis.protected_conflicts):
+                response["message"] = "Authorized scopes cannot satisfy protected rules or an unapproved hard constraint."
             return response
         if result.schedule is None:
             return {**self._infeasible_response(result), "status": "solver_unknown"}
@@ -988,8 +991,8 @@ class SchedulingService:
         )
         validated_following = None
         if following is not None:
-            # The draft's own validation covers the preceding boundary only.
-            # Recheck the actual successor with this draft as its history;
+            # Recheck the actual successor with this draft as its history,
+            # even though generation and draft validation check both boundaries;
             # keep protected rules and scoped force authorizations intact.
             following_validation = self.validate_stored(
                 following["schedule_id"], previous_schedule=record["schedule"],

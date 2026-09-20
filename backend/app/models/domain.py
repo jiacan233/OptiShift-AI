@@ -131,7 +131,7 @@ class Assignment(StrictModel):
 
 
 class HistoricalAssignment(StrictModel):
-    """A real assignment from the preceding confirmed schedule.
+    """A real assignment from an adjacent confirmed schedule.
 
     ``assignment_date`` is preferred because it preserves chronology.  ``day``
     remains required for a compact API and for seeded demo boundaries.
@@ -210,6 +210,7 @@ class SchedulingContext(StrictModel):
     override_scopes: list[dict[str, Any]] = Field(default_factory=list)
     base_schedule: Schedule | None = None
     previous_days: list[HistoricalAssignment] = Field(default_factory=list)
+    following_days: list[HistoricalAssignment] = Field(default_factory=list)
     history_schedule_id: str | None = None
     history_schedule_version: int | None = Field(default=None, ge=1)
     employees: list[Employee]
@@ -306,6 +307,7 @@ class DiagnosisResult(StrictModel):
     diagnostic_status: SolverStatus = SolverStatus.UNKNOWN
     diagnostic_conflicts: list[DiagnosticConflict] = Field(default_factory=list)
     blocking_candidates: list[CandidateBlocking] = Field(default_factory=list)
+    protected_conflicts: list[RuleViolation] = Field(default_factory=list)
     summary: str
     generated_valid_schedule: Literal[False] = False
     preview_schedule: Schedule | None = None

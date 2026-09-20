@@ -218,11 +218,11 @@ def test_confirm_preserves_protected_following_week_rules(repositories, employee
     save('next', week_start + timedelta(days=7), next_days)
     service.confirm('next', 1)
     save('candidate', week_start, prior_days, base='base')
-    assert service.validate_stored('candidate')['confirmable']
+    assert not service.validate_stored('candidate')['confirmable']
     with pytest.raises(ConfirmationConflictError) as error:
         service.confirm('candidate', 2)
-    assert error.value.code == 'following_week_conflict'
-    assert rule in {v['rule_id'] for v in error.value.details['validation']['violations']}
+    assert error.value.code == 'draft_invalid'
+    assert rule in {v['rule_id'] for v in error.value.details['violations']}
     assert schedules.confirmed_for_week(week_start).schedule_id == 'base'
     assert schedules.get('candidate').status.value == 'draft'
 
