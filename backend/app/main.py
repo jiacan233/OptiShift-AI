@@ -47,6 +47,7 @@ from .services.agent_router import AgentRouter
 from .services.llm_client import AIUnavailableError
 from .services.request_validator import BusinessValidationError
 from .services.scheduling_service import SolverOutputError
+from .repository.schedules import ConfirmationConflictError
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -138,7 +139,17 @@ async def model_validation_error(_request: Request, exc: ValidationError):
 
 @app.exception_handler(RequestValidationError)
 async def request_validation_error(_request: Request, exc: RequestValidationError):
+    if _request.url.path == "/api/schedule/confirm":
+        details = [{"loc": item["loc"], "type": item["type"], "msg": item["msg"]}
+                   for item in exc.errors()]
+        logger.warning("confirm_request_invalid details=%s", details)
+        return problem(422, "validation_error", "确认请求参数异常，请刷新后重试。", details)
     return problem(422, "clarification_required", "请求内容不完整，请检查员工、日期和班次后重试。")
+
+
+@app.exception_handler(ConfirmationConflictError)
+async def confirmation_conflict(_request: Request, exc: ConfirmationConflictError):
+    return problem(409, exc.code, str(exc), exc.details)
 
 
 @app.exception_handler(VersionConflictError)
@@ -147,14 +158,9 @@ async def version_conflict(_request: Request, exc: VersionConflictError):
         status_code=409,
         content={
             "error": {
-                "code": "version_conflict",
-                "message": "The confirmed schedule changed; refresh before retrying.",
-                "details": {
-                    "status": "version_conflict",
-                    "current_version": exc.current_version,
-                    "base_version": exc.base_version,
-                    "action": "refresh_required",
-                },
+                "code": exc.code,
+                "message": exc.message,
+                "details": exc.details,
             }
         },
     )
@@ -235,6 +241,9 @@ async def business_validation(_request: Request, exc: BusinessValidationError):
 @app.exception_handler(InvalidScheduleStateError)
 @app.exception_handler(ValueError)
 async def invalid_operation(_request: Request, exc: Exception):
+    if _request.url.path == "/api/schedule/confirm" and isinstance(exc, InvalidScheduleStateError):
+        logger.warning("confirm_state_conflict detail=%s", str(exc))
+        return problem(409, "draft_state_conflict", "草稿依赖的资料已发生变化，请刷新后重新生成。", str(exc))
     return problem(422, "validation_error", "请求条件无效，请检查后重试。")
 
 

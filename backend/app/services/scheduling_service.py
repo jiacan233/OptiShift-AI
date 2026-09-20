@@ -9,6 +9,8 @@ from ..models.scenario_changes import apply_scenario_patch, scenario_patches_to_
 from ..models import (
     Assignment,
     ForceRequest,
+    HistoricalAssignment,
+    HistoryStatus,
     OverrideAuthorization,
     PatchOperation,
     RequestIntent,
@@ -26,6 +28,7 @@ from ..repository import (
     VersionConflictError,
 )
 from ..repository.scenarios import ScenarioRepository
+from ..repository.schedules import ConfirmationConflictError
 from ..solver.primary_solver import PrimarySolver
 from ..validator import RuleValidator
 from ..validator.authorization import (
@@ -36,7 +39,7 @@ from ..validator.authorization import (
     context_snapshot,
     fingerprint,
 )
-from .context_builder import ContextBuilder
+from .context_builder import ContextBuilder, DAY_OFFSETS
 from .diff_service import build_diff
 from .explanation import ExplanationService, normalize_validation
 from .intent_parser import IntentParser
@@ -822,11 +825,17 @@ class SchedulingService:
         return classify_validation(normalize_validation(result), schedule.week_start)
 
     def validate_stored(
-        self, schedule_id: str, *, enforce_employee_revision: bool = False
+        self, schedule_id: str, *, enforce_employee_revision: bool = False,
+        previous_schedule: Schedule | None = None,
     ) -> dict[str, Any]:
         record = self.schedules.get_record(schedule_id)
         if record is None or "schedule" not in record:
             raise ScheduleNotFoundError(schedule_id)
+        # A competing Confirm may have committed after the service preflight.
+        # Its result is immutable; current-version identity is checked again by
+        # confirm before returning it, without revalidating an already saved result.
+        if enforce_employee_revision and record["status"] == "confirmed":
+            return record["validation"]
         schedule: Schedule = record["schedule"]
         employee_list, employee_revision = self.employees.list_with_revision()
         stored_revision = record["metadata"].get("employee_revision")
@@ -868,6 +877,22 @@ class SchedulingService:
             user_forced_assignments=forced_assignments,
             rule_config=metadata.get("rule_config"),
         )
+        def with_proposed_history(context):
+            if previous_schedule is None:
+                return context
+            if previous_schedule.week_start + timedelta(days=7) != schedule.week_start:
+                raise ValueError("Proposed history must belong to the preceding week")
+            return context.model_copy(update={
+                "history_status": HistoryStatus.AVAILABLE,
+                "history_schedule_id": previous_schedule.schedule_id,
+                "history_schedule_version": previous_schedule.version,
+                "previous_days": [HistoricalAssignment(
+                    **item.model_dump(),
+                    assignment_date=previous_schedule.week_start + timedelta(days=DAY_OFFSETS[item.day.value]),
+                ) for item in previous_schedule.assignments],
+            })
+
+        strict_context = with_proposed_history(strict_context)
         rules_fingerprint = fingerprint(strict_context.rules.model_dump(mode="json"))
         snapshot_hash = fingerprint(context_snapshot(strict_context, schedule.week_start))
         scenario_current = True
@@ -905,6 +930,7 @@ class SchedulingService:
             rule_config=metadata.get("rule_config"),
             override_scopes=[item.model_dump(mode="json") for item in stored_authorizations],
         )
+        context = with_proposed_history(context)
         result = self.validator.validate(schedule, employee_list, context=context)
         validation = classify_validation(normalize_validation(result), schedule.week_start, authorizations)
         validation["employee_data_stale"] = (
@@ -913,18 +939,71 @@ class SchedulingService:
             and stored_revision != employee_revision
         )
         validation["rules_data_stale"] = record["status"] == "draft" and rules_changed
+        validation["rules_valid"] = validation["passed"]
+        validation.update({key: record["validation"][key] for key in (
+            "freshness_valid", "freshness_state", "freshness_reason", "conflict",
+        )})
         if validation["employee_data_stale"] or validation["rules_data_stale"]:
+            validation["freshness_valid"] = False
+            validation["freshness_state"] = "stale"
+            validation["freshness_reason"] = validation["freshness_reason"] or (
+                "employee_data_stale" if validation["employee_data_stale"] else "rules_data_stale"
+            )
+        if not validation["freshness_valid"]:
             validation["confirmable"] = False
         return validation
 
     def confirm(self, schedule_id: str, version: int) -> dict[str, Any]:
+        try:
+            return self._confirm(schedule_id, version)
+        except (VersionConflictError, InvalidScheduleStateError, ConfirmationConflictError):
+            # Preflight/validation can observe a draft while another request
+            # commits it. Recover only that exact confirmed result; the locked
+            # repository check still rejects wrong versions and historical rows.
+            record = self.schedules.get_record(schedule_id)
+            if record is None or record["status"] != "confirmed":
+                raise
+            self.schedules.confirm(schedule_id, version)
+            return self._stored_response(record)
+
+    def _confirm(self, schedule_id: str, version: int) -> dict[str, Any]:
+        record = self.schedules.assert_draft_fresh(schedule_id, version)
+        if record["status"] == "confirmed":
+            self.schedules.confirm(schedule_id, version)
+            return self._stored_response(record)
         validation = self.validate_stored(
             schedule_id,
             enforce_employee_revision=True,
         )
+        record = self.schedules.assert_draft_fresh(schedule_id, version)
+        if record["status"] == "confirmed":
+            self.schedules.confirm(schedule_id, version)
+            return self._stored_response(record)
         if not validation["confirmable"]:
-            raise SolverOutputError("Draft is no longer valid against current employee data")
-        confirmed = self.schedules.confirm(schedule_id, version)
+            raise ConfirmationConflictError(
+                "draft_invalid", "草稿已不符合当前规则，请取消后重新生成。", validation,
+            )
+        following = self.schedules.current_confirmed_record_for_week(
+            record["schedule"].week_start + timedelta(days=7)
+        )
+        validated_following = None
+        if following is not None:
+            # The draft's own validation covers the preceding boundary only.
+            # Recheck the actual successor with this draft as its history;
+            # keep protected rules and scoped force authorizations intact.
+            following_validation = self.validate_stored(
+                following["schedule_id"], previous_schedule=record["schedule"],
+            )
+            if not following_validation["confirmable"]:
+                raise ConfirmationConflictError(
+                    "following_week_conflict",
+                    "该草稿会使下一周正式排班失效，请调整跨周班次后重新生成。",
+                    {"week_start": following["week_start"], "validation": following_validation},
+                )
+            validated_following = (following["schedule_id"], following["version"])
+        confirmed = self.schedules.confirm(
+            schedule_id, version, validated_following=validated_following,
+        )
         record = self.schedules.get_record(schedule_id) or {}
         metadata = record.get("metadata", {})
         return {

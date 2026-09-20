@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..models import Assignment, Day, ForceRequest, Schedule, ScheduleChange, Shift, Skill
 from ..repository import EmployeeNotFoundError, ScheduleNotFoundError, VersionConflictError
+from ..repository.schedules import ConfirmationConflictError
 from ..validator.authorization import compliance_fields
 from .dependencies import (
     employee_repository,
@@ -76,6 +77,14 @@ class ReplanBody(ApiModel):
 class StoredScheduleBody(ApiModel):
     schedule_id: str
     version: int = Field(ge=1)
+
+
+class ConfirmScheduleBody(StoredScheduleBody):
+    schedule_id: str = Field(min_length=1, strict=True)
+    version: int = Field(ge=1, strict=True)
+    # Additive guard for clients carrying workbench context; identity/version
+    # remain mandatory for existing integrations.
+    week_start: date | None = None
 
 
 class ValidateBody(ApiModel):
@@ -161,7 +170,7 @@ def validate_schedule(body: ValidateBody) -> dict[str, Any]:
     if record is None or "schedule" not in record:
         raise ScheduleNotFoundError(body.schedule_id)
     if body.version is not None and record["version"] != body.version:
-        raise VersionConflictError(record["version"], body.version)
+        raise VersionConflictError(record["version"], body.version, code="draft_version_conflict")
     validation = scheduling_service.validate_stored(body.schedule_id or "")
     metadata = record.get("metadata", {})
     return {
@@ -185,7 +194,16 @@ def validate_schedule(body: ValidateBody) -> dict[str, Any]:
 
 
 @router.post("/api/schedule/confirm")
-def confirm_schedule(body: StoredScheduleBody) -> dict[str, Any]:
+def confirm_schedule(body: ConfirmScheduleBody) -> dict[str, Any]:
+    if body.week_start is not None:
+        record = schedule_repository.get_record(body.schedule_id)
+        if record is None or "schedule" not in record:
+            raise ScheduleNotFoundError(body.schedule_id)
+        if record["schedule"].week_start != body.week_start:
+            raise ConfirmationConflictError(
+                "draft_week_mismatch", "该草稿不属于当前周，请刷新后重新确认。",
+                {"expected_week": body.week_start.isoformat(), "draft_week": record["week_start"]},
+            )
     return scheduling_service.confirm(body.schedule_id, body.version)
 
 

@@ -33,6 +33,13 @@ class InvalidScheduleStateError(ValueError):
     pass
 
 
+class ConfirmationConflictError(InvalidScheduleStateError):
+    def __init__(self, code: str, message: str, details: Any = None) -> None:
+        self.code = code
+        self.details = details
+        super().__init__(message)
+
+
 class DraftPendingError(RuntimeError):
     def __init__(self, week_start: date, schedule_id: str, version: int) -> None:
         self.week_start = week_start
@@ -45,12 +52,26 @@ class DraftPendingError(RuntimeError):
 
 
 class VersionConflictError(RuntimeError):
-    def __init__(self, current_version: int | None, base_version: int | None) -> None:
+    def __init__(
+        self, current_version: int | None, base_version: int | None, *,
+        code: str = "current_week_base_conflict", details: dict[str, Any] | None = None,
+    ) -> None:
         self.current_version = current_version
         self.base_version = base_version
-        super().__init__(
-            f"Schedule version conflict: current={current_version}, base={base_version}"
-        )
+        self.code = code
+        self.message = {
+            "current_week_base_conflict": "本周正式排班已发生变化，请基于最新正式排班重新生成草稿。",
+            "history_dependency_conflict": "上一周正式排班已发生变化，本周草稿需要基于最新排班重新生成。",
+            "draft_version_conflict": "草稿版本已发生变化，请重新读取当前草稿后再操作。",
+        }[code]
+        self.details = {
+            "status": code,
+            "current_version": current_version,
+            "base_version": base_version,
+            "action": "reload_draft" if code == "draft_version_conflict" else "regenerate_draft",
+            **(details or {}),
+        }
+        super().__init__(self.message)
 
 
 class ScheduleRepository:
@@ -230,9 +251,10 @@ class ScheduleRepository:
         week_start: date | str,
         base_schedule_id: str | None,
         base_version: int | None,
+        lock: bool = True,
     ) -> ScheduleRecord | None:
         current = cls._current_confirmed_record(
-            session, week_start, lock=True
+            session, week_start, lock=lock
         )
         current_version = current.version if current is not None else None
         if base_schedule_id is None:
@@ -254,26 +276,99 @@ class ScheduleRepository:
         *,
         week_start: date | str,
         metadata: dict[str, Any],
+        draft_schedule_id: str | None = None,
+        draft_version: int | None = None,
+        lock: bool = True,
     ) -> None:
         week = cls._as_date(week_start)
         expected_id = metadata.get("history_schedule_id")
         expected_version = metadata.get("history_schedule_version")
         current = cls._current_confirmed_record(
-            session, week - timedelta(days=7), lock=True
+            session, week - timedelta(days=7), lock=lock
         )
+        current_id = current.schedule_id if current is not None else None
+        current_version = current.version if current is not None else None
+
+        def conflict() -> VersionConflictError:
+            return VersionConflictError(
+                current_version, expected_version, code="history_dependency_conflict",
+                details={
+                    "target_week_start": week.isoformat(),
+                    "draft_schedule_id": draft_schedule_id,
+                    "draft_version": draft_version,
+                    "dependency_week_start": (week - timedelta(days=7)).isoformat(),
+                    "expected_history_schedule_id": expected_id,
+                    "expected_history_version": expected_version,
+                    "current_history_schedule_id": current_id,
+                    "current_history_version": current_version,
+                },
+            )
+
         if expected_id is not None:
-            current_id = current.schedule_id if current is not None else None
-            current_version = current.version if current is not None else None
             if current_id != expected_id or current_version != expected_version:
-                raise VersionConflictError(current_version, expected_version)
+                raise conflict()
             return
 
         if metadata.get("history_status") == HistoryStatus.KNOWN_EMPTY.value:
             anchor = session.get(SystemMetadataRecord, "initial_known_empty_week")
             if current is not None or anchor is None or anchor.value != week.isoformat():
-                raise InvalidScheduleStateError(
-                    "The known-empty history boundary changed; regenerate the draft"
+                raise conflict()
+
+    @classmethod
+    def _assert_draft_dependencies(cls, session: Session, draft: ScheduleRecord, *, lock: bool) -> None:
+        cls._assert_current_week_base(
+            session, week_start=draft.week_start, base_schedule_id=draft.base_schedule_id,
+            base_version=draft.base_version, lock=lock,
+        )
+        cls._assert_history_dependency(
+            session, week_start=draft.week_start, metadata=draft.metadata_json,
+            draft_schedule_id=draft.schedule_id, draft_version=draft.version, lock=lock,
+        )
+
+    @classmethod
+    def _freshness(cls, session: Session, record: ScheduleRecord) -> dict[str, Any]:
+        if record.status == "draft":
+            try:
+                cls._assert_draft_dependencies(session, record, lock=False)
+            except VersionConflictError as exc:
+                return {
+                    "freshness_valid": False,
+                    "freshness_state": "stale",
+                    "freshness_reason": "history_dependency_stale" if exc.code == "history_dependency_conflict" else "current_week_base_stale",
+                    "conflict": {"code": exc.code, "message": exc.message, "details": exc.details},
+                }
+        return {"freshness_valid": True, "freshness_state": "fresh", "freshness_reason": None, "conflict": None}
+
+    @classmethod
+    def _validation_with_freshness(cls, session: Session, record: ScheduleRecord) -> dict[str, Any]:
+        validation = dict(record.validation_json)
+        validation.update(cls._freshness(session, record))
+        validation["rules_valid"] = bool(validation.get("passed", validation.get("valid", False)))
+        validation["confirmable"] = bool(validation.get("confirmable", validation["rules_valid"])) and validation["freshness_valid"]
+        return validation
+
+    def assert_draft_fresh(self, schedule_id: str, version: int) -> dict[str, Any]:
+        """Return a fresh draft or the current confirmed retry, never historical state.
+
+        Confirm repeats the identity/dependency checks inside its write transaction.
+        """
+        with self.database.transaction() as session:
+            draft = session.get(ScheduleRecord, schedule_id)
+            if draft is None or draft.status not in {"draft", "confirmed"}:
+                raise DraftNotFoundError(schedule_id)
+            if draft.version != version:
+                raise VersionConflictError(draft.version, version, code="draft_version_conflict")
+            if draft.status == "confirmed":
+                self._assert_current_week_base(
+                    session, week_start=draft.week_start, base_schedule_id=schedule_id,
+                    base_version=version, lock=False,
                 )
+            else:
+                self._assert_draft_dependencies(session, draft, lock=False)
+            result = self._record_metadata(draft)
+            result["validation"] = self._validation_with_freshness(session, draft)
+            result["schedule"] = self._schedule_from_record(session, draft)
+            return result
 
     @traced("save_draft")
     def save_draft(
@@ -361,6 +456,8 @@ class ScheduleRepository:
                 session,
                 week_start=schedule.week_start,
                 metadata=metadata_payload,
+                draft_schedule_id=schedule.schedule_id,
+                draft_version=schedule.version,
             )
 
             schedule_record = ScheduleRecord(
@@ -408,6 +505,7 @@ class ScheduleRepository:
             if record is None:
                 return None
             result = self._record_metadata(record)
+            result["validation"] = self._validation_with_freshness(session, record)
             if record.status != "cancelled":
                 result["schedule"] = self._schedule_from_record(session, record)
             return result
@@ -437,15 +535,23 @@ class ScheduleRepository:
             record["schedule"] = self._schedule_from_record(session, base)
             return record
 
-    def confirm(self, schedule_id: str, version: int) -> Schedule:
+    def confirm(
+        self, schedule_id: str, version: int, *,
+        validated_following: tuple[str, int] | None = None,
+    ) -> Schedule:
         with self.database.transaction() as session:
             candidate = session.get(ScheduleRecord, schedule_id)
-            if candidate is None or candidate.status != "draft":
+            if candidate is None or candidate.status not in {"draft", "confirmed"}:
                 raise DraftNotFoundError(schedule_id)
             week_start = candidate.week_start
-        self._ensure_week_lock(week_start)
+        # Serialize adjacent confirmations in chronological order, including a
+        # following week that did not exist when the service validated it.
+        weeks = [week_start + timedelta(days=offset) for offset in (-7, 0, 7)]
+        for week in weeks:
+            self._ensure_week_lock(week)
         with self.database.transaction(immediate=True) as session:
-            self._lock_week(session, week_start)
+            for week in weeks:
+                self._lock_week(session, week)
             statement = self._lock(
                 select(ScheduleRecord).where(
                     ScheduleRecord.schedule_id == schedule_id
@@ -453,25 +559,22 @@ class ScheduleRepository:
                 session,
             )
             draft = session.scalar(statement)
-            if draft is None or draft.status != "draft":
+            if draft is None or draft.status not in {"draft", "confirmed"}:
                 raise DraftNotFoundError(schedule_id)
             if draft.version != version:
-                raise VersionConflictError(draft.version, version)
+                raise VersionConflictError(draft.version, version, code="draft_version_conflict")
+            if draft.status == "confirmed":
+                # A lost response may be retried, but never reactivate history.
+                self._assert_current_week_base(
+                    session, week_start=week_start,
+                    base_schedule_id=schedule_id, base_version=version,
+                )
+                return self._schedule_from_record(session, draft)
             validation = draft.validation_json
             if not bool(validation.get("confirmable", validation.get("passed", validation.get("valid", False)))):
                 raise InvalidScheduleStateError("Only a confirmable draft can be confirmed")
 
-            self._assert_current_week_base(
-                session,
-                week_start=draft.week_start,
-                base_schedule_id=draft.base_schedule_id,
-                base_version=draft.base_version,
-            )
-            self._assert_history_dependency(
-                session,
-                week_start=draft.week_start,
-                metadata=draft.metadata_json,
-            )
+            self._assert_draft_dependencies(session, draft, lock=True)
             self._assert_expected_employee_revision(
                 session, draft.metadata_json.get("employee_revision")
             )
@@ -480,9 +583,12 @@ class ScheduleRepository:
             dependent = self._current_confirmed_record(
                 session, draft.week_start + timedelta(days=7), lock=True
             )
-            if dependent is not None:
-                raise InvalidScheduleStateError(
-                    "A following-week schedule is already confirmed; replan it before changing this week"
+            actual_following = (dependent.schedule_id, dependent.version) if dependent else None
+            if actual_following != validated_following:
+                raise ConfirmationConflictError(
+                    "following_week_changed",
+                    "下一周正式排班已发生变化，请刷新后重新确认。",
+                    {"week_start": (week_start + timedelta(days=7)).isoformat()},
                 )
 
             draft.status = "confirmed"
@@ -521,7 +627,7 @@ class ScheduleRepository:
             if draft is None or draft.status != "draft":
                 raise DraftNotFoundError(schedule_id)
             if draft.version != version:
-                raise VersionConflictError(draft.version, version)
+                raise VersionConflictError(draft.version, version, code="draft_version_conflict")
             draft.status = "cancelled"
             draft.cancelled_at = utc_now()
             return {
@@ -663,6 +769,7 @@ class ScheduleRepository:
                 if record is None:
                     return None
                 result = self._record_metadata(record)
+                result["validation"] = self._validation_with_freshness(session, record)
                 result["schedule"] = self._schedule_from_record(session, record)
                 return result
 
