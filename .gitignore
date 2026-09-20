@@ -39,3 +39,5 @@ Thumbs.db
 .superpowers/
 /artifacts/agent-evals/
 .pytest-*/
+# Large local acceptance transcripts are retained outside Git history.
+artifacts/agent-multiturn-live/**/transcript.json
