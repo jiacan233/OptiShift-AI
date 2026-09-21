@@ -69,6 +69,11 @@ class Condition(DialogueModel):
 
 class PendingAction(DialogueModel):
     id: str = Field(default_factory=identity)
+    kind: Literal["employee", "force_staffing"] = "employee"
+    prompt: str | None = None
+    staffing_constraints: list[StaffingConstraint] = Field(default_factory=list)
+    requested_overrides: list[OverrideScope] = Field(default_factory=list)
+    dependencies: dict = Field(default_factory=dict)
     employee_id: str | None = None
     type: ChangeType | None = None
     days: list[Day] = Field(default_factory=list)
@@ -78,6 +83,8 @@ class PendingAction(DialogueModel):
     execution_on_complete: Literal["none", "create_draft"] = "none"
 
     def missing(self):
+        if self.kind == "force_staffing":
+            return ["确认违反 R04 的人数安排"]
         return [name for name, absent in (
             ("员工", not self.employee_id), ("动作", not self.type), ("日期", not self.days),
             ("班次", self.type in {ChangeType.ASSIGN, ChangeType.UNASSIGN, ChangeType.PREFERENCE} and not self.shift),
@@ -137,6 +144,8 @@ class TurnCommand(DialogueModel):
     read_query: ReadQueryPlan | None = None
     product_topic_ids: list[str] = Field(default_factory=list)
     force_generate: bool = False
+    pending_decision: Literal["none", "confirm", "cancel"] = "none"
+    pending_action_id: str | None = None
     requested_overrides: list[OverrideScope] = Field(default_factory=list)
     forced_assignments: list[Assignment] = Field(default_factory=list)
     authorization_reason: str | None = None

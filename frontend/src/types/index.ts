@@ -342,6 +342,8 @@ export interface DialogueCondition {
 }
 
 export interface DialoguePending {
+  kind?: 'employee' | 'force_staffing'
+  prompt?: string | null
   id: string
   employee_id: string | null
   type: ScheduleChange['type'] | null

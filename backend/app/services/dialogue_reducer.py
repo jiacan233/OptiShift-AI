@@ -117,7 +117,7 @@ def reduce_command(original, command, *, message_id, employees, employee_revisio
             if not member_ids and not state.pending and len(state.employee_focus) == 1:
                 member_ids = list(state.employee_focus)
             # An unrelated incomplete request never overwrites an existing action.
-            compatible = [p for p in state.pending if (not edit.reference_ids or p.id in edit.reference_ids) and (not member_ids or not p.employee_id or p.employee_id in member_ids)
+            compatible = [p for p in state.pending if p.kind == "employee" and (not edit.reference_ids or p.id in edit.reference_ids) and (not member_ids or not p.employee_id or p.employee_id in member_ids)
                           and (not edit.type or not p.type or p.type == edit.type)]
             filling = compatible[0] if len(compatible) == 1 else None
             if len(compatible) > 1 and (not edit.days or not edit.type):

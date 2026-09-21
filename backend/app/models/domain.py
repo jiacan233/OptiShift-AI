@@ -250,10 +250,9 @@ class RuleConfig(StrictModel):
         default = self.weekend_min_staff if day in {Day.SAT, Day.SUN} else self.weekday_min_staff
         constraints = self.staffing_for(day, shift) if shift is not None else []
         minimums = [c.min_count for c in constraints if c.min_count is not None]
-        maximums = [c.max_count for c in constraints if c.max_count is not None]
-        # Explicit SHIFT bounds replace the default headcount, never skill or
-        # work/rest rules. A soft target alone keeps the default minimum.
-        return max(minimums) if minimums else min([default, *maximums])
+        # Request-scoped headcounts never lower baseline R04. Shortages must
+        # pass through Force authorization and remain visible to the validator.
+        return max([default, *minimums])
 
     def staffing_for(self, day: Day, shift: Shift | None = None) -> list[StaffingConstraint]:
         """Return request-scoped constraints matching a day/shift unit."""

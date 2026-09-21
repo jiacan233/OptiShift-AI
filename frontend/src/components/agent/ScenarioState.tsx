@@ -9,6 +9,7 @@ function conditionText(condition: DialogueCondition) {
 }
 
 function pendingText(pending: DialoguePending) {
+  if (pending.kind === 'force_staffing') return pending.prompt || '请确认是否按低于 R04 最低人数的要求生成方案。'
   const missing = [
     !pending.employee_id && '员工', !pending.type && '调整方式', !pending.days.length && '日期',
     pending.type && ['assign', 'unassign', 'preference'].includes(pending.type) && !pending.shift && '班次',
@@ -41,7 +42,7 @@ export function ScenarioState({ scenario }: { scenario: AgentScenario | null }) 
       {!!proposedStaffing.length && <div><p className="font-semibold">人数分析提案 · 尚未采纳</p><ul>{proposedStaffing.map((c, i) => <li key={i}>{staffingText(c)}</li>)}</ul></div>}
       {state.proposed_staffing != null && !proposedStaffing.length && <p>人数分析提案：清除附加人数要求，尚未采纳。</p>}
       {!!state.proposals.length && <div><p className="font-semibold">分析提案 · 尚未采纳</p><ul className="mt-1 space-y-1">{state.proposals.map(proposal => <li key={proposal.id}>{conditionText(proposal)}</li>)}</ul></div>}
-      {!!state.pending.length && <div className="rounded-lg bg-amber-50 p-2 text-amber-900"><p className="font-semibold">待补信息</p><ul className="mt-1 space-y-1">{state.pending.map(pending => <li key={pending.id}>{pendingText(pending)}</li>)}</ul></div>}
+      {!!state.pending.length && <div className="rounded-lg bg-amber-50 p-2 text-amber-900"><p className="font-semibold">待确认 / 待补信息</p><ul className="mt-1 space-y-1">{state.pending.map(pending => <li key={pending.id}>{pendingText(pending)}</li>)}</ul></div>}
       {!!state.conflicts.length && <div role="status" className="rounded-lg bg-red-50 p-2 text-red-800"><p className="font-semibold">解决冲突后才能执行</p><ul className="mt-1 space-y-1">{state.conflicts.map((conflict, index) => <li key={`${conflict.code}-${index}`}>{conflict.message || '条件之间存在冲突，请在对话中说明保留或取消哪项。'}</li>)}</ul></div>}
       {!!state.warnings.length && <ul className="space-y-1 text-amber-800">{state.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul>}
     </section>

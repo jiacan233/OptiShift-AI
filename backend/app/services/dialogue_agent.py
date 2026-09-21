@@ -13,6 +13,7 @@ from ..repository.dialogue import DialogueRepository, patches_for
 from ..repository.scenarios import ScenarioRevisionConflict
 from .agent_router import AgentRouter
 from .dialogue_reducer import detect_conflicts, reduce_command, unique_changes
+from .dialogue_staffing import force_dependencies, staffing_confirmation
 from .llm_client import AIUnavailableError
 
 
@@ -36,7 +37,7 @@ def describe(state):
         for item in state.proposals:
             lines.append(format_conditions([c.model_dump(mode="json") for c in item.changes]))
     if state.pending:
-        lines.append("待补信息：" + "；".join(f"{p.employee_id or '待选员工'}：{'、'.join(p.missing())}" for p in state.pending))
+        lines.append("待确认/待补信息：" + "；".join(p.prompt or f"{p.employee_id or '待选员工'}：{'、'.join(p.missing())}" for p in state.pending))
     lines.extend(item["message"] for item in state.conflicts)
     lines.extend(state.warnings)
     return "\n".join(lines)
@@ -225,6 +226,27 @@ class DialogueAgent:
         current = service.tools.get_current_schedule(target_week=week)
         deps = dependencies(service, week, current, state)
         extra = {}
+        if command.pending_decision != "none":
+            pending = next((p for p in state.pending if p.id == command.pending_action_id
+                            and p.kind == "force_staffing"), None)
+            stale = pending is None or pending.dependencies != force_dependencies(deps)
+            if pending:
+                state.pending.remove(pending)
+                state.tombstones.append(pending.id)
+                if state.focus and pending.id in state.focus.ids:
+                    state.focus = None
+            if command.pending_decision == "cancel" or stale:
+                response = ("已取消待确认的人数调整，未生成草稿，原排班不变。"
+                            if command.pending_decision == "cancel" else
+                            "排班、条件或规则已变化，原待确认操作已失效。请重新提出人数要求后确认。")
+                commit(result={"schedule_result": None, "response": response, "extra": {}})
+                return self.finish(conversation_id=conversation_id, workspace=workspace, client_id=client_id,
+                    owner=owner, user=user, week=week, state=state, command=command, trace=trace, response=response)
+            state.staffing_constraints = pending.staffing_constraints
+            state.proposed_staffing = None
+            command.force_generate = True
+            command.requested_overrides = pending.requested_overrides
+            command.authorization_reason = text
         if command.reference == "suggestion":
             sets = state.suggestion_sets
             selected_set = next((s for s in sets if s["suggestion_set_id"] == command.suggestion_set_id), None) if command.suggestion_set_id else None
@@ -289,12 +311,32 @@ class DialogueAgent:
                 raise AgentTurnError(409, extra["error"]["code"], command.clarification, final)
             return final
         detect_conflicts(state, employees)
+        if command.staffing_constraints or command.staffing_operation != "merge":
+            # Editing the requested headcount invalidates the old confirmation.
+            retired = [p for p in state.pending if p.kind == "force_staffing"]
+            state.tombstones.extend(p.id for p in retired)
+            state.pending = [p for p in state.pending if p.kind != "force_staffing"]
+        if command.execution == "create_draft" and not command.force_generate and not command.explicit_empty:
+            pending = staffing_confirmation(state.staffing_constraints,
+                service.tools.scheduling.context_builder.rules, user["message_id"])
+            if pending:
+                # Keep proposed low headcounts in Pending Action until authorized;
+                # cancel must leave the previously active requirements untouched.
+                state.staffing_constraints = before.staffing_constraints
+                state.proposed_staffing = before.proposed_staffing
+                state.pending = [p for p in state.pending if p.kind != "force_staffing"] + [pending]
+                state.focus = Focus(kind="pending", ids=[pending.id])
+                pending.dependencies = force_dependencies(dependencies(service, week, current, state))
         # Persist complete state and commit receipt before any slow computation.
         commit()
         deps = dependencies(service, week, current, state)
         result = None
         response = describe(state)
-        if command.clarification or (question and not state.pending):
+        force_pending = [p for p in state.pending if p.kind == "force_staffing"]
+        if force_pending and command.execution == "create_draft":
+            response = "\n".join(p.prompt for p in force_pending)
+            extra["execution_blocked"] = "force_confirmation_required"
+        elif command.clarification or (question and not state.pending):
             response = command.clarification or question
         elif command.reference == "suggestion" and not command.adopt:
             selected = extra.get("referenced_suggestion")

@@ -56,10 +56,25 @@ weekday each shift 4 / weekend each shift 6 yields two constraints. DAY has shif
 Never copy numbers from questions into constraints. staffing_operation merge updates
 only matching slots; replace/clear requires explicit replacement/deletion authorization.
 Count integers must be nonnegative; do not omit unsupported conditions: clarify them.
+An objection followed by a concrete staffing goal, e.g. '周日怎么这么多人？8个人差不多就够了',
+is a staffing instruction: DAY Sun target_count=8, execution=create_draft, no read_query.
+
+state.pending may contain kind=force_staffing: a persisted question asking permission
+to violate R04 for an exact staffing request. A current reply '确定', '就按8人', or '继续'
+confirming THAT question uses pending_decision=confirm and pending_action_id=its id,
+domain=scheduling, execution=create_draft. Do NOT invent overrides or set force_generate;
+the executor binds the saved scopes after checking the referenced action and dependencies.
+Cancellation uses pending_decision=cancel, pending_action_id=its id, execution=none.
+For these decisions do not repeat staffing_constraints, edits or reference_ids.
+Only use a decision when a matching pending action exists in the target week's state.
+These decisions concern a pending request, never confirmation/cancellation of a Draft.
+Questions about the pending request are NOT confirmation. A changed headcount is a new
+staffing instruction, not confirmation of the old number.
 
 declared_condition_count is the TOTAL number of atomic edits + staffing_constraints
 you extracted, including incomplete edits and removals. A claimed mutation with no
-conditions is invalid except fresh empty generation or a real state/suggestion reference.
+conditions is invalid except fresh empty generation, a real state/suggestion reference,
+or an explicit pending_decision bound to a persisted pending_action_id.
 
 reference=current means current context_ids and staffing state; active means all active
 conditions; suggestion requires an existing suggestion id or explicit ordinal. expected_count
@@ -92,6 +107,20 @@ class SemanticVerification(BaseModel):
 
 
 def grounding_error(command, state, employees):
+    if command.pending_decision != "none" or command.pending_action_id:
+        pending = next((p for p in state.pending if p.id == command.pending_action_id
+                        and p.kind == "force_staffing"), None)
+        if pending is None or command.pending_decision == "none":
+            return "待确认操作已失效，请重新说明人数要求。"
+        if (command.domain != "scheduling" or command.edits or command.staffing_constraints
+                or command.staffing_operation != "merge" or command.reference_ids
+                or command.reference != "none" or command.explicit_empty or command.read_query
+                or command.force_generate or command.requested_overrides or command.forced_assignments):
+            return "请单独确认或取消当前待确认的人数操作。"
+        if command.pending_decision == "confirm" and (command.execution != "create_draft" or command.suppress_execution):
+            return "确认人数操作需要本轮明确请求生成草稿。"
+        if command.pending_decision == "cancel" and command.execution != "none":
+            return "取消待确认操作不能同时生成草稿。"
     known = {e.id for e in employees}
     referenced = {eid for edit in command.edits for eid in edit.employee_ids}
     referenced |= {a.employee_id for a in command.forced_assignments}
@@ -195,7 +224,7 @@ def parse_command(text, state, employees, llm, *, current_week_start=None, recen
                                   system=SEMANTIC_PROMPT, user=user)
             empty_mutation = (command.mutation_requested and not command.edits and not command.staffing_constraints
                 and command.staffing_operation == "merge" and not command.explicit_empty
-                and command.reference == "none" and not command.force_generate)
+                and command.reference == "none" and not command.force_generate and command.pending_decision == "none")
             selected_state = state
             if command.target_week and current_week_start and command.target_week != current_week_start:
                 selected_state = state_for_week(command.target_week) if state_for_week else DialogueState()
@@ -210,7 +239,7 @@ def parse_command(text, state, employees, llm, *, current_week_start=None, recen
                 command.clarification = error or "未能完整识别要修改的条件，请重新说明员工、日期、班次或人数。"
         if command.suppress_execution:
             command.execution = "none"
-        if not command.clarification and (command.mutation_requested or command.edits or command.staffing_constraints or command.force_generate):
+        if not command.clarification and (command.mutation_requested or command.edits or command.staffing_constraints or command.force_generate or command.pending_decision != "none"):
             verified = parse_stage(llm, run, SemanticVerification, name="agent_semantic_verifier",
                 system=SEMANTIC_PROMPT + "\nYou are now an independent semantic verifier, NOT a parser. "
                 "Compare the proposed plan with the COMPLETE original message and structured state. "
