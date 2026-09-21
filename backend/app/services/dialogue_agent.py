@@ -135,7 +135,7 @@ class DialogueAgent:
         if error:
             metadata["error"] = error
         intent = "ask"
-        if command.clarification or state.pending:
+        if command.clarification or (state.pending and not (result or {}).get("schedule_id")):
             intent = "clarification"
         elif command.execution == "create_draft":
             intent = "replan" if (result or {}).get("schedule", {}).get("parent_schedule_id") else "generate"

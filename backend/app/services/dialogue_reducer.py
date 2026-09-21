@@ -181,7 +181,7 @@ def reduce_command(original, command, *, message_id, employees, employee_revisio
             selected = state.current()
         if command.expected_count is not None and command.expected_count != len(selected) + len(state.staffing_constraints):
             raise DialogueClarification(f"当前可明确定位 {len(selected)} 项要求，与你说的 {command.expected_count} 项不一致，请明确引用范围。")
-        if command.adopt or command.execution == "create_draft":
+        if command.adopt or (command.execution == "create_draft" and not command.explicit_empty):
             adopted = [p for p in state.proposals if p.id in {s.id for s in selected}]
             state.conditions.extend(adopted)
             state.proposals = [p for p in state.proposals if p not in adopted]

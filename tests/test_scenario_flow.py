@@ -426,3 +426,22 @@ def test_hypothetical_staffing_clear_can_be_adopted():
     assert question is None and state.proposed_staffing == [] and state.staffing_constraints
     state, question = reduce_command(state, TurnCommand(execution="create_draft", reference="current"), message_id="adopt", employees=[], employee_revision=1)
     assert question is None and not state.staffing_constraints and state.proposed_staffing is None
+
+
+def test_explicit_empty_draft_does_not_adopt_or_apply_prior_proposals(agent_client, semantic_reply):
+    from backend.app.api.dependencies import schedule_repository
+    semantic_reply(
+        {"edits": [{"employee_ids": ["E07"], "days": ["Mon"], "type": "unavailable", "proposal": True}]},
+        {"execution": "create_draft", "explicit_empty": True},
+    )
+    cid = _conversation(agent_client)
+    proposed = _send(agent_client, cid, "记下分析提案", client_message_id="proposal").json()
+    assert proposed["dialogue_state"]["proposals"]
+    response = _send(agent_client, cid, "无附加条件生成", client_message_id="empty")
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["schedule_result"]["status"] == "feasible"
+    assert body["dialogue_state"]["proposals"] == proposed["dialogue_state"]["proposals"]
+    assert body["dialogue_state"]["conditions"] == []
+    metadata = schedule_repository.get_record(body["schedule_result"]["schedule_id"])["metadata"]
+    assert metadata["requested_changes"] == [] and metadata["staffing_constraints"] == []
