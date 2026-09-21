@@ -6,6 +6,7 @@ from .domain import ChangeType, PatchOperation, ScenarioPatch, ScheduleChange
 
 
 def scenario_patch_to_schedule_changes(patch: ScenarioPatch) -> list[ScheduleChange]:
+    days = patch.days or patch.candidate_days
     return [
         ScheduleChange(
             employee_id=patch.employee_id,
@@ -14,8 +15,11 @@ def scenario_patch_to_schedule_changes(patch: ScenarioPatch) -> list[ScheduleCha
             shift=patch.shift,
             work_day_count=patch.work_day_count,
             candidate_days=patch.candidate_days,
+            shift_mode=patch.shift_mode,
+            day_selection_mode=patch.day_selection_mode,
+            work_day_count_mode=patch.work_day_count_mode,
         )
-        for day in patch.days
+        for day in days
     ]
 
 
@@ -37,11 +41,14 @@ def schedule_change_to_scenario_patch(change: ScheduleChange, operation="add") -
     return ScenarioPatch(
         employee_id=change.employee_id,
         change_type=change_type,
-        days=[change.day],
+        days=[change.day] if change.day else [],
         shift=change.shift,
         operation=operation,
         work_day_count=change.work_day_count,
         candidate_days=change.candidate_days,
+        shift_mode=change.shift_mode,
+        day_selection_mode=change.day_selection_mode,
+        work_day_count_mode=change.work_day_count_mode,
     )
 
 

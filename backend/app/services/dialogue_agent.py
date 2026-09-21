@@ -146,6 +146,9 @@ class DialogueAgent:
                 data.pop("work_day_count", None)
             if not data.get("candidate_days"):
                 data.pop("candidate_days", None)
+            data.pop("shift_mode", None)
+            data.pop("day_selection_mode", None)
+            data.pop("work_day_count_mode", None)
             return data
 
         metadata = {"target_week": week.isoformat(), "dialogue_state": state.model_dump(mode="json"),

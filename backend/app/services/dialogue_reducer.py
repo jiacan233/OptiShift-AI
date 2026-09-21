@@ -237,6 +237,9 @@ def reduce_command(original, command, *, message_id, employees, employee_revisio
                             shift=pending.shift,
                             candidate_days=pending.candidate_days,
                             work_day_count=pending.work_day_count,
+                            shift_mode=pending.shift_mode,
+                            day_selection_mode=pending.day_selection_mode,
+                            work_day_count_mode=pending.work_day_count_mode,
                         )
                         for day in pending.candidate_days
                     )
@@ -249,6 +252,9 @@ def reduce_command(original, command, *, message_id, employees, employee_revisio
                             shift=pending.shift,
                             candidate_days=[],
                             work_day_count=None,
+                            shift_mode=pending.shift_mode,
+                            day_selection_mode=pending.day_selection_mode,
+                            work_day_count_mode=pending.work_day_count_mode,
                         )
                         for day in pending.days
                     )

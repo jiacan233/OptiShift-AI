@@ -79,6 +79,8 @@ def test_provider_client_reused_and_closed():
 def test_router_stage_and_hidden_reasoning_ignored(monkeypatch, balanced_employees):
     monkeypatch.setenv("LLM_ENABLED", "true")
     monkeypatch.setenv("LLM_API_KEY", "test-key")
+    monkeypatch.setenv("LLM_MODEL", "gpt-4.1-mini")
+    monkeypatch.setenv("LLM_BASE_URL", "https://api.openai.com/v1")
     route = AgentRoute(
         intent="replan",
         mutation_requested=True,
@@ -408,6 +410,8 @@ def test_week41_replan_with_provider_schema_and_no_reasoning(execution_client, m
     monkeypatch.setattr(dependencies.agent_llm_client, "_client", transport)
     monkeypatch.setattr(dependencies.agent_llm_client, "enabled", True)
     monkeypatch.setattr(dependencies.agent_llm_client, "api_key", "private-test-key")
+    monkeypatch.setattr(dependencies.agent_llm_client, "model", "gpt-4.1-mini")
+    monkeypatch.setattr(dependencies.agent_llm_client, "base_url", "https://api.openai.com/v1")
     cid = conversation(client)
     payload = body("week41-replan")
     payload.pop("trusted_action")

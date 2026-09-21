@@ -167,6 +167,9 @@ class ScheduleChange(StrictModel):
     shift: Shift | None = None
     work_day_count: int | None = None
     candidate_days: list[Day] = Field(default_factory=list)
+    shift_mode: Literal["UNKNOWN", "FIXED", "FLEXIBLE", "PREFERENCE"] | None = None
+    day_selection_mode: Literal["UNKNOWN", "FIXED", "FLEXIBLE"] | None = None
+    work_day_count_mode: Literal["UNKNOWN", "FIXED", "FLEXIBLE"] | None = None
 
     @model_validator(mode="after")
     def require_shift_when_needed(self) -> "ScheduleChange":
@@ -392,9 +395,14 @@ class ScenarioPatch(StrictModel):
     shift: Shift | None = None
     work_day_count: int | None = None
     candidate_days: list[Day] = Field(default_factory=list)
+    shift_mode: Literal["UNKNOWN", "FIXED", "FLEXIBLE", "PREFERENCE"] | None = None
+    day_selection_mode: Literal["UNKNOWN", "FIXED", "FLEXIBLE"] | None = None
+    work_day_count_mode: Literal["UNKNOWN", "FIXED", "FLEXIBLE"] | None = None
 
     @model_validator(mode="after")
     def require_shift_when_needed(self) -> "ScenarioPatch":
+        if self.shift_mode == "FLEXIBLE":
+            return self
         if self.change_type in {ChangeType.PREFERENCE, ChangeType.UNASSIGN} and self.shift is None:
             raise ValueError("该条件需要明确早班或晚班")
         if self.change_type is ChangeType.ASSIGN and self.shift is None:
