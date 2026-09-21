@@ -5,16 +5,35 @@ const ACTIONS: Record<ScheduleChange['type'], string> = {
 }
 
 function conditionText(condition: DialogueCondition) {
-  return condition.changes.map(change => `${change.employee_id} ${DAYS[change.day]}${change.shift ? SHIFTS[change.shift] : '全天'} ${ACTIONS[change.type]}`).join('；')
+  const first = condition.changes[0]
+  if (first && first.candidate_days && first.candidate_days.length && first.work_day_count) {
+    const candDays = first.candidate_days.map(d => DAYS[d] || d).join('、')
+    const shiftStr = first.shift ? SHIFTS[first.shift] : '班次自选'
+    return `${first.employee_id} ${candDays}任选${first.work_day_count}天 ${shiftStr} ${ACTIONS[first.type] || first.type}`
+  }
+  return condition.changes.map(change => {
+    const shiftStr = change.shift ? SHIFTS[change.shift] : (change.type === 'assign' ? '班次自选' : '全天')
+    return `${change.employee_id} ${DAYS[change.day]}${shiftStr} ${ACTIONS[change.type]}`
+  }).join('；')
 }
 
 function pendingText(pending: DialoguePending) {
+  if (pending.prompt) return pending.prompt
   if (pending.kind === 'force_staffing') return pending.prompt || '请确认是否按低于 R04 最低人数的要求生成方案。'
+  const hasDays = (pending.days && pending.days.length > 0) || (pending.candidate_days && pending.candidate_days.length > 0 && pending.work_day_count != null)
   const missing = [
-    !pending.employee_id && '员工', !pending.type && '调整方式', !pending.days.length && '日期',
-    pending.type && ['assign', 'unassign', 'preference'].includes(pending.type) && !pending.shift && '班次',
+    !pending.employee_id && '员工',
+    !pending.type && '调整方式',
+    !hasDays && '日期',
+    pending.type && ['assign', 'unassign', 'preference'].includes(pending.type) && !pending.shift && pending.shift_mode !== 'FLEXIBLE' && '班次',
   ].filter(Boolean)
-  const known = [pending.employee_id, pending.days.map(day => DAYS[day]).join('、'), pending.shift && SHIFTS[pending.shift], pending.type && ACTIONS[pending.type]].filter(Boolean).join(' ')
+  const daysDesc = pending.candidate_days && pending.candidate_days.length && pending.work_day_count
+    ? `${pending.candidate_days.map(d => DAYS[d] || d).join('、')}任选${pending.work_day_count}天`
+    : (pending.work_day_count && (!pending.days || pending.days.length === 0)
+       ? `安排${pending.work_day_count}天`
+       : pending.days?.map(day => DAYS[day]).join('、'))
+  const shiftDesc = pending.shift ? SHIFTS[pending.shift] : (pending.shift_mode === 'FLEXIBLE' ? '班次自选' : null)
+  const known = [pending.employee_id, daysDesc, shiftDesc, pending.type && ACTIONS[pending.type]].filter(Boolean).join(' ')
   return `${known || '排班调整'} · 还需补充${missing.join('、') || '具体要求'}`
 }
 

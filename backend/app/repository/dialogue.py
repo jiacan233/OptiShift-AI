@@ -14,14 +14,26 @@ from .scenarios import ScenarioRevisionConflict
 
 
 def patches_for(conditions):
-    return [ScenarioPatch(employee_id=c.employee_id, change_type=c.type, days=[c.day], shift=c.shift)
-            for condition in conditions for c in condition.changes]
+    return [
+        ScenarioPatch(
+            employee_id=c.employee_id,
+            change_type=c.type,
+            days=[c.day] if c.day else [],
+            shift=c.shift,
+            work_day_count=c.work_day_count,
+            candidate_days=c.candidate_days or [],
+            shift_mode=getattr(c, "shift_mode", None),
+            day_selection_mode=getattr(c, "day_selection_mode", None),
+            work_day_count_mode=getattr(c, "work_day_count_mode", None),
+        )
+        for condition in conditions for c in condition.changes
+    ]
 
 
 def _constraint_keys(patches):
     """Compare effective atoms, not legacy grouping, JSON defaults or order."""
     return {
-        (change.employee_id, change.type, change.day, change.shift)
+        (change.employee_id, change.type, change.day, change.shift, change.work_day_count, tuple(change.candidate_days or []))
         for change in scenario_patches_to_schedule_changes(
             [ScenarioPatch.model_validate(patch) for patch in patches]
         )

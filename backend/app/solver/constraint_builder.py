@@ -88,6 +88,14 @@ class ConstraintBuilder:
                 model.Add(assignment_vars[(employee_id, day, shift)] == 1)
             for day, shift in policy.forced_unassignments:
                 model.Add(assignment_vars[(employee_id, day, shift)] == 0)
+            for day in policy.forced_workdays:
+                model.Add(workday_vars[(employee_id, day)] == 1)
+            if policy.workday_count is not None:
+                candidates = policy.candidate_days if policy.candidate_days else set(WEEK_DAYS)
+                model.Add(sum(workday_vars[(employee_id, day)] for day in candidates) == policy.workday_count)
+                for day in WEEK_DAYS:
+                    if day not in candidates:
+                        model.Add(workday_vars[(employee_id, day)] == 0)
         for assignment in context.user_forced_assignments:
             key = (assignment.employee_id, assignment.day, assignment.shift)
             model.Add(assignment_vars[key] == 1)

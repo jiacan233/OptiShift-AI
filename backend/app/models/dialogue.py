@@ -3,7 +3,7 @@ from typing import Literal
 from datetime import date
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .domain import ChangeType, Day, ScheduleChange, Shift, StaffingConstraint, Assignment
 from .overrides import OverrideScope
@@ -75,20 +75,59 @@ class PendingAction(DialogueModel):
     requested_overrides: list[OverrideScope] = Field(default_factory=list)
     dependencies: dict = Field(default_factory=dict)
     employee_id: str | None = None
+    employee_mode: Literal["UNKNOWN", "FIXED"] = "UNKNOWN"
     type: ChangeType | None = None
+    type_mode: Literal["UNKNOWN", "FIXED"] = "UNKNOWN"
     days: list[Day] = Field(default_factory=list)
+    candidate_days: list[Day] = Field(default_factory=list)
+    day_selection_mode: Literal["UNKNOWN", "FIXED", "FLEXIBLE"] = "UNKNOWN"
+    work_day_count: int | None = None
+    work_day_count_mode: Literal["UNKNOWN", "FIXED", "FLEXIBLE"] = "UNKNOWN"
     shift: Shift | None = None
-    source_message_id: str
+    shift_mode: Literal["UNKNOWN", "FIXED", "FLEXIBLE", "PREFERENCE"] = "UNKNOWN"
+    source_message_id: str = ""
     proposal: bool = False
     execution_on_complete: Literal["none", "create_draft"] = "none"
+
+    @model_validator(mode="after")
+    def auto_detect_modes(self) -> "PendingAction":
+        if self.employee_id and self.employee_mode == "UNKNOWN":
+            self.employee_mode = "FIXED"
+        if self.type and self.type_mode == "UNKNOWN":
+            self.type_mode = "FIXED"
+        if self.shift and self.shift_mode == "UNKNOWN":
+            self.shift_mode = "FIXED"
+        if self.days and self.day_selection_mode == "UNKNOWN":
+            self.day_selection_mode = "FIXED"
+        if self.candidate_days and self.day_selection_mode == "UNKNOWN":
+            self.day_selection_mode = "FLEXIBLE"
+        if self.work_day_count is not None and self.work_day_count_mode == "UNKNOWN":
+            self.work_day_count_mode = "FIXED"
+        return self
 
     def missing(self):
         if self.kind == "force_staffing":
             return ["确认违反 R04 的人数安排"]
-        return [name for name, absent in (
-            ("员工", not self.employee_id), ("动作", not self.type), ("日期", not self.days),
-            ("班次", self.type in {ChangeType.ASSIGN, ChangeType.UNASSIGN, ChangeType.PREFERENCE} and not self.shift),
-        ) if absent]
+        absent = []
+        if (self.employee_mode == "UNKNOWN" and not self.employee_id) or not self.employee_id:
+            absent.append("员工")
+        if (self.type_mode == "UNKNOWN" and not self.type) or not self.type:
+            absent.append("动作")
+        if self.day_selection_mode == "UNKNOWN":
+            if not self.days and not (self.candidate_days and self.work_day_count):
+                absent.append("日期")
+        elif self.day_selection_mode == "FIXED":
+            if not self.days:
+                absent.append("日期")
+        elif self.day_selection_mode == "FLEXIBLE":
+            if not self.candidate_days or self.work_day_count is None:
+                absent.append("日期")
+        if self.type in {ChangeType.ASSIGN, ChangeType.UNASSIGN, ChangeType.PREFERENCE}:
+            if self.shift_mode == "UNKNOWN" and not self.shift:
+                absent.append("班次")
+            elif self.shift_mode == "FIXED" and not self.shift:
+                absent.append("班次")
+        return absent
 
 
 class Focus(DialogueModel):
@@ -124,13 +163,36 @@ class DialogueState(DialogueModel):
 class ConditionEdit(DialogueModel):
     operation: Literal["add", "remove", "correct", "adopt", "cancel_pending", "focus"] = "add"
     employee_ids: list[str] = Field(default_factory=list)
+    employee_mode: Literal["UNKNOWN", "FIXED"] = "UNKNOWN"
     days: list[Day] = Field(default_factory=list)
+    candidate_days: list[Day] = Field(default_factory=list)
+    day_selection_mode: Literal["UNKNOWN", "FIXED", "FLEXIBLE"] = "UNKNOWN"
+    work_day_count: int | None = None
+    work_day_count_mode: Literal["UNKNOWN", "FIXED", "FLEXIBLE"] = "UNKNOWN"
     shift: Shift | None = None
+    shift_mode: Literal["UNKNOWN", "FIXED", "FLEXIBLE", "PREFERENCE"] = "UNKNOWN"
     type: ChangeType | None = None
+    type_mode: Literal["UNKNOWN", "FIXED"] = "UNKNOWN"
     reference_ids: list[str] = Field(default_factory=list)
     proposal: bool = False
     group_skill: str | None = None
     old_day: Day | None = None
+
+    @model_validator(mode="after")
+    def auto_detect_modes(self) -> "ConditionEdit":
+        if self.employee_ids and self.employee_mode == "UNKNOWN":
+            self.employee_mode = "FIXED"
+        if self.type and self.type_mode == "UNKNOWN":
+            self.type_mode = "FIXED"
+        if self.shift and self.shift_mode == "UNKNOWN":
+            self.shift_mode = "FIXED"
+        if self.days and self.day_selection_mode == "UNKNOWN":
+            self.day_selection_mode = "FIXED"
+        if self.candidate_days and self.day_selection_mode == "UNKNOWN":
+            self.day_selection_mode = "FLEXIBLE"
+        if self.work_day_count is not None and self.work_day_count_mode == "UNKNOWN":
+            self.work_day_count_mode = "FIXED"
+        return self
 
 
 class TurnCommand(DialogueModel):

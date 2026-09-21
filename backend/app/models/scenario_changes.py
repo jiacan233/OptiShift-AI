@@ -6,11 +6,20 @@ from .domain import ChangeType, PatchOperation, ScenarioPatch, ScheduleChange
 
 
 def scenario_patch_to_schedule_changes(patch: ScenarioPatch) -> list[ScheduleChange]:
+    days = patch.days or patch.candidate_days
     return [
         ScheduleChange(
-            employee_id=patch.employee_id, type=patch.change_type, day=day, shift=patch.shift
+            employee_id=patch.employee_id,
+            type=patch.change_type,
+            day=day,
+            shift=patch.shift,
+            work_day_count=patch.work_day_count,
+            candidate_days=patch.candidate_days,
+            shift_mode=patch.shift_mode,
+            day_selection_mode=patch.day_selection_mode,
+            work_day_count_mode=patch.work_day_count_mode,
         )
-        for day in patch.days
+        for day in days
     ]
 
 
@@ -32,9 +41,14 @@ def schedule_change_to_scenario_patch(change: ScheduleChange, operation="add") -
     return ScenarioPatch(
         employee_id=change.employee_id,
         change_type=change_type,
-        days=[change.day],
+        days=[change.day] if change.day else [],
         shift=change.shift,
         operation=operation,
+        work_day_count=change.work_day_count,
+        candidate_days=change.candidate_days,
+        shift_mode=change.shift_mode,
+        day_selection_mode=change.day_selection_mode,
+        work_day_count_mode=change.work_day_count_mode,
     )
 
 
@@ -191,9 +205,23 @@ def format_conditions(conditions: list[dict]) -> str:
         "assign": "安排上班",
         "unassign": "取消班次",
     }
-    return "\n".join(
-        "- "
-        + (
+    lines = []
+    seen_groups = set()
+    for c in conditions:
+        cand = c.get("candidate_days") or []
+        count = c.get("work_day_count")
+        emp = c["employee_id"]
+        if cand and count:
+            group_key = (emp, tuple(cand), count, c.get("type"))
+            if group_key in seen_groups:
+                continue
+            seen_groups.add(group_key)
+            cand_str = "、".join(days.get(d, d) for d in cand)
+            shift_str = shifts.get(c.get("shift"), "班次自选" if c.get("shift") is None else "")
+            lines.append(f"- {emp} {cand_str}任选{count}天{shift_str}{kinds.get(c.get('type', ''), '')}")
+            continue
+
+        prefix = (
             "移除条件："
             if c.get("operation") == "remove"
             else "替换条件："
@@ -202,7 +230,7 @@ def format_conditions(conditions: list[dict]) -> str:
             if c.get("operation") == "clear"
             else ""
         )
-        + f"{c['employee_id']} {days.get(c.get('day'), '')}"
-        + f"{shifts.get(c.get('shift'), '')}{kinds.get(c['type'], '')}"
-        for c in conditions
-    )
+        day_str = days.get(c.get("day"), "")
+        shift_str = shifts.get(c.get("shift"), "班次自选" if c.get("shift") is None and c.get("type") == "assign" else "")
+        lines.append("- " + prefix + f"{c['employee_id']} {day_str}{shift_str}{kinds.get(c.get('type', ''), '')}")
+    return "\n".join(lines)

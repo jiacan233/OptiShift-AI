@@ -139,9 +139,21 @@ class DialogueAgent:
     def finish(self, *, conversation_id, workspace, client_id, owner, user, week, state, command,
                trace, response, result=None, error=None, extra=None):
         service = self.service
+
+        def _dump_condition_change(c):
+            data = c.model_dump(mode="json")
+            if not data.get("work_day_count"):
+                data.pop("work_day_count", None)
+            if not data.get("candidate_days"):
+                data.pop("candidate_days", None)
+            data.pop("shift_mode", None)
+            data.pop("day_selection_mode", None)
+            data.pop("work_day_count_mode", None)
+            return data
+
         metadata = {"target_week": week.isoformat(), "dialogue_state": state.model_dump(mode="json"),
                     "turn_command": command.model_dump(mode="json"), "scenario_revision": state.scenario_revision,
-                    "conditions": [c.model_dump(mode="json") for c in unique_changes(state.conditions)],
+                    "conditions": [_dump_condition_change(c) for c in unique_changes(state.conditions)],
                     "tool_call_ids": [c["tool_call_id"] for c in trace], **(extra or {})}
         execution = current_execution.get()
         metadata["provider_requests"] = getattr(execution, "provider_requests", [])
@@ -332,8 +344,13 @@ class DialogueAgent:
         deps = dependencies(service, week, current, state)
         result = None
         response = describe(state)
+        day_conflicts = [c for c in state.conflicts if c.get("code") == "day_count_conflict"]
         force_pending = [p for p in state.pending if p.kind == "force_staffing"]
-        if force_pending and command.execution == "create_draft":
+        if day_conflicts:
+            response = day_conflicts[0]["message"]
+            if command.execution == "create_draft":
+                extra["execution_blocked"] = "day_count_conflict"
+        elif force_pending and command.execution == "create_draft":
             response = "\n".join(p.prompt for p in force_pending)
             extra["execution_blocked"] = "force_confirmation_required"
         elif command.clarification or (question and not state.pending):

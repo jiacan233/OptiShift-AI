@@ -10,7 +10,7 @@ class DialogueClarification(ValueError):
 
 
 def key(change):
-    return change.employee_id, change.day, change.type, change.shift
+    return change.employee_id, change.day, change.type, change.shift, change.work_day_count, tuple(change.candidate_days or [])
 
 
 def unique_changes(conditions):
@@ -77,12 +77,24 @@ def reduce_command(original, command, *, message_id, employees, employee_revisio
                     state.focus = None
                 continue
             if edit.operation in {"correct", "remove"}:
-                candidates = _selected(state, edit)
-                if len(candidates) != 1:
-                    raise DialogueClarification(
-                        "没有找到符合范围的临时条件；员工档案未改变。" if not candidates else
-                        "找到多条符合范围的条件，请指定要撤销或纠正的那一条。")
-                item = candidates[0]
+                pending_targets = [p for p in state.pending if (edit.reference_ids and p.id in edit.reference_ids)
+                                   or (not edit.reference_ids and edit.employee_ids and p.employee_id in edit.employee_ids)]
+                if pending_targets:
+                    if edit.operation == "remove":
+                        ids = {p.id for p in pending_targets}
+                        state.tombstones.extend(ids)
+                        state.pending = [p for p in state.pending if p.id not in ids]
+                        if state.focus and state.focus.kind == "pending":
+                            state.focus = None
+                        continue
+                    # operation == "correct" targeting pending: fall through to line 120 to update/fill pending
+                else:
+                    candidates = _selected(state, edit)
+                    if len(candidates) != 1:
+                        raise DialogueClarification(
+                            "没有找到符合范围的临时条件；员工档案未改变。" if not candidates else
+                            "找到多条符合范围的条件，请指定要撤销或纠正的那一条。")
+                    item = candidates[0]
                 if edit.operation == "remove":
                     state.conditions = [c for c in state.conditions if c.id != item.id]
                     state.proposals = [c for c in state.proposals if c.id != item.id]
@@ -122,7 +134,7 @@ def reduce_command(original, command, *, message_id, employees, employee_revisio
             filling = compatible[0] if len(compatible) == 1 else None
             if len(compatible) > 1 and (not edit.days or not edit.type):
                 raise DialogueClarification("有多个待补动作，请指定本次补充对应哪一个员工或动作。")
-            if not edit.type and not edit.days and not edit.shift and member_ids and not filling:
+            if not edit.type and not edit.days and not edit.shift and not edit.candidate_days and edit.work_day_count is None and member_ids and not filling:
                 state.employee_focus = member_ids
                 state.focus = Focus(kind="employees", ids=member_ids)
                 continue
@@ -130,23 +142,122 @@ def reduce_command(original, command, *, message_id, employees, employee_revisio
             for employee_id in member_ids or [None]:
                 pending = deepcopy(filling) if filling else PendingAction(source_message_id=message_id)
                 pending.employee_id = employee_id or pending.employee_id
+                if edit.employee_mode != "UNKNOWN":
+                    pending.employee_mode = edit.employee_mode
+                elif pending.employee_id:
+                    pending.employee_mode = "FIXED"
+
                 pending.type = edit.type or pending.type
-                pending.days = edit.days or pending.days
-                pending.shift = edit.shift or pending.shift
+                if edit.type_mode != "UNKNOWN":
+                    pending.type_mode = edit.type_mode
+                elif pending.type:
+                    pending.type_mode = "FIXED"
+
+                if filling and filling.work_day_count is not None:
+                    if edit.day_selection_mode == "FLEXIBLE" and edit.work_day_count is not None:
+                        pending.work_day_count = edit.work_day_count
+                    else:
+                        pending.work_day_count = filling.work_day_count
+                elif edit.work_day_count is not None:
+                    pending.work_day_count = edit.work_day_count
+                if edit.work_day_count_mode != "UNKNOWN":
+                    pending.work_day_count_mode = edit.work_day_count_mode
+                elif pending.work_day_count is not None:
+                    pending.work_day_count_mode = "FIXED"
+
+                if edit.shift_mode != "UNKNOWN":
+                    pending.shift_mode = edit.shift_mode
+                    if edit.shift_mode == "FLEXIBLE":
+                        pending.shift = None
+                    else:
+                        pending.shift = edit.shift or pending.shift
+                elif edit.shift:
+                    pending.shift = edit.shift
+                    pending.shift_mode = "FIXED"
+
+                if edit.day_selection_mode == "FLEXIBLE":
+                    pending.day_selection_mode = "FLEXIBLE"
+                    pending.candidate_days = edit.candidate_days or (edit.days if edit.days else pending.candidate_days or pending.days)
+                    pending.days = []
+                elif edit.day_selection_mode == "FIXED":
+                    pending.day_selection_mode = "FIXED"
+                    pending.days = edit.days or pending.days
+                    pending.candidate_days = []
+                else:
+                    if edit.candidate_days:
+                        pending.candidate_days = edit.candidate_days
+                        pending.day_selection_mode = "FLEXIBLE"
+                        pending.days = []
+                    elif edit.days:
+                        pending.days = edit.days
+                        pending.day_selection_mode = "FIXED"
+                        pending.candidate_days = []
+
+                if pending.candidate_days and pending.day_selection_mode == "FLEXIBLE":
+                    pending.days = []
+
                 pending.proposal = edit.proposal if edit.type else pending.proposal
                 if command.execution == "create_draft" and not command.suppress_execution and not pending.proposal:
                     pending.execution_on_complete = "create_draft"
+
+                # Check deterministic conflict: work_day_count vs len(days) when day_selection_mode is FIXED
+                if (pending.work_day_count is not None
+                        and pending.day_selection_mode == "FIXED"
+                        and len(pending.days) > 0
+                        and len(pending.days) != pending.work_day_count):
+                    day_names = {"Mon": "周一", "Tue": "周二", "Wed": "周三", "Thu": "周四", "Fri": "周五", "Sat": "周六", "Sun": "周日"}
+                    days_str = "、".join(day_names.get(d.value if hasattr(d, 'value') else str(d), str(d)) for d in pending.days)
+                    conflict_msg = f"{pending.employee_id or '员工'}之前要求出勤 {pending.work_day_count} 天，但指定了 {len(pending.days)} 天（{days_str}都安排）。请确认是 {len(pending.days)} 天都安排，还是从这 {len(pending.days)} 天中任选 {pending.work_day_count} 天？"
+                    pending.prompt = conflict_msg
+                    state.conflicts = [c for c in state.conflicts if c.get("code") != "day_count_conflict"] + [{
+                        "code": "day_count_conflict",
+                        "employee_id": pending.employee_id,
+                        "message": conflict_msg,
+                        "work_day_count": pending.work_day_count,
+                        "days_count": len(pending.days),
+                    }]
+                else:
+                    state.conflicts = [c for c in state.conflicts if not (c.get("code") == "day_count_conflict" and c.get("employee_id") == pending.employee_id)]
                 actions.append(pending)
             complete_changes = []
             for pending in actions:
-                if pending.missing():
+                is_conflicted = any(c.get("code") == "day_count_conflict" and c.get("employee_id") == pending.employee_id for c in state.conflicts)
+                if is_conflicted or pending.missing():
                     state.pending = [p for p in state.pending if p.id != pending.id] + [pending]
                     state.focus = Focus(kind="pending", ids=[pending.id])
                     if pending.employee_id:
                         state.employee_focus = [pending.employee_id]
                     continue
-                complete_changes.extend(ScheduleChange(employee_id=pending.employee_id, type=pending.type,
-                    day=day, shift=pending.shift) for day in pending.days)
+                if pending.day_selection_mode == "FLEXIBLE" and pending.candidate_days:
+                    complete_changes.extend(
+                        ScheduleChange(
+                            employee_id=pending.employee_id,
+                            type=pending.type,
+                            day=day,
+                            shift=pending.shift,
+                            candidate_days=pending.candidate_days,
+                            work_day_count=pending.work_day_count,
+                            shift_mode=pending.shift_mode,
+                            day_selection_mode=pending.day_selection_mode,
+                            work_day_count_mode=pending.work_day_count_mode,
+                        )
+                        for day in pending.candidate_days
+                    )
+                else:
+                    complete_changes.extend(
+                        ScheduleChange(
+                            employee_id=pending.employee_id,
+                            type=pending.type,
+                            day=day,
+                            shift=pending.shift,
+                            candidate_days=[],
+                            work_day_count=None,
+                            shift_mode=pending.shift_mode,
+                            day_selection_mode=pending.day_selection_mode,
+                            work_day_count_mode=pending.work_day_count_mode,
+                        )
+                        for day in pending.days
+                    )
                 if filling and pending.execution_on_complete == "create_draft" and not pending.proposal:
                     resume_execution = True
                 state.pending = [p for p in state.pending if p.id != pending.id]
@@ -195,8 +306,13 @@ def reduce_command(original, command, *, message_id, employees, employee_revisio
         command.execution = "create_draft"
     question = None
     if state.pending:
-        question = "待补信息：" + "；".join(
-            f"{p.employee_id or '待选员工'}：{'、'.join(p.missing())}" for p in state.pending)
+        day_conflicts = [c for c in state.conflicts if c.get("code") == "day_count_conflict"]
+        if day_conflicts:
+            command.execution = "none"
+            question = day_conflicts[0]["message"]
+        else:
+            question = "待补信息：" + "；".join(
+                p.prompt or f"{p.employee_id or '待选员工'}：{'、'.join(p.missing())}" for p in state.pending)
     return state, question
 
 
@@ -224,8 +340,9 @@ def detect_conflicts(state: DialogueState, employees):
                         "message": f"{employee.id} {day.value} 同一班次同时要求安排和移出。"})
                 if c.type == ChangeType.PREFERENCE and unavailable:
                     warnings.append(f"{employee.id} {day.value} 的偏好遇到硬不可用，偏好不能覆盖该限制。")
-    state.conflicts, state.warnings = conflicts, warnings
-    return conflicts
+    existing_day_conflicts = [c for c in state.conflicts if c.get("code") == "day_count_conflict"]
+    state.conflicts, state.warnings = existing_day_conflicts + conflicts, warnings
+    return state.conflicts
 
 
 def merge_staffing(previous, incoming, operation):
