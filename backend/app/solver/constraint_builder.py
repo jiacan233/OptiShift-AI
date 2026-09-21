@@ -181,9 +181,10 @@ class ConstraintBuilder:
                     c.target_count if c.target_count is not None else c.min_count
                     for c in requested if c.target_count is not None or c.min_count is not None
                 ])
-                excess = model.NewIntVar(0, len(employee_ids), f"excess_{day.value}_{shift.value}")
-                model.AddMaxEquality(excess, [sum(all_staff) - desired, 0])
-                excess_staffing.append(excess)
+                if desired > 0:
+                    excess = model.NewIntVar(0, len(employee_ids), f"excess_{day.value}_{shift.value}")
+                    model.AddMaxEquality(excess, [sum(all_staff) - desired, 0])
+                    excess_staffing.append(excess)
 
         # R08 is normally hard above.  An authorized slot is permitted, but
         # each actual assignment remains an exception and is minimized first.
