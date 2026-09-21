@@ -34,7 +34,7 @@ def analyze_snapshot(schedule: Schedule, context: SchedulingContext, plan: ReadQ
     for day in ([plan.day] if plan.day else WEEK_DAYS):
         for shift in ([plan.shift] if plan.shift else SHIFTS):
             ids = sorted(eid for eid, d, s in keys if d == day and s == shift)
-            minimum = context.rules.minimum_staff(day)
+            minimum = context.rules.minimum_staff(day, shift)
             facts = {
                 "day": day.value, "shift": shift.value, "actual_staff": len(ids),
                 "minimum_staff": minimum, "excess_staff": max(0, len(ids) - minimum),

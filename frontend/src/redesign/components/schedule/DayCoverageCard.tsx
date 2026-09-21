@@ -19,12 +19,12 @@ export const DayCoverageCard: React.FC<DayCoverageCardProps> = ({
   const eveningShift = day.shifts.find((s) => s.shiftType === 'evening')
 
   const morningAssigned = morningShift?.assignedCount ?? 0
-  const morningRequired = morningShift?.requiredCount ?? 4
+  const morningRequired = morningShift?.requirementText ?? morningShift?.requiredCount ?? 4
   const morningGap = morningShift?.gapCount ?? 0
   const morningEmployees = morningShift?.employees ?? []
 
   const eveningAssigned = eveningShift?.assignedCount ?? 0
-  const eveningRequired = eveningShift?.requiredCount ?? 4
+  const eveningRequired = eveningShift?.requirementText ?? eveningShift?.requiredCount ?? 4
   const eveningGap = eveningShift?.gapCount ?? 0
   const eveningEmployees = eveningShift?.employees ?? []
 

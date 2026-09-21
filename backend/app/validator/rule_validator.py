@@ -158,47 +158,14 @@ class RuleValidator:
                                 details={"required": required, "actual": actual},
                             )
                         )
-                required_staff = effective_rules.minimum_staff(day)
-                actual_staff = len(assigned_ids)
-                coverage.append(dict(rule_id="R04", day=day, shift=shift, expected=required_staff, actual=actual_staff, passed=actual_staff >= required_staff))
-                if actual_staff < required_staff:
-                    violations["R04"].append(
-                        RuleViolation(
-                            rule_id="R04",
-                            day=day,
-                            shift=shift,
-                            message="Total staffing is below the required minimum.",
-                            details={"required": required_staff, "actual": actual_staff},
-                        )
-                    )
-                # Validate request-scoped headcount bounds independently from
-                # the default minimum rule. This keeps Exact and max requests
-                # visible even when the baseline R04 minimum passes.
-                for index, constraint in enumerate(effective_rules.staffing_for(day, shift)):
-                    minimum = constraint.min_count
-                    maximum = constraint.max_count
-                    target = constraint.target_count
-                    if minimum is not None and actual_staff < minimum:
-                        violations["R04"].append(RuleViolation(
-                            rule_id="R04", day=day, shift=shift,
-                            message="Staffing is below the requested minimum.",
-                            details={"constraint_index": index, "required": minimum, "actual": actual_staff},
-                        ))
-                    if maximum is not None and actual_staff > maximum:
-                        violations["R04"].append(RuleViolation(
-                            rule_id="R04", day=day, shift=shift,
-                            message="Staffing exceeds the requested maximum.",
-                            details={"constraint_index": index, "maximum": maximum, "actual": actual_staff, "excess": actual_staff - maximum},
-                        ))
-                    if target is not None and minimum is not None and maximum is not None and minimum == maximum == target and actual_staff != target:
-                        violations["R04"].append(RuleViolation(
-                            rule_id="R04", day=day, shift=shift,
-                            message="Exact staffing target was not met.",
-                            details={"constraint_index": index, "target": target, "actual": actual_staff, "excess": max(0, actual_staff-target), "shortage": max(0, target-actual_staff)},
-                        ))
-                    coverage.append(dict(rule_id="R04", day=day, shift=shift, expected=target if target is not None else (minimum if minimum is not None else maximum),
-                                         target_count=target, min_count=minimum, max_count=maximum,
-                                         passed=not ((minimum is not None and actual_staff < minimum) or (maximum is not None and actual_staff > maximum))))
+                self._validate_staffing(
+                    effective_rules, day, shift, len(assigned_ids), coverage, violations["R04"]
+                )
+            self._validate_staffing(
+                effective_rules, day, None,
+                len(set().union(*(by_slot[(day, shift)] for shift in SHIFTS))),
+                coverage, violations["R04"],
+            )
 
         # R05 counts unique employee/day/shift keys; duplicates already fail H01.
         workload: dict[str, int] = defaultdict(int)
@@ -357,6 +324,35 @@ class RuleValidator:
             violations=flattened,
             passed_count=passed_count,
         )
+
+
+    @staticmethod
+    def _validate_staffing(rules, day, shift, actual, coverage, violations):
+        constraints = rules.staffing_for(day, shift)
+        if shift is None and not constraints:
+            return
+        minimums = [c.min_count for c in constraints if c.min_count is not None]
+        if shift is not None:
+            minimums.append(rules.minimum_staff(day, shift))
+        maximums = [c.max_count for c in constraints if c.max_count is not None]
+        targets = [c.target_count for c in constraints if c.target_count is not None]
+        minimum = max(minimums) if minimums else None
+        maximum = min(maximums) if maximums else None
+        target = targets[-1] if targets else None
+        passed = (minimum is None or actual >= minimum) and (maximum is None or actual <= maximum)
+        scope = "SHIFT" if shift is not None else "DAY"
+        coverage.append(dict(rule_id="R04", day=day, shift=shift, scope=scope,
+                             expected=target if target is not None else minimum if minimum is not None else maximum,
+                             actual=actual, min_count=minimum, target_count=target,
+                             max_count=maximum, passed=passed))
+        if not passed:
+            violations.append(RuleViolation(
+                rule_id="R04", day=day, shift=shift,
+                message="Staffing exceeds the requested maximum." if maximum is not None and actual > maximum
+                    else "Total staffing is below the required minimum.",
+                details={"required": minimum, "maximum": maximum, "target": target,
+                         "actual": actual, "scope": scope},
+            ))
 
 
 def validate_schedule(

@@ -246,8 +246,14 @@ class RuleConfig(StrictModel):
     num_search_workers: int = Field(default=1, ge=1)
     objective: ObjectiveWeights = Field(default_factory=ObjectiveWeights)
 
-    def minimum_staff(self, day: Day) -> int:
-        return self.weekend_min_staff if day in {Day.SAT, Day.SUN} else self.weekday_min_staff
+    def minimum_staff(self, day: Day, shift: Shift | None = None) -> int:
+        default = self.weekend_min_staff if day in {Day.SAT, Day.SUN} else self.weekday_min_staff
+        constraints = self.staffing_for(day, shift) if shift is not None else []
+        minimums = [c.min_count for c in constraints if c.min_count is not None]
+        maximums = [c.max_count for c in constraints if c.max_count is not None]
+        # Explicit SHIFT bounds replace the default headcount, never skill or
+        # work/rest rules. A soft target alone keeps the default minimum.
+        return max(minimums) if minimums else min([default, *maximums])
 
     def staffing_for(self, day: Day, shift: Shift | None = None) -> list[StaffingConstraint]:
         """Return request-scoped constraints matching a day/shift unit."""

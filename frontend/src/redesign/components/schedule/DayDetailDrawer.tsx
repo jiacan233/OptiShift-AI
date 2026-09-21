@@ -21,7 +21,7 @@ export function DayDetailDrawer({ day, isOpen, onClose, onAddShiftForSlot, onAsk
       <p className="text-sm text-slate-600">已排 {day.totalEmployees} 人 · {day.totalHours} 小时 · {day.statusText}</p>
       {day.shifts.map(shift => <section key={shift.shiftType} className="rounded-2xl border border-slate-200 p-4 space-y-3">
         <h3 className="font-bold text-slate-800">{shift.shiftName} · {shift.timeRange}</h3>
-        <p className="text-sm text-slate-600">{shift.assignedCount} / {shift.requiredCount} 人；店长 {shift.managerCount}/{shift.managerRequired} · 饮品 {shift.baristaCount}/{shift.beverageRequired} · 收银 {shift.cashierCount}/{shift.cashierRequired}</p>
+        <p className="text-sm text-slate-600">{shift.assignedCount} / {shift.requirementText ?? shift.requiredCount} 人；店长 {shift.managerCount}/{shift.managerRequired} · 饮品 {shift.baristaCount}/{shift.beverageRequired} · 收银 {shift.cashierCount}/{shift.cashierRequired}</p>
         <div className="flex flex-wrap gap-2">{shift.employees.map(employee => <AssignedEmployeeChip key={employee.id} employee={employee} onClick={person => onSelectEmployee?.(person)} />)}</div>
         {shift.ruleIssues.map((issue, index) => <p key={`${issue.ruleId}-${index}`} className="text-xs text-amber-700">{issue.ruleId} · {issue.message}</p>)}
         <div className="flex gap-2">

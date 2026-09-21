@@ -37,6 +37,7 @@ def calibrate_read_route(route: "AgentRoute", content: str, employees: list[Empl
     )
     plan = normalize_plan(content, employees, proposal=route.read_query)
     deterministic = AgentRouter._deterministic_route(content, employees)
+    route.staffing_constraints = deterministic.staffing_constraints
     if reference and re.search(r"(?:按|就用|采用|应用).*(?:条|建议|方案|suggestion)|^(?:apply|use)\b", content, re.I):
         deterministic.intent = AgentIntent.REPLAN
         deterministic.mutation_requested = True
@@ -191,6 +192,7 @@ class TrustedAgentAction(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     intent: Literal["generate", "replan", "validate", "advice"]
+    staffing_constraints: list[StaffingConstraint] = Field(default_factory=list)
     suggestion_id: str | None = None
     suggestion_set_id: str | None = None
     execution: Literal["record", "preview", "create_draft"] | None = None
@@ -262,6 +264,7 @@ class AgentRouter:
                 intent=intent,
                 mutation_requested=intent in {AgentIntent.GENERATE, AgentIntent.REPLAN},
                 target_week=trusted_action.target_week,
+                staffing_constraints=trusted_action.staffing_constraints,
                 changes=trusted_action.changes,
                 employees=sorted({item.employee_id for item in trusted_action.changes}),
                 minimize_changes=trusted_action.minimize_changes,
@@ -352,6 +355,10 @@ class AgentRouter:
 
         if deterministic.intent == AgentIntent.ADVICE and deterministic.changes and not self._explicit_mutation(content):
             return deterministic
+        if deterministic.staffing_constraints and deterministic.mutation_requested and not deterministic.employees:
+            # Headcount is already a complete typed mutation. The employee-only
+            # MutationPlan cannot add missing information to this request.
+            return deterministic
         wants_mutation = decision.mutation_requested or deterministic.mutation_requested or self._explicit_mutation(content)
         if wants_mutation:
             # A fallback or a confident model is not sufficient permission to write.
@@ -397,6 +404,7 @@ class AgentRouter:
                 target_week=deterministic.target_week, target_iso_year=deterministic.target_iso_year,
                 target_iso_week=deterministic.target_iso_week, operations=canonical_operations,
                 changes=changes, minimize_changes=parsed.minimize_changes,
+                staffing_constraints=deterministic.staffing_constraints,
                 operation=canonical_operations[0].operation if canonical_operations else "add",
             )
         intent = decision.intent
@@ -687,7 +695,7 @@ class AgentRouter:
             "强制排",
             "即使违反规则",
         )
-        mutation_requested = any(term in normalized for term in mutation_terms) or cls._explicit_mutation(content)
+        mutation_requested = bool(staffing_constraints) or any(term in normalized for term in mutation_terms) or cls._explicit_mutation(content)
         reference_apply = reference.type != "none" and any(
             term in normalized for term in ("调整", "改", "应用", "按方案", "apply")
         )
@@ -824,6 +832,8 @@ class AgentRouter:
             changes = []
             operations = []
 
+        if staffing_constraints and mutation_requested and not clarification.required and not force_generate:
+            intent = AgentIntent.GENERATE
         if mutation_requested and intent == AgentIntent.ASK:
             intent = AgentIntent.WHAT_IF if operations else AgentIntent.GENERATE
         if mutation_requested and employee_ids and not operations and not force_generate and reference.type == "none":
@@ -854,50 +864,45 @@ class AgentRouter:
 
     @staticmethod
     def _extract_staffing_constraints(text: str, normalized: str) -> list[StaffingConstraint]:
-        import re
-        numbers = [int(value) for value in re.findall(r"(?<!\d)(\d{1,2})\s*(?:人|个人|名)", text)]
-        if not numbers:
+        # Questions and reports of existing counts are not staffing commands.
+        if re.search(r"为什么|多少|几个人|排了|已有|目前有|现有|是否|吗|么|[?？]|规则.*(?:是什么|要求)", normalized):
             return []
-        days = IntentParser.extract_days(text)
-        if not days:
-            days = list(Day)
-        scope = StaffingScope.SHIFT if re.search(r"每班|每个班|每一班|每个时段", normalized) else StaffingScope.DAY
-        shifts = [shift for shift, tokens in ((Shift.MORNING, ("早班", "morning")), (Shift.EVENING, ("晚班", "evening"))) if any(token in normalized for token in tokens)]
-        if scope is StaffingScope.SHIFT and not shifts:
-            shifts = list(Shift)
-        exact = bool(re.search(r"就\s*\d+|固定\s*\d+|不要多排|不多排|恰好|正好", normalized))
-        minimum = bool(re.search(r"至少|不少于|不低于|minimum|at least", normalized))
-        maximum = bool(re.search(r"最多|不超过|不多于|max(?:imum)?|at most", normalized))
-        range_match = re.search(r"(\d+)\s*(?:到|至|-|~)\s*(\d+)\s*(?:人|个人|名)", text)
-        if range_match:
-            lo, hi = map(int, range_match.groups())
-            # A single sentence may contain weekday/weekend clauses. Split
-            # those into independent constraints so weekend requirements do not
-            # overwrite weekday targets.
-            result = []
-            for subset, pattern in (([Day.MON, Day.TUE, Day.WED, Day.THU, Day.FRI], r"工作日[^。；,，]*?\d+\s*(?:人|个人|名)"), ([Day.SAT, Day.SUN], r"周末[^。；,，]*?\d+\s*(?:人|个人|名)")):
-                match = re.search(pattern, text)
-                if match:
-                    val = int(re.search(r"\d+", match.group()).group())
-                    result.append(StaffingConstraint(scope=scope, days=subset, shifts=shifts, min_count=val, target_count=val if exact else None, max_count=val if exact else None))
-            if result:
-                return result
-            return [StaffingConstraint(scope=scope, days=days, shifts=shifts, min_count=lo, max_count=hi)]
+        if not re.search(r"\d+\s*(?:个)?(?:人|名)", text):
+            return []
+        global_exact = bool(re.search(r"不要多排|不多排|就行了", normalized))
         result = []
-        for subset, pattern in (([Day.MON, Day.TUE, Day.WED, Day.THU, Day.FRI], r"工作日[^。；,，]*?(\d+)\s*(?:人|个人|名)"), ([Day.SAT, Day.SUN], r"周末[^。；,，]*?(\d+)\s*(?:人|个人|名)")):
-            match = re.search(pattern, text)
-            if match:
-                val = int(match.group(1))
-                result.append(StaffingConstraint(scope=scope, days=subset, shifts=shifts, min_count=val, target_count=val if exact else None, max_count=val if exact else None))
-        if result:
-            return result
-        value = numbers[0]
-        soft_target = bool(re.search(r"最好|尽量|prefer|ideally|target", normalized))
-        if soft_target and not exact:
-            return [StaffingConstraint(scope=scope, days=days, shifts=shifts, target_count=value)]
-        if exact or (not minimum and not maximum):
-            return [StaffingConstraint(scope=scope, days=days, shifts=shifts, min_count=value, target_count=value, max_count=value)]
-        return [StaffingConstraint(scope=scope, days=days, shifts=shifts, min_count=value if minimum else None, max_count=value if maximum else None)]
+        for clause in re.split(r"[，,。；;]", text):
+            counts = list(re.finditer(r"(\d+)\s*(?:个)?(?:人|名)", clause))
+            if not counts:
+                continue
+            # A correction in the same clause uses the final requested count.
+            value = int(counts[-1].group(1))
+            days = IntentParser.extract_days(clause) or list(Day)
+            if "工作日" in clause:
+                days = list(Day)[:5]
+            elif "周末" in clause:
+                days = list(Day)[5:]
+            scope = StaffingScope.DAY if re.search(r"全天|整天|每天|每日|一天|一天总共", clause) else StaffingScope.SHIFT
+            shifts = [shift for shift, token in ((Shift.MORNING, "早班"), (Shift.EVENING, "晚班")) if token in clause]
+            if scope is StaffingScope.DAY:
+                shifts = []
+            bounds = {}
+            interval = re.search(r"(\d+)\s*(?:到|至|-|~|～)\s*(\d+)\s*(?:个)?(?:人|名)", clause)
+            if interval:
+                lo, hi = map(int, interval.groups())
+                if lo > hi:
+                    continue
+                bounds = {"min_count": lo, "max_count": hi}
+            elif re.search(r"至少|不少于|不低于|at least|minimum", clause, re.I):
+                bounds = {"min_count": value}
+            elif re.search(r"最多|不超过|不多于|at most|maximum", clause, re.I):
+                bounds = {"max_count": value}
+            elif re.search(r"最好|尽量|prefer|ideally|target", clause, re.I) and not global_exact:
+                bounds = {"target_count": value}
+            else:
+                bounds = {"min_count": value, "target_count": value, "max_count": value}
+            result.append(StaffingConstraint(scope=scope, days=days, shifts=shifts, **bounds))
+        return result
 
     @staticmethod
     def _extract_changes(

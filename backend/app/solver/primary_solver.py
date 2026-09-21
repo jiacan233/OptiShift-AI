@@ -98,6 +98,9 @@ class PrimarySolver:
                 objective -= weights.workload_gap_penalty * built.workload_gap
             if built.change_terms:
                 objective -= weights.schedule_change_penalty * sum(built.change_terms)
+            objective -= (weights.preference_reward + weights.workload_gap_penalty + 1) * (
+                sum(built.staffing_target_penalties) + sum(built.excess_staffing)
+            )
             built.model.Maximize(objective)
             phase_three = self._configured_solver(context)
             phase_three_status = _solver_status(phase_three.Solve(built.model))

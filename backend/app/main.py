@@ -268,7 +268,9 @@ def health(response: Response) -> dict:
     healthy = database.is_healthy()
     if not healthy:
         response.status_code = 503
-    return {"status": "ok" if healthy else "degraded", "app": "optishift-ai", "database": healthy}
+    revision_file = Path(__file__).resolve().parents[1] / "COMMIT_SHA"
+    return {"status": "ok" if healthy else "degraded", "app": "optishift-ai", "database": healthy,
+            "commit_sha": revision_file.read_text().strip() if revision_file.is_file() else None}
 
 
 @app.get("/health/llm", tags=["system"])

@@ -1,3 +1,5 @@
+import type { CoverageCheck } from '@/types'
+
 export type ShiftType = 'morning' | 'evening' | 'off' | 'leave'
 
 export type RoleType = string
@@ -102,6 +104,7 @@ export interface ShiftCoverage {
   shiftName: string    // '早班' | '晚班'
   timeRange: string    // '09:00 - 17:00' | '13:00 - 21:00'
   assignedCount: number
+  requirementText?: string
   requiredCount: number
   gapCount: number     // Math.max(0, requiredCount - assignedCount)
   employees: Employee[]
@@ -121,6 +124,7 @@ export interface DayCoverage {
   date: number         // 5
   fullDate: string     // '2026-10-05'
   isWeekend: boolean
+  staffingCheck?: CoverageCheck
   totalEmployees: number
   totalHours: number
   status: 'normal' | 'shortage' | 'conflict'

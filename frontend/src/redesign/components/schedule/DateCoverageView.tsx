@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { staffingRequirementText } from '@/lib/presentation'
 import {
   CalendarX,
   Sparkles,
@@ -111,12 +112,12 @@ export const DateCoverageView: React.FC<DateCoverageViewProps> = ({
   const eveningShift = activeDay.shifts.find((s) => s.shiftType === 'evening')
 
   const morningAssigned = morningShift?.assignedCount ?? 0
-  const morningRequired = morningShift?.requiredCount ?? 4
+  const morningRequired = morningShift?.requirementText ?? morningShift?.requiredCount ?? 4
   const morningGap = morningShift?.gapCount ?? 0
   const morningEmployees = morningShift?.employees ?? []
 
   const eveningAssigned = eveningShift?.assignedCount ?? 0
-  const eveningRequired = eveningShift?.requiredCount ?? 4
+  const eveningRequired = eveningShift?.requirementText ?? eveningShift?.requiredCount ?? 4
   const eveningGap = eveningShift?.gapCount ?? 0
   const eveningEmployees = eveningShift?.employees ?? []
 
@@ -177,6 +178,9 @@ export const DateCoverageView: React.FC<DateCoverageViewProps> = ({
               )}
             </div>
 
+            {activeDay.staffingCheck && <p className={`text-xs mt-1 font-semibold ${activeDay.staffingCheck.passed ? 'text-emerald-600' : 'text-rose-600'}`}>
+              全天人数：{activeDay.staffingCheck.actual} / {staffingRequirementText(activeDay.staffingCheck)} 人
+            </p>}
             <p className="text-xs text-slate-400 mt-1 font-medium">
               {activeDay.dayCn === '周六' || activeDay.dayCn === '周日'
                 ? `${activeDay.dayCn} · 周末大客流高峰期，请确保收银与吧台制作人员满编`
@@ -242,12 +246,12 @@ export const DateCoverageView: React.FC<DateCoverageViewProps> = ({
                       morningGap > 0 ? 'bg-amber-500' : 'bg-blue-500'
                     }`}
                     style={{
-                      width: `${Math.min(100, Math.round((morningAssigned / morningRequired) * 100))}%`,
+                      width: `${Math.min(100, Math.round((morningAssigned / Math.max(1, morningShift?.requiredCount ?? 4)) * 100))}%`,
                     }}
                   />
                 </div>
                 <span className="text-[11px] font-extrabold text-slate-500">
-                  {Math.round((morningAssigned / morningRequired) * 100)}%
+                  {Math.round((morningAssigned / Math.max(1, morningShift?.requiredCount ?? 4)) * 100)}%
                 </span>
               </div>
 
@@ -412,12 +416,12 @@ export const DateCoverageView: React.FC<DateCoverageViewProps> = ({
                       eveningGap > 0 ? 'bg-amber-500' : 'bg-purple-500'
                     }`}
                     style={{
-                      width: `${Math.min(100, Math.round((eveningAssigned / eveningRequired) * 100))}%`,
+                      width: `${Math.min(100, Math.round((eveningAssigned / Math.max(1, eveningShift?.requiredCount ?? 4)) * 100))}%`,
                     }}
                   />
                 </div>
                 <span className="text-[11px] font-extrabold text-slate-500">
-                  {Math.round((eveningAssigned / eveningRequired) * 100)}%
+                  {Math.round((eveningAssigned / Math.max(1, eveningShift?.requiredCount ?? 4)) * 100)}%
                 </span>
               </div>
 

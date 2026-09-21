@@ -8,7 +8,7 @@ from datetime import date
 from ortools.sat.python import cp_model
 
 from ..core import SchedulingFacts
-from ..models import SHIFTS, WEEK_DAYS, Day, SchedulingContext, Shift, Skill, StaffingScope
+from ..models import SHIFTS, WEEK_DAYS, Day, SchedulingContext, Shift, Skill
 
 VariableKey = tuple[str, Day, Shift]
 CoverageKey = tuple[str, Day, Shift]
@@ -28,6 +28,7 @@ class BuiltSchedulingModel:
     change_terms: list[cp_model.IntVar]
     workload_gap: cp_model.IntVar | None
     staffing_target_penalties: list[cp_model.IntVar]
+    excess_staffing: list[cp_model.IntVar]
 
 
 class ConstraintBuilder:
@@ -94,6 +95,7 @@ class ConstraintBuilder:
         # R01-R04. Diagnosis and exact authorized slots may receive shortage slack.
         staffing_slacks: dict[CoverageKey, cp_model.IntVar] = {}
         staffing_target_penalties: list[cp_model.IntVar] = []
+        excess_staffing: list[cp_model.IntVar] = []
         # These terms describe actual use of an authorized exception.  They
         # are kept separate from the normal objective so Force solving can be
         # lexicographic instead of relying on a large arbitrary weight.
@@ -105,6 +107,13 @@ class ConstraintBuilder:
             ("R03", Skill.CASHIER, rules.cashier_per_shift),
         )
         for day in WEEK_DAYS:
+            for index, constraint in enumerate(rules.staffing_for(day)):
+                self._add_headcount(
+                    model, (f"DAY{index}", day, None),
+                    [workday_vars[(employee_id, day)] for employee_id in employee_ids],
+                    constraint.min_count, constraint.target_count, constraint.max_count,
+                    staffing_target_penalties,
+                )
             for shift in SHIFTS:
                 for rule_id, skill, required in coverage_specs:
                     qualified = [
@@ -141,7 +150,7 @@ class ConstraintBuilder:
                     staffing_slacks,
                     ("R04", day, shift),
                     all_staff,
-                    rules.minimum_staff(day),
+                    rules.minimum_staff(day, shift),
                     diagnostic,
                     allowed_shortage=next(
                         (
@@ -162,10 +171,19 @@ class ConstraintBuilder:
                 for index, constraint in enumerate(rules.staffing_for(day, shift)):
                     key = (f"HC{index}", day, shift)
                     self._add_headcount(
-                        model, staffing_slacks, key, all_staff,
+                        model, key, all_staff,
                         constraint.min_count, constraint.target_count,
-                        constraint.max_count, diagnostic, staffing_target_penalties,
+                        constraint.max_count, staffing_target_penalties,
                     )
+
+                requested = rules.staffing_for(day, shift)
+                desired = max([rules.minimum_staff(day, shift)] + [
+                    c.target_count if c.target_count is not None else c.min_count
+                    for c in requested if c.target_count is not None or c.min_count is not None
+                ])
+                excess = model.NewIntVar(0, len(employee_ids), f"excess_{day.value}_{shift.value}")
+                model.AddMaxEquality(excess, [sum(all_staff) - desired, 0])
+                excess_staffing.append(excess)
 
         # R08 is normally hard above.  An authorized slot is permitted, but
         # each actual assignment remains an exception and is minimized first.
@@ -264,7 +282,8 @@ class ConstraintBuilder:
             if change_terms:
                 objective -= weights.schedule_change_penalty * sum(change_terms)
             if staffing_target_penalties:
-                objective -= sum(staffing_target_penalties)
+                objective -= (weights.preference_reward + weights.workload_gap_penalty + 1) * sum(staffing_target_penalties)
+            objective -= (weights.preference_reward + weights.workload_gap_penalty + 1) * sum(excess_staffing)
             model.Maximize(objective)
 
         return BuiltSchedulingModel(
@@ -280,6 +299,7 @@ class ConstraintBuilder:
             change_terms=change_terms,
             workload_gap=workload_gap,
             staffing_target_penalties=staffing_target_penalties,
+            excess_staffing=excess_staffing,
         )
 
     @staticmethod
@@ -315,22 +335,15 @@ class ConstraintBuilder:
             model.Add(sum(variables) >= required)
 
     @staticmethod
-    def _add_headcount(model, slacks, key, variables, minimum, target, maximum, diagnostic, target_penalties):
+    def _add_headcount(model, key, variables, minimum, target, maximum, target_penalties):
         actual = sum(variables)
+        # Explicit bounds remain hard, including diagnostic and Force solving.
+        # Only baseline R01-R04 shortages have an authorized relaxation scope.
         if minimum is not None:
-            if diagnostic:
-                shortage = model.NewIntVar(0, minimum, f"shortage_{key[0]}_{key[1].value}_{key[2].value}")
-                model.Add(actual + shortage >= minimum)
-                slacks[key] = shortage
-            else:
-                model.Add(actual >= minimum)
+            model.Add(actual >= minimum)
         if maximum is not None:
             model.Add(actual <= maximum)
-        # A target without equal hard bounds is a soft preference. Penalize
-        # absolute distance so the normal business objective still decides
-        # among equally close schedules without turning the target into a
-        # hidden minimum/maximum.
         if target is not None and not (minimum == target == maximum):
-            distance = model.NewIntVar(0, len(variables), f"target_distance_{key[0]}_{key[1].value}_{key[2].value}")
+            distance = model.NewIntVar(0, max(len(variables), target), f"target_distance_{key}")
             model.AddAbsEquality(distance, actual - target)
             target_penalties.append(distance)

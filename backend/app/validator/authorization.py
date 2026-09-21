@@ -102,7 +102,8 @@ def classify_validation(validation: dict, week: date,
                       item.constraint_id == cid and item.target_week == week and
                       item.rule_id == rule and _value(item.day) == raw.get("day") and
                       _value(item.shift) == raw.get("shift") and item.employee_id == raw.get("employee_id") and
-                      (rule == "R08" or (shortage is not None and shortage <= (item.allowed_shortage or 0)))), None)
+                      (rule == "R08" or (shortage is not None and shortage > 0 and shortage <= (item.allowed_shortage or 0)
+                       and (maximum is None or actual <= maximum)))), None)
         group = ("integrity_violations" if rule == "R09" else
                  "protected_violations" if rule in PROTECTED_RULES else
                  "authorized_violations" if match else "unauthorized_violations")
@@ -114,7 +115,7 @@ def classify_validation(validation: dict, week: date,
                 "rule_name": RULE_NAMES.get(rule, rule), "category": category,
                 "constraint_id": cid, "expected": "not_scheduled" if rule == "R08" else expected,
                 "actual": "scheduled" if rule == "R08" else actual, "shortage": shortage,
-                "min_count": minimum, "target_count": target, "max_count": maximum,
+                "min_count": minimum, "target_count": target, "max_count": maximum, "scope": details.get("scope"),
                 "excess": max(0, actual - maximum) if maximum is not None and actual is not None else None,
                 "authorized": group == "authorized_violations",
                 "authorization_id": match.override_id if match else None,

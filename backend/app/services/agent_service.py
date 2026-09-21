@@ -11,7 +11,7 @@ from pydantic import ValidationError
 from ..config import positive_seconds
 from ..core import HistoryUnavailableError
 from ..execution import ExecutionTimeout, ExecutionTrace, current_execution, execution_stage, traced
-from ..models import ChangeType, ForceRequest, ScenarioPatch, Schedule, ScheduleChange
+from ..models import ChangeType, ForceRequest, ScenarioPatch, Schedule, ScheduleChange, StaffingConstraint
 from ..models.scenario_changes import (
     build_scenario_preview_inputs,
     canonical_conditions,
@@ -881,7 +881,7 @@ class AgentService:
                 [item.model_dump(mode="json") for item in value]
                 if isinstance(value, list)
                 and value
-                and isinstance(value[0], ScheduleChange)
+                and isinstance(value[0], (ScheduleChange, StaffingConstraint))
                 else value.model_dump(mode="json")
                 if isinstance(value, ForceRequest)
                 else value.isoformat()

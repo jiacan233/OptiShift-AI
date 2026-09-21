@@ -42,7 +42,7 @@ export interface Violation {
 export interface CoverageCheck {
   rule_id: string
   day: Day
-  shift: ShiftType
+  shift: ShiftType | null
   expected: number
   /** Canonical staffing constraint bounds. `expected` is retained for legacy API payloads. */
   min_count?: number | null

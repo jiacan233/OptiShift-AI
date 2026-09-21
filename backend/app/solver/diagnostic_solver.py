@@ -68,7 +68,7 @@ def capacity_precheck(context: SchedulingContext) -> list[CapacityConflict]:
                             message=f"Only {actual} available {label} qualified staff for a requirement of {required}.",
                         )
                     )
-            required_staff = rules.minimum_staff(day)
+            required_staff = rules.minimum_staff(day, shift)
             if len(available) < required_staff:
                 conflicts.append(
                     CapacityConflict(
@@ -160,6 +160,9 @@ class DiagnosticSolver:
                 objective -= weights.workload_gap_penalty * built.workload_gap
             if built.change_terms:
                 objective -= weights.schedule_change_penalty * sum(built.change_terms)
+            objective -= (weights.preference_reward + weights.workload_gap_penalty + 1) * (
+                sum(built.staffing_target_penalties) + sum(built.excess_staffing)
+            )
             built.model.Maximize(objective)
             phase_b_solver = cp_model.CpSolver()
             remaining = trace.remaining("solver") if trace else context.rules.max_time_seconds
@@ -187,7 +190,7 @@ class DiagnosticSolver:
                 shortage = solver.Value(slack)
                 if shortage <= 0:
                     continue
-                required = _required_count(context, rule_id, day)
+                required = _required_count(context, rule_id, day, shift)
                 actual = _actual_coverage(context, assignments, rule_id, day, shift)
                 diagnostic_conflicts.append(
                     DiagnosticConflict(
@@ -331,12 +334,12 @@ def candidate_blocking_analysis(
     return results
 
 
-def _required_count(context: SchedulingContext, rule_id: str, day: Day) -> int:
+def _required_count(context: SchedulingContext, rule_id: str, day: Day, shift: Shift) -> int:
     return {
         "R01": context.rules.manager_per_shift,
         "R02": context.rules.beverage_per_shift,
         "R03": context.rules.cashier_per_shift,
-        "R04": context.rules.minimum_staff(day),
+        "R04": context.rules.minimum_staff(day, shift),
     }[rule_id]
 
 

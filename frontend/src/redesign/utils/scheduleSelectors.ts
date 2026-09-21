@@ -1,5 +1,6 @@
 import type { Employee, EmployeeRow, ShiftCoverage, DayCoverage, RuleViolationIssue } from '../types/schedule'
 import type { Assignment, ValidationResult } from '@/types'
+import { staffingRequirementText } from '@/lib/presentation'
 
 export interface WeekMetrics {
   totalShifts: number
@@ -60,7 +61,13 @@ export function calculateDayCoverage(
       })
 
       const assignedCount = assigned.length
-      const gapCount = Math.max(0, requiredPerShift - assignedCount)
+      const staffing = validation?.coverage?.find((c) => c.rule_id === 'R04' && c.day === header.day && c.shift === shiftType)
+      const minimum = staffing?.min_count ?? requiredPerShift
+      const maximum = staffing?.max_count
+      const requiredCount = staffing?.expected ?? requiredPerShift
+      const requirementText = staffingRequirementText(staffing ?? { min_count: requiredPerShift })
+      const gapCount = Math.max(0, minimum - assignedCount)
+      const excessCount = maximum == null ? 0 : Math.max(0, assignedCount - maximum)
 
       // Count skills based strictly on Employee Master Data (R-09 技能保真)
       const managerCount = assigned.filter((emp) => emp.skills.includes('店长值守')).length
@@ -107,14 +114,15 @@ export function calculateDayCoverage(
       }
 
       // R-04: 门店人员底线 (平日 ≥ 4人，周末 ≥ 6人)
-      if (assignedCount < requiredPerShift) {
+      if (gapCount > 0 || excessCount > 0 || staffing?.passed === false) {
         ruleIssues.push({
           ruleId: 'R-04',
-          ruleName: isWeekend ? '周末客流高峰底线' : '工作日在岗底线',
+          ruleName: '班次人数要求',
           severity: 'warning',
-          message: `${isWeekend ? '周末' : '工作日'}在岗底线缺 ${gapCount} 人 (${assignedCount} / ${requiredPerShift} 人)`,
+          message: `人数${excessCount > 0 ? `超出 ${excessCount}` : `缺少 ${gapCount}`} 人 (${assignedCount} / ${requirementText} 人)`,
           current: assignedCount,
-          required: requiredPerShift,
+          required: requiredCount,
+          excess: excessCount,
         })
       }
 
@@ -143,7 +151,8 @@ export function calculateDayCoverage(
         shiftName,
         timeRange,
         assignedCount,
-        requiredCount: requiredPerShift,
+        requiredCount,
+        requirementText,
         gapCount,
         employees: assigned,
         ruleIssues,
@@ -196,6 +205,7 @@ export function calculateDayCoverage(
       fullDate,
       isWeekend,
       totalEmployees: totalEmployeesOnDay,
+      staffingCheck: validation?.coverage?.find((c) => c.day === header.day && c.scope === 'DAY'),
       totalHours: totalHoursOnDay,
       status,
       statusText,

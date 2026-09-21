@@ -24,7 +24,7 @@ export function ShiftDrawer({
     const employee = employees.find((item) => item.id === id)
     return employee ? [employee] : []
   })
-  const coverage = validation?.coverage?.filter((item) => item.day === selection.day && item.shift === selection.shift) ?? []
+  const coverage = validation?.coverage?.filter((item) => item.day === selection.day && (item.shift === selection.shift || !item.shift)) ?? []
   const violations = validation?.violations?.filter((item) => item.day === selection.day && item.shift === selection.shift) ?? []
 
   return (
@@ -74,7 +74,7 @@ export function ShiftDrawer({
         <section className="mt-8">
           <h3 className="mb-3 text-sm font-extrabold text-ink">覆盖检查</h3>
           <div className="overflow-hidden rounded-xl border border-slate-200">
-            {coverage.map((item) => <DrawerRule key={item.rule_id} check={item} />)}
+            {coverage.map((item) => <DrawerRule key={`${item.rule_id}-${item.scope ?? 'SHIFT'}`} check={item} />)}
           </div>
           <p className="my-3 text-[11px] leading-5 text-slate-400">覆盖检查和授权状态来自后端独立规则校验。</p>
           <ViolationDetails violations={violations} />
@@ -86,7 +86,7 @@ export function ShiftDrawer({
 
 function DrawerRule({ check }: { check: CoverageCheck }) {
   const { rule_id: id, actual: current, passed } = check
-  const label = ({ R01: '店长覆盖', R02: '饮品制作覆盖', R03: '收银覆盖', R04: '最低在岗人数' } as Record<string, string>)[id]
+  const label = check.scope === 'DAY' ? '全天人数' : ({ R01: '店长覆盖', R02: '饮品制作覆盖', R03: '收银覆盖', R04: '班次人数' } as Record<string, string>)[id]
   return (
     <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
       {passed ? <CheckCircle2 className="h-5 w-5 text-emerald-500" /> : <X className="h-5 w-5 text-red-500" />}

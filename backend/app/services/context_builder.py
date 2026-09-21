@@ -5,6 +5,10 @@ from typing import Any
 
 from ..models import (
     Employee,
+    Day,
+    Shift,
+    StaffingConstraint,
+    StaffingScope,
     HistoricalAssignment,
     RuleConfig,
     Schedule,
@@ -84,7 +88,15 @@ class ContextBuilder:
         ] if following is not None else []
         effective_rules = RuleConfig.model_validate(rule_config) if rule_config else self.rules
         if staffing_constraints is not None:
-            effective_rules = effective_rules.model_copy(update={"staffing_constraints": staffing_constraints})
+            incoming = [StaffingConstraint.model_validate(c) for c in staffing_constraints]
+            retained = []
+            for old in effective_rules.staffing_constraints:
+                for day in old.days or list(Day):
+                    shifts = old.shifts or list(Shift) if old.scope is StaffingScope.SHIFT else [None]
+                    for shift in shifts:
+                        if not any(c.scope == old.scope and c.applies(day, shift) for c in incoming):
+                            retained.append(old.model_copy(update={"days": [day], "shifts": [shift] if shift else []}))
+            effective_rules = RuleConfig.model_validate({**effective_rules.model_dump(), "staffing_constraints": retained + incoming})
         return SchedulingContext(
             base_schedule=base_schedule,
             previous_days=history,
