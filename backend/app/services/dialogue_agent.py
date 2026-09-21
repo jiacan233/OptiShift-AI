@@ -13,6 +13,7 @@ from ..repository.dialogue import DialogueRepository, patches_for
 from ..repository.scenarios import ScenarioRevisionConflict
 from .agent_router import AgentRouter
 from .dialogue_reducer import detect_conflicts, reduce_command, unique_changes
+from .llm_client import AIUnavailableError
 
 
 def digest(value):
@@ -42,20 +43,30 @@ def describe(state):
 
 
 def dependencies(service, week, current, state):
-    base = current.get("confirmed")
+    base = current.get("confirmed") or current.get("display")
     context = service.tools.scheduling.context_builder.build(week,
         base_schedule=Schedule.model_validate(base["schedule"]) if base else None,
         changes=unique_changes(state.current()), allow_history_bootstrap=False,
+        staffing_constraints=state.proposed_staffing if state.proposed_staffing is not None else state.staffing_constraints,
         allow_ephemeral_known_empty=True)
-    return {"base_schedule_id": (base or {}).get("schedule_id"),
+    return {"target_week": week.isoformat(), "base_schedule_id": (base or {}).get("schedule_id"),
         "base_version": (base or {}).get("version"),
+        "display_schedule_id": (current.get("display") or {}).get("schedule_id"),
+        "display_version": (current.get("display") or {}).get("version"),
         "employee_revision": service.employees.list_with_revision()[1],
         "employees_hash": digest([e.model_dump(mode="json") for e in context.employees]),
         "rules_hash": digest(context.rules.model_dump(mode="json")),
+        "configured_rules_hash": digest(service.tools.scheduling.context_builder.rules.model_dump(mode="json")),
+        "scenario_revision": state.scenario_revision,
+        "scenario_hash": digest([state.conditions, state.proposals, state.pending]),
         "conditions_hash": digest([c.model_dump(mode="json") for c in state.current()]),
         "staffing_hash": digest([state.staffing_constraints, state.proposed_staffing]),
         "history_id": context.history_schedule_id, "history_version": context.history_schedule_version,
-        "history_hash": digest([h.model_dump(mode="json") for h in context.previous_days])}
+        "history_status": context.history_status.value,
+        "history_hash": digest([h.model_dump(mode="json") for h in context.previous_days]),
+        "following_id": context.following_schedule_id, "following_version": context.following_schedule_version,
+        "following_hash": digest([h.model_dump(mode="json") for h in context.following_days]),
+        "following_max_consecutive_days": context.following_max_consecutive_days}
 
 
 def suggestions(service, week, current, state, source_message_id, deps):
@@ -64,7 +75,7 @@ def suggestions(service, week, current, state, source_message_id, deps):
     set_id = "set_" + uuid4().hex
     result = {"suggestion_set_id": set_id, "source_message_id": source_message_id,
               "target_week": week.isoformat(), "dependencies": deps, "suggestions": []}
-    if not base:
+    if not base or state.pending or state.conflicts:
         return result
     schedule = Schedule.model_validate(base["schedule"])
     employees = service.employees.list()
@@ -92,7 +103,7 @@ def suggestions(service, week, current, state, source_message_id, deps):
             preview = service.tools.scheduling.preview_scenario(week_start=week,
                 patches=patches_for(state.current() + [proposal]), base_schedule=schedule,
                 staffing_constraints=state.proposed_staffing if state.proposed_staffing is not None else state.staffing_constraints)
-            if not preview.get("strict_feasible"):
+            if not preview.get("strict_feasible") or not (preview.get("validation") or {}).get("valid"):
                 continue
             after_counts = counts.copy()
             after_counts[assignment.employee_id] -= 1
@@ -111,7 +122,8 @@ def suggestions(service, week, current, state, source_message_id, deps):
                     + f"。同一基准下班次数平方和 {before} → {after}，减少 {before-after}；替换方案已通过独立校验和严格试排。",
                 "proposed_changes": [c.model_dump(mode="json") for c in changes],
                 "improvement": {"metric": "sum_squared_workload", "before": before, "after": after},
-                "validation": validation.model_dump(mode="json")})
+                "validation": validation.model_dump(mode="json"),
+                "strict_preview": {"strict_feasible": True, "validation": preview["validation"]}})
             tried.add(pair)
             if len(result["suggestions"]) == 2:
                 return result
@@ -141,6 +153,8 @@ class DialogueAgent:
             intent = "replan" if (result or {}).get("schedule", {}).get("parent_schedule_id") else "generate"
         elif command.execution in {"preview", "analyze"}:
             intent = "what_if"
+        elif command.execution == "advice":
+            intent = "advice"
         context = {"target_week": week.isoformat(), "iso_year": week.isocalendar().year,
                    "iso_week": week.isocalendar().week, "resolution_source": "structured_dialogue"}
         fields = {"intent": intent, "mutation_requested": bool(result and result.get("schedule_id")),
@@ -155,8 +169,10 @@ class DialogueAgent:
                current_week_start, prior_messages, employees, trusted_action=None, command=None):
         service = self.service
         if trusted_action and not trusted_action.suggestion_id:
-            return None
-        if trusted_action:
+            if trusted_action.intent != "advice" or trusted_action.changes or trusted_action.staffing_constraints:
+                return None
+            command = TurnCommand(execution="advice", target_week=trusted_action.target_week)
+        elif trusted_action:
             command = TurnCommand(reference="suggestion", suggestion_id=trusted_action.suggestion_id,
                 suggestion_set_id=trusted_action.suggestion_set_id, adopt=True,
                 target_week=trusted_action.target_week,
@@ -170,15 +186,12 @@ class DialogueAgent:
         state = self.repository.get(conversation_id, week)
         before = state.model_copy(deep=True)
         # Pure factual queries use the read tools through a projection of this SAME plan.
+        # Advice must stay here so its cards share the verified, persisted executor.
         if (command.read_query and not command.edits and not command.staffing_constraints
                 and command.reference != "suggestion" and not command.inspect and not command.clarification
-                and command.execution in {"analyze", "advice"}):
+                and (command.execution == "analyze" or (command.execution == "advice"
+                    and command.read_query.question_type != "general_question"))):
             return None
-        if command.reference == "suggestion" and not state.suggestion_sets:
-            if command.edits or command.staffing_constraints or command.staffing_operation != "merge" or command.force_generate:
-                command.clarification = "旧建议不能同时携带新条件或授权，请先单独采纳建议。"
-            if not command.clarification:
-                return None  # Legacy persisted cards retain their version-checked executor.
         if command.clarification:
             return self.finish(conversation_id=conversation_id, workspace=workspace, client_id=client_id,
                 owner=owner, user=user, week=week, state=state, command=command, trace=[],
@@ -217,16 +230,35 @@ class DialogueAgent:
             selected_set = next((s for s in sets if s["suggestion_set_id"] == command.suggestion_set_id), None) if command.suggestion_set_id else None
             if command.suggestion_id:
                 found = [(s, i) for s in sets for i in s["suggestions"] if i["suggestion_id"] == command.suggestion_id
-                         and (selected_set is None or s == selected_set)]
+                         and (not command.suggestion_set_id or s == selected_set)]
                 selected_set, suggestion = found[0] if len(found) == 1 else (None, None)
             else:
-                selected_set = selected_set or (sets[-1] if sets else None)
+                selected_set = selected_set or (sets[-1] if sets and not command.suggestion_set_id else None)
                 items = selected_set["suggestions"] if selected_set else []
                 index = (command.suggestion_ordinal or 0) - 1
                 suggestion = items[index] if 0 <= index < len(items) else None
             if not suggestion:
-                command.clarification = "找不到你引用的建议；请指定当前周已展示的建议。"
-            elif suggestion["dependencies"] != deps:
+                command.clarification = "找不到可验证来源的当前建议，请重新获取建议。"
+                extra["error"] = {"code": "suggestion_stale"}
+            elif (not suggestion.get("source_message_id")
+                    or not any(m["message_id"] == suggestion["source_message_id"] and m["role"] == "user"
+                        for m in prior_messages)
+                    or suggestion.get("source_message_id") != selected_set.get("source_message_id")
+                    or suggestion.get("suggestion_set_id") != selected_set.get("suggestion_set_id")
+                    or suggestion.get("executable") is not True
+                    or suggestion.get("dependency_type") not in {"schedule", "scenario"}
+                    or (suggestion.get("dependency_type") == "schedule" and (
+                        not suggestion.get("proposed_changes") or suggestion.get("feasibility") != "validated"
+                        or not (suggestion.get("validation") or {}).get("valid")
+                        or not (suggestion.get("strict_preview") or {}).get("strict_feasible")))):
+                command.clarification = "该建议缺少可验证的来源，请重新获取建议。"
+                extra["error"] = {"code": "suggestion_stale"}
+            elif (suggestion.get("dependencies") != deps
+                    or selected_set.get("dependencies") != deps
+                    or suggestion.get("target_week") != week.isoformat()
+                    or suggestion.get("based_on_scenario_revision") != state.scenario_revision
+                    or (suggestion.get("based_on_schedule_id"), suggestion.get("based_on_version"))
+                    != (deps["base_schedule_id"], deps["base_version"])):
                 command.clarification = "该建议的排班、员工、规则或历史基准已变化，请重新分析后采纳。"
                 extra["error"] = {"code": "suggestion_stale"}
             elif command.adopt:
@@ -249,9 +281,13 @@ class DialogueAgent:
         state, question = reduce_command(state, command, message_id=user["message_id"],
             employees=employees, employee_revision=deps["employee_revision"])
         if command.clarification:
-            return self.finish(conversation_id=conversation_id, workspace=workspace, client_id=client_id,
+            final = self.finish(conversation_id=conversation_id, workspace=workspace, client_id=client_id,
                 owner=owner, user=user, week=week, state=before, command=command, trace=trace,
-                response=command.clarification)
+                response=command.clarification, error=extra.get("error"))
+            if extra.get("error"):
+                from .agent_service import AgentTurnError
+                raise AgentTurnError(409, extra["error"]["code"], command.clarification, final)
+            return final
         detect_conflicts(state, employees)
         # Persist complete state and commit receipt before any slow computation.
         commit()
@@ -368,11 +404,36 @@ class DialogueAgent:
                 response = ("组合试排通过严格求解和独立校验；尚未创建草稿。" if result.get("strict_feasible") else
                             service._compose_infeasible_response(result, target_week=week)) + "\n" + describe(state)
         elif command.execution == "advice":
+            # Advice has two outputs: a grounded analysis answer and, only when
+            # available, concrete suggestions produced by the verified dialogue
+            # path below.  Do not route this through the legacy metadata-only
+            # suggestion builder in AgentService.
+            changes = unique_changes(state.current())
+            analysis = run("analyze_schedule", {
+                "target_week": week.isoformat(), "changes": [c.model_dump(mode="json") for c in changes],
+            }, lambda: service.tools.analyze_schedule(target_week=week, changes=changes))
+            extra["analysis"] = analysis
+            try:
+                response = service._compose_read_response(
+                    route=AgentRouter.from_command(command), content=text, target=target,
+                    current=current, tool_output=analysis, suggestion=None,
+                )
+            except AIUnavailableError:
+                metrics = analysis.get("metrics") or {}
+                response = (f"当前排班 v{analysis['version']} 的工作量差值为 {metrics.get('workload_gap', 0)}，"
+                    f"偏好满足率为 {metrics.get('preference_rate', 0):.0%}。本次仅作分析，未创建草稿。"
+                    if analysis.get("schedule_id") else "当前周还没有排班可供分析，未创建草稿。")
             collection = run("build_suggestions", {"target_week": week.isoformat(), "dependencies": deps},
                 lambda: suggestions(service, week, current, state, user["message_id"], deps))
+            if deps != dependencies(service, week, service.tools.get_current_schedule(target_week=week), state):
+                raise ScenarioRevisionConflict("建议验证期间依赖已变化，请重新获取建议。")
             state.suggestion_sets.append(collection)
             extra["suggestions"] = collection["suggestions"]
-            response = "\n\n".join(f"{i['ordinal']}. {i['title']}\n{i['description']}" for i in collection["suggestions"]) or "在当前硬约束与基准下，没有找到已验证可改善工作量的单班替换方案。"
+            if collection["suggestions"]:
+                response += "\n\n" + "\n\n".join(
+                    f"{i['ordinal']}. {i['title']}\n{i['description']}"
+                    for i in collection["suggestions"]
+                )
         if command.inspect:
             response += f"\n目标周：{week.isoformat()} 至 {(week+timedelta(days=6)).isoformat()}；" + (f"将 Replan 正式版本 v{current['confirmed']['version']}。" if current.get("confirmed") else "无正式版本，将 Generate。")
         # Result writeback is fenced and revision checked; receipt recovers a lost reply.
