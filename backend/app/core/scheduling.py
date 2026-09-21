@@ -32,6 +32,9 @@ class EffectiveEmployeePolicy:
     day_preferences: frozenset[tuple[Day, Shift]] = frozenset()
     available_slots: frozenset[tuple[Day, Shift]] = frozenset()
     unavailable_slots: frozenset[tuple[Day, Shift]] = frozenset()
+    forced_workdays: frozenset[Day] = frozenset()
+    workday_count: int | None = None
+    candidate_days: frozenset[Day] | None = None
 
     def can_work(self, day: Day, shift: Shift | None = None) -> bool:
         """Resolve an exact slot; a date-only query means any shift is available.
@@ -40,6 +43,8 @@ class EffectiveEmployeePolicy:
         Explicit slot restrictions still win if a contradictory batch reaches
         the solver. Availability never creates a required assignment.
         """
+        if self.candidate_days is not None and day not in self.candidate_days:
+            return False
         if shift is None:
             return any(self.can_work(day, candidate) for candidate in Shift)
         if (day, shift) in self.unavailable_slots:
@@ -90,6 +95,9 @@ class SchedulingFacts:
                 "unavailable_slots": set(),
                 "assign": set(),
                 "unassign": set(),
+                "forced_workdays": set(),
+                "workday_count": None,
+                "candidate_days": None,
             }
 
         for change in self.context.requested_changes:
@@ -107,8 +115,15 @@ class SchedulingFacts:
                     policy["available_slots"].add((change.day, change.shift))  # type: ignore[union-attr]
             elif change.type is ChangeType.PREFERENCE and change.shift is not None:
                 policy["day_preferences"].add((change.day, change.shift))  # type: ignore[union-attr]
-            elif change.type is ChangeType.ASSIGN and change.shift is not None:
-                policy["assign"].add((change.day, change.shift))  # type: ignore[union-attr]
+            elif change.type is ChangeType.ASSIGN:
+                if change.shift is not None:
+                    policy["assign"].add((change.day, change.shift))  # type: ignore[union-attr]
+                else:
+                    if change.candidate_days and change.work_day_count is not None:
+                        policy["workday_count"] = change.work_day_count
+                        policy["candidate_days"] = frozenset(change.candidate_days)
+                    elif change.day is not None:
+                        policy["forced_workdays"].add(change.day)  # type: ignore[union-attr]
             elif change.type is ChangeType.UNASSIGN and change.shift is not None:
                 policy["unassign"].add((change.day, change.shift))  # type: ignore[union-attr]
 
@@ -122,6 +137,9 @@ class SchedulingFacts:
                 day_preferences=frozenset(policy["day_preferences"]),  # type: ignore[arg-type]
                 available_slots=frozenset(policy["available_slots"]),  # type: ignore[arg-type]
                 unavailable_slots=frozenset(policy["unavailable_slots"]),  # type: ignore[arg-type]
+                forced_workdays=frozenset(policy["forced_workdays"]),  # type: ignore[arg-type]
+                workday_count=policy["workday_count"],  # type: ignore[arg-type]
+                candidate_days=policy["candidate_days"],  # type: ignore[arg-type]
             )
             for employee_id, policy in mutable.items()
         }

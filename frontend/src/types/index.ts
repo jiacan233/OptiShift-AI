@@ -274,8 +274,10 @@ export interface ScheduleChange {
   employee_id: string
   type: 'leave' | 'unavailable' | 'available' | 'preference' | 'assign' | 'unassign'
   day: Day
-  shift?: ShiftType
+  shift?: ShiftType | null
   value?: string | boolean | null
+  work_day_count?: number | null
+  candidate_days?: Day[]
 }
 
 export interface ApiProblem {
@@ -346,9 +348,16 @@ export interface DialoguePending {
   prompt?: string | null
   id: string
   employee_id: string | null
+  employee_mode?: 'UNKNOWN' | 'FIXED'
   type: ScheduleChange['type'] | null
+  type_mode?: 'UNKNOWN' | 'FIXED'
   days: Day[]
+  candidate_days?: Day[]
+  day_selection_mode?: 'UNKNOWN' | 'FIXED' | 'FLEXIBLE'
+  work_day_count?: number | null
+  work_day_count_mode?: 'UNKNOWN' | 'FIXED' | 'FLEXIBLE'
   shift: ShiftType | null
+  shift_mode?: 'UNKNOWN' | 'FIXED' | 'FLEXIBLE' | 'PREFERENCE'
   source_message_id: string
   proposal?: boolean
 }

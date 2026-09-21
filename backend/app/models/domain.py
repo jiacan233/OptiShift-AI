@@ -165,10 +165,12 @@ class ScheduleChange(StrictModel):
     type: ChangeType
     day: Day
     shift: Shift | None = None
+    work_day_count: int | None = None
+    candidate_days: list[Day] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def require_shift_when_needed(self) -> "ScheduleChange":
-        if self.type in {ChangeType.PREFERENCE, ChangeType.ASSIGN, ChangeType.UNASSIGN}:
+        if self.type in {ChangeType.PREFERENCE, ChangeType.UNASSIGN}:
             if self.shift is None:
                 raise ValueError(f"shift is required for change type {self.type.value}")
         return self
@@ -388,11 +390,16 @@ class ScenarioPatch(StrictModel):
     days: list[Day] = Field(default_factory=list)
     change_type: ChangeType = ChangeType.LEAVE
     shift: Shift | None = None
+    work_day_count: int | None = None
+    candidate_days: list[Day] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def require_shift_when_needed(self) -> "ScenarioPatch":
-        if self.change_type in {ChangeType.PREFERENCE, ChangeType.ASSIGN, ChangeType.UNASSIGN} and self.shift is None:
+        if self.change_type in {ChangeType.PREFERENCE, ChangeType.UNASSIGN} and self.shift is None:
             raise ValueError("该条件需要明确早班或晚班")
+        if self.change_type is ChangeType.ASSIGN and self.shift is None:
+            if not self.candidate_days and self.work_day_count is None:
+                raise ValueError("该条件需要明确早班或晚班")
         return self
 
     @field_validator("days")
