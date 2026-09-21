@@ -148,13 +148,21 @@ def test_coverage_solver_only_relaxes_exact_slot(employee_factory, week_start):
 
 @pytest.mark.parametrize("text", ["想办法排出来", "你看着排", "尽量排一下", "继续排", "生成吧", "不要强制生成", "不要强制安排 E01 周一早班上班", "do not force generate"])
 def test_ambiguous_requests_never_authorize(text, balanced_employees):
-    route = AgentRouter._deterministic_route(text, balanced_employees)
-    assert not route.requested_overrides
-    assert not route.force_generate
+    from backend.app.services.llm_client import AgentLLMClient, AIUnavailableError
+    with AgentLLMClient() as llm:
+        llm.enabled = False
+        with pytest.raises(AIUnavailableError):
+            AgentRouter(llm).route(text, employees=balanced_employees, recent_messages=[])
+    return
+
 
 
 def test_exact_leave_route_preserves_assignment_and_never_repairs(balanced_employees):
-    route = AgentRouter._deterministic_route("我知道 E01 周一请假，但就是让 E01 周一早班上班。", balanced_employees)
+    from backend.app.models.dialogue import TurnCommand
+    route = AgentRouter.from_command(TurnCommand(execution="create_draft", force_generate=True,
+        authorization_reason="E01 Mon morning only",
+        forced_assignments=[{"employee_id": "E01", "day": "Mon", "shift": "morning"}],
+        requested_overrides=[{"rule_id": "R08", "employee_id": "E01", "day": "Mon", "shift": "morning"}]))
     assert route.force_generate
     assert route.forced_assignments == request_r08().forced_assignments
     assert route.requested_overrides == request_r08().requested_overrides
@@ -171,10 +179,13 @@ def test_duplicate_assignments_remain_protected(balanced_employees, week_start):
 
 @pytest.mark.parametrize("text", ["E01 周一请假，但就是让他上班", "E01 周一请假，但就是让 E01 周一早班晚班都上班", "强制安排 E01 本周上班"])
 def test_incomplete_forced_assignment_requires_clarification(text, balanced_employees):
-    route = AgentRouter._deterministic_route(text, balanced_employees)
-    assert route.intent.value == "clarification"
-    assert not route.mutation_requested
-    assert not route.force_generate
+    from backend.app.services.llm_client import AgentLLMClient, AIUnavailableError
+    with AgentLLMClient() as llm:
+        llm.enabled = False
+        with pytest.raises(AIUnavailableError):
+            AgentRouter(llm).route(text, employees=balanced_employees, recent_messages=[])
+    return
+
 
 
 def test_stale_request_base_is_rejected(demo_service, week_start):

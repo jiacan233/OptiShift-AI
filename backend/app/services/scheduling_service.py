@@ -242,6 +242,7 @@ class SchedulingService:
                     minimize_changes=True,
                     employees=employee_list,
                     allow_history_bootstrap=True,
+                    staffing_constraints=staffing_constraints,
                 )
                 candidate_result = self.solver.solve(candidate_context, week_start=week_start, version=1)
                 if candidate_result.status not in {SolverStatus.OPTIMAL, SolverStatus.FEASIBLE, SolverStatus.INFEASIBLE}:
@@ -422,12 +423,12 @@ class SchedulingService:
         minimize_changes = False
         if prompt:
             parsed = self.intent_parser.parse(
-                prompt, employee_list, default_intent=RequestIntent.GENERATE
+                prompt, employee_list, default_intent=RequestIntent.GENERATE, current_week_start=week_start
             )
             if parsed.resolution and parsed.resolution.get("status") != "resolved":
                 return self._clarification_response(prompt, parsed.resolution)
-            if not effective_changes:
-                effective_changes = parsed.changes
+            effective_changes.extend(c for c in parsed.changes if c not in effective_changes)
+            staffing_constraints = list(staffing_constraints or []) + parsed.staffing_constraints
             minimize_changes = parsed.minimize_changes
         validate_changes(effective_changes, employee_list)
         base_record = self.schedules.current_confirmed_record_for_week(week_start)
@@ -481,6 +482,7 @@ class SchedulingService:
         week_start: date,
         force_request: ForceRequest,
         changes: list[ScheduleChange] | None = None,
+        staffing_constraints: list[Any] | None = None,
         minimize_changes: bool = False,
         source_conversation_id: str = "api",
         source_message_id: str | None = None,
@@ -544,6 +546,7 @@ class SchedulingService:
             employees=employee_list,
             allow_history_bootstrap=True,
             user_forced_assignments=force_request.forced_assignments,
+            staffing_constraints=staffing_constraints,
         )
         strict_result = self.solver.solve(
             strict_context,
@@ -627,6 +630,7 @@ class SchedulingService:
             employees=employee_list,
             allow_history_bootstrap=True,
             user_forced_assignments=force_request.forced_assignments,
+            staffing_constraints=staffing_constraints,
             override_scopes=[item.model_dump(mode="json") for item in authorizations],
         )
         logger.info("override_created", extra={"override_count": len(authorizations), "target_week": week_start.isoformat()})
@@ -768,13 +772,14 @@ class SchedulingService:
         base_schedule: Schedule = base_record["schedule"]
         employee_list, employee_revision = self.employees.list_with_revision()
         effective_changes = list(changes)
-        if prompt and not effective_changes:
+        if prompt:
             parsed = self.intent_parser.parse(
-                prompt, employee_list, default_intent=RequestIntent.REPLAN
+                prompt, employee_list, default_intent=RequestIntent.REPLAN, current_week_start=base_schedule.week_start
             )
             if parsed.resolution and parsed.resolution.get("status") != "resolved":
                 return self._clarification_response(prompt, parsed.resolution)
-            effective_changes = parsed.changes
+            effective_changes.extend(c for c in parsed.changes if c not in effective_changes)
+            staffing_constraints = list(staffing_constraints or []) + parsed.staffing_constraints
             minimize_changes = minimize_changes or parsed.minimize_changes
         validate_changes(effective_changes, employee_list)
         context = self.context_builder.build(

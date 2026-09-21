@@ -28,9 +28,9 @@ LABELS = {
     "response_compose": "组织回复",
     "turn_started": "已收到请求",
     "agent_route": "理解排班请求",
-    "agent_route_lite": "Agent Router",
-    "agent_mutation": "解析排班变更",
-    "agent_force": "解析例外授权",
+    "agent_semantic": "理解本轮请求",
+    "agent_semantic_repair": "补全结构化条件",
+    "agent_semantic_verifier": "核验条件和授权",
     "router_fallback": "使用备用 JSON 解析",
     "resolve_context": "定位目标周和排班上下文",
     "load_schedule": "读取当前排班",
@@ -216,6 +216,14 @@ def traced(stage: str):
                         employees=result.employees,
                         changes=canonical_conditions(result),
                     )
+                    if result.turn_plan is not None:
+                        details["changes"] = [
+                            {"employee_id": edit.employee_ids[0], "day": edit.days[0].value,
+                             "type": edit.type.value, "shift": edit.shift.value if edit.shift else None,
+                             "operation": edit.operation}
+                            for edit in result.turn_plan.edits
+                            if len(edit.employee_ids) == len(edit.days) == 1 and edit.type
+                        ]
                     if result.target_week:
                         details["target_week"] = result.target_week.isoformat()
                 elif stage == "resolve_context":

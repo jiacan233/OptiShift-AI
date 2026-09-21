@@ -890,10 +890,11 @@ class AgentLLMClient:
             )
         # These are the existing router DTOs, imported lazily to avoid the router's
         # module-level dependency on this client. Never alter or repair their data.
-        if schema.get("title") in {"AgentRoute", "RouterDecision", "MutationPlan", "ForcePlan"}:
+        if schema.get("title") in {"AgentRoute", "TurnCommand"}:
             from . import agent_router
 
-            model = getattr(agent_router, schema["title"])
+            from ..models.dialogue import TurnCommand
+            model = TurnCommand if schema["title"] == "TurnCommand" else agent_router.AgentRoute
             try:
                 model.model_validate(parsed)
             except ValidationError as exc:

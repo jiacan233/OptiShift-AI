@@ -224,22 +224,27 @@ def resolve_entity(body: ResolveBody) -> dict[str, Any]:
     except LookupError as exc:
         raise EmployeeNotFoundError(body.employee_id) from exc
     prompt = pending["body"].get("prompt", "")
-    day = scheduling_service.intent_parser.extract_day(prompt)
-    if day is None:
-        raise ValueError("The pending request does not contain a resolvable day")
-    change = ScheduleChange(employee_id=employee.id, type="leave", day=day)
+    target_week = (date.fromisoformat(pending["body"]["week_start"]) if pending["operation"] == "generate"
+                   else schedule_repository.get(pending["body"]["base_schedule_id"]).week_start)
+    parsed = scheduling_service.intent_parser.parse(
+        prompt + "\nStructured employee selection: " + employee.id, employee_repository.list(),
+        current_week_start=target_week)
+    if parsed.resolution:
+        raise ValueError("请通过 Agent 对话重新补充完整条件。")
     if pending["operation"] == "generate":
         return scheduling_service.generate(
             week_start=date.fromisoformat(pending["body"]["week_start"]),
             prompt="",
-            changes=[change],
+            changes=parsed.changes,
+            staffing_constraints=parsed.staffing_constraints,
             weekend_min_staff=pending["body"].get("weekend_min_staff"),
             max_consecutive_days=pending["body"].get("max_consecutive_days"),
         )
     return scheduling_service.replan(
         base_schedule_id=pending["body"]["base_schedule_id"],
         base_version=pending["body"]["base_version"],
-        changes=[change],
+        changes=parsed.changes,
+        staffing_constraints=parsed.staffing_constraints,
         minimize_changes=bool(pending["body"].get("minimize_changes", True)),
     )
 
@@ -291,6 +296,7 @@ def explain_counterfactual(body: CounterfactualBody) -> dict[str, Any]:
         minimize_changes=bool(base),
         allow_history_bootstrap=False,
         rule_config=record.get("metadata", {}).get("rule_config"),
+        staffing_constraints=record.get("metadata", {}).get("staffing_constraints", []),
     )
     validation = scheduling_service.validate(candidate, context=context)
     failures = [

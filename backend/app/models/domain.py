@@ -207,9 +207,9 @@ class StaffingConstraint(StrictModel):
     scope: StaffingScope
     days: list[Day] = Field(default_factory=list)
     shifts: list[Shift] = Field(default_factory=list)
-    min_count: int | None = Field(default=None, ge=0)
-    target_count: int | None = Field(default=None, ge=0)
-    max_count: int | None = Field(default=None, ge=0)
+    min_count: int | None = Field(default=None, ge=0, strict=True)
+    target_count: int | None = Field(default=None, ge=0, strict=True)
+    max_count: int | None = Field(default=None, ge=0, strict=True)
 
     @model_validator(mode="after")
     def validate_bounds(self) -> "StaffingConstraint":

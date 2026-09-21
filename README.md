@@ -14,15 +14,15 @@ OptiShift 是一个“单门店共享排班工作区 + 服务端持久化 AI Sch
 
 ```mermaid
 flowchart LR
-  User[User] --> Conversation[Persistent Conversation]
-  Conversation --> Router[Agent Router]
-  Router --> Resolver[Week / Context Resolver]
-  Resolver --> Gate[Action Gate]
-  Gate --> Tools[Agent Tools]
-  Tools --> Solver[CP-SAT Solver / Validator]
-  Solver --> Draft[Draft]
+  User[User Message] --> Parser[LLM Semantic Parser]
+  Parser --> Plan[Typed TurnCommand / TurnPlan]
+  Plan --> Grounding[Deterministic Grounding / Validation]
+  Grounding --> State[DialogueState / Scenario]
+  State --> Solver[CP-SAT Solver]
+  Solver --> Validator[Independent Validator]
+  Validator --> Draft[Draft]
   Draft --> Confirm[Human Confirm]
-  Conversation --> DB[(SQLAlchemy / Alembic)]
+  State --> DB[(SQLAlchemy / Alembic)]
 ```
 
 LLM 只负责自然语言理解、结构化 Intent、引用解析和回答组织。它不会直接执行 SQL、写 Repository、运行 Solver、绕过版本检查或确认正式排班。所有写操作都经过确定性 Action Gate；只有 `generate` 和 `replan` 可以创建 Draft，正式生效始终要求用户点击“确认变更”。
@@ -105,7 +105,7 @@ Conversation 创建后绑定当前 Browser Workspace。列表和详情接口同�
 
 ## ISO Week and Schedule Context
 
-界面使用标准 ISO 8601 自然周（周一到周日）展示和解析周次，数据库仍以 Monday `week_start` 作为 Schedule key。例如 `2026年第40周` 解析为 `2026-09-28`。Resolver 的优先级是：本轮明确日期/ISO 周、本轮相对周次、可信快捷操作指定周、建议或最近对话引用、当前工作台周次、当前自然周。
+界面使用标准 ISO 8601 自然周（周一到周日）展示和解析周次，数据库仍以 Monday `week_start` 作为 Schedule key。例如 `2026年第40周` 解析为 `2026-09-28`。自然语言日期和相对周次由 LLM 归一为周一日期；Resolver 只验证结构化日期，并在未指定时选择可信操作、建议引用、工作台、历史目标周或当前周。
 
 每周独立恢复三种状态：
 
@@ -208,7 +208,11 @@ Free-form Chat 使用 OpenAI-compatible `/chat/completions` Structured Output Ro
 
 工具层提供真实的排班、员工、规则、历史、Validator、分析、Generate 和 Replan 操作。Advice 的建议会记录 `target_week`、`based_on_schedule_id`、`based_on_version` 和 `proposed_changes`。后续“第二条为什么”“按这个改”通过消息 metadata 解析 suggestion 引用；Version Guard 会重新读取最新 Confirmed 和业务数据后再决定是否执行。
 
-当 `LLM_ENABLED=true` 且 Provider 超时、拒绝请求或返回无效 Structured Output 时，Free-form Chat 返回 `ai_unavailable`，不会静默退回关键词路由并假装 AI 正常。
+自由文本始终由同一个 LLM Semantic Parser 解析为扩展的 `TurnCommand`；Router 只投影这个计划，DialogueAgent 只归约和执行，不再次解释自然语言。员工变更、DAY/SHIFT 人数上下界、目标周、引用、执行许可和本轮 Force 范围均来自这个计划。确定性层校验实体、枚举、原子条件、数量、来源和版本；条件缺失时整批澄清，空 mutation 只修复一次，绝不部分执行。修改请求另经独立 LLM semantic verifier 检查遗漏和授权扩大。
+
+普通可用性陈述默认只记录条件；预演与分析不创建草稿；明确执行才生成待确认草稿。人数约束与员工条件一并传入 Solver、修复试排和独立 Validator。建议绑定来源与依赖快照，过期后必须重新分析。
+
+LLM 关闭、超时或输出畸形时，自由文本安全返回 `AI semantic parser 当前不可用，请重试。`，不会执行猜测的读写操作。Provider 的 JSON Schema/JSON 模式兼容重试仍调用 LLM，不是关键词语义 fallback。可信结构化按钮不需要自然语言解析；确认与取消仍由工作台显式操作。
 
 ## INFEASIBLE Diagnosis
 
@@ -310,7 +314,6 @@ Provider 请求统一通过 `AgentLLMClient`，路由、旧版意图解析和说
 | --- | ---: | --- |
 | `LLM_CONNECT_TIMEOUT_SECONDS` | 8 | DNS、连接、TLS |
 | `LLM_READ_TIMEOUT_SECONDS` | 120 | 等待 Provider 响应数据 |
-| `LLM_ROUTER_TIMEOUT_SECONDS` | 25 | Router 分类阶段墙钟预算，最大 30 秒 |
 | `LLM_ROUTER_BUDGET_SECONDS` | 60 | Router 所有阶段和兼容重试共用预算，最大 60 秒 |
 | `LLM_SEMANTIC_BUDGET_SECONDS` | 20 | 条件/授权语义提取阶段墙钟预算，最大 30 秒 |
 | `LLM_RESPONSE_BUDGET_SECONDS` | 8 | 可选回复组织和说明润色墙钟预算，最大 15 秒 |

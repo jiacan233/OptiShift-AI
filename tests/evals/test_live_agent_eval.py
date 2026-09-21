@@ -69,15 +69,15 @@ class RecordingLLM(AgentLLMClient):
 
 def check_raw_plan(case, outputs):
     """Report provider mistakes separately from successful server corrections."""
-    route = next((c["output"] for c in outputs if c.get("stage") == "agent_route_lite" and "output" in c), None)
-    if route is None:
-        return [{"category": "provider_error", "detail": "No valid raw Lite route"}]
+    command = next((c["output"] for c in outputs if c.get("stage") == "agent_semantic" and "output" in c), None)
+    if command is None:
+        return [{"category": "provider_error", "detail": "No valid raw TurnCommand"}]
     findings = []
-    if route.get("mutation_requested") or route.get("intent") not in {"ask", "explain", "advice", "validate"}:
-        findings.append({"category": "wrong_intent", "detail": route.get("intent")})
-    if route.get("question_type") != case["expected"]["question_type"]:
-        findings.append({"category": "wrong_question_hint", "detail": route.get("question_type")})
-    # Entity/day/reference facts deliberately belong to normalize_plan, not Lite.
+    if command.get("mutation_requested") or command.get("edits") or command.get("staffing_constraints") or command.get("execution") not in {"none", "analyze", "advice"}:
+        findings.append({"category": "wrong_intent", "detail": command.get("execution")})
+    plan = command.get("read_query") or {}
+    if plan.get("question_type") != case["expected"]["question_type"]:
+        findings.append({"category": "wrong_question_hint", "detail": plan.get("question_type")})
     return findings
 
 
@@ -183,7 +183,7 @@ def test_live_read_agent(case, database, monkeypatch, evaluation_output_dir):
         event.remove(database.engine, "before_cursor_execute", guard)
         llm.close()
     run = service.router.last_run
-    if not run or run.error_type or not run.results.get("agent_route_lite"):
+    if not run or run.error_type or not run.results.get("agent_semantic"):
         failures.append({"category": "provider_error", "detail": run.error_type if run else "missing router call"})
     if run and run.latency_ms >= 120000:
         failures.append({"category": "timeout", "detail": "router watchdog exceeded"})

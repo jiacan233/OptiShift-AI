@@ -20,7 +20,7 @@ def preview_read_turn(service, *, content: str, current_week_start: date,
     try:
         trace.emit("turn_started", "started")
         employees = service.employees.list()
-        route = service.router.route(content, employees=employees, recent_messages=recent_messages)
+        route = service.router.route(content, employees=employees, recent_messages=recent_messages, current_week_start=current_week_start)
         route = calibrate_read_route(route, content, employees)
         if route.mutation_requested or route.intent not in {
             AgentIntent.ASK, AgentIntent.EXPLAIN, AgentIntent.ADVICE, AgentIntent.VALIDATE,

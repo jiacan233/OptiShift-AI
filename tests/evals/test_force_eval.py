@@ -34,16 +34,23 @@ def eval_service(tmp_path):
     router.llm.enabled = False
     service = AgentService(conv_repo, emp_repo, sched_repo, tools, router=router)
     service.llm.enabled = False
+    service.router.llm = service.llm
     return service, emp_repo
 
 
-def test_eval_case_a_explicit_force_leave_override(eval_service):
+def test_eval_case_a_explicit_force_leave_override(eval_service, semantic_reply):
     service, emp_repo = eval_service
     employees = emp_repo.list()
     msg = "我知道 E01 周三请假，但就是让 E01 周三早班上班，强制生成。"
-    route = AgentRouter._deterministic_route(msg, employees)
+    from backend.app.models.dialogue import TurnCommand
+    command = TurnCommand(execution="create_draft", force_generate=True,
+        authorization_reason="E01 Wed morning only",
+        forced_assignments=[{"employee_id": "E01", "day": "Wed", "shift": "morning"}],
+        requested_overrides=[{"rule_id": "R08", "employee_id": "E01", "day": "Wed", "shift": "morning"}])
+    semantic_reply(command, service=service)
+    route = AgentRouter.from_command(command)
     assert route.force_generate is True
-    assert route.employees == ["E01"]
+    assert route.forced_assignments[0].employee_id == "E01"
     assert len(route.forced_assignments) == 1
     assert route.forced_assignments[0].employee_id == "E01"
     assert route.forced_assignments[0].day == Day.WED
@@ -83,20 +90,22 @@ def test_eval_case_a_explicit_force_leave_override(eval_service):
     assert "早班" in reply
 
 
-def test_eval_case_b_conflict_request_no_force(eval_service):
-    _, emp_repo = eval_service
+def test_eval_case_b_conflict_request_no_force(eval_service, semantic_reply):
+    service, emp_repo = eval_service
     employees = emp_repo.list()
     msg = "E01 周三请假，尽量帮我排一下。"
-    route = AgentRouter._deterministic_route(msg, employees)
+    semantic_reply({"execution": "none", "clarification": "没有当前精确强制授权。"}, service=service)
+    route = service.router.route(msg, employees=employees, recent_messages=[])
     assert route.force_generate is False
     assert not route.requested_overrides
 
 
-def test_eval_case_c_explicit_do_not_force(eval_service):
-    _, emp_repo = eval_service
+def test_eval_case_c_explicit_do_not_force(eval_service, semantic_reply):
+    service, emp_repo = eval_service
     employees = emp_repo.list()
     msg = "不要强制生成，看看有什么别的解决方案。"
-    route = AgentRouter._deterministic_route(msg, employees)
+    semantic_reply({"execution": "none", "clarification": "没有当前精确强制授权。"}, service=service)
+    route = service.router.route(msg, employees=employees, recent_messages=[])
     assert route.force_generate is False
     assert not route.requested_overrides
 

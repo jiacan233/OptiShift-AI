@@ -99,3 +99,37 @@ def repositories(database: Database) -> tuple[EmployeeRepository, ScheduleReposi
 def demo_service(database: Database) -> SchedulingService:
     seed_demo_employees(database)
     return SchedulingService(EmployeeRepository(database), ScheduleRepository(database))
+
+
+@pytest.fixture
+def semantic_reply(monkeypatch):
+    """Script provider DTOs, never parse text. Real language evaluations run separately."""
+    from backend.app.models.dialogue import TurnCommand
+    from backend.app.services.llm_client import AIUnavailableError
+
+    def install(*plans, service=None):
+        if service is None:
+            from backend.app.api.dependencies import agent_service
+            service = agent_service
+        remaining = iter(plans)
+        calls = []
+        def reply(**kwargs):
+            name = kwargs.get("schema_name")
+            calls.append(name)
+            if name == "agent_semantic_verifier":
+                return {"valid": True, "clarification": None}
+            if name not in {"agent_semantic", "agent_semantic_repair"}:
+                raise AIUnavailableError("No optional composition in offline tests")
+            value = plans[0] if len(plans) == 1 and callable(plans[0]) else next(remaining)
+            if callable(value):
+                value = value(kwargs["user"])
+            command = value if isinstance(value, TurnCommand) else TurnCommand.model_validate(value)
+            command.declared_condition_count = len(command.edits) + len(command.staffing_constraints)
+            return command.model_dump(mode="json")
+        def no_composition(**kwargs):
+            raise AIUnavailableError("No optional composition in offline tests")
+        monkeypatch.setattr(service.llm, "enabled", True)
+        monkeypatch.setattr(service.llm, "complete_json", reply)
+        monkeypatch.setattr(service.llm, "complete_text", no_composition)
+        return calls
+    return install

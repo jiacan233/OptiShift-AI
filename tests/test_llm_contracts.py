@@ -8,7 +8,8 @@ import httpx
 import pytest
 
 from backend.app.execution import ExecutionTrace, current_execution
-from backend.app.services.agent_router import AgentRoute, agent_route_json_schema
+from backend.app.services.agent_router import agent_route_json_schema
+from backend.app.models.dialogue import TurnCommand
 from backend.app.services.llm_client import (
     AgentLLMClient,
     AIUnavailableError,
@@ -54,7 +55,7 @@ def test_agent_route_schema_is_strict_and_complete() -> None:
     schema = agent_route_json_schema()
     validate_strict_json_schema(schema)
     assert set(schema["properties"]) == set(schema["required"])
-    assert "operations" in schema["required"]
+    assert "edits" in schema["required"] and "staffing_constraints" in schema["required"]
     assert "$ref" not in json.dumps(schema)
 
 
@@ -104,7 +105,7 @@ def test_json_object_provider_returns_existing_agent_route(monkeypatch, detectio
         client.model = "deepseek-chat"
     elif detection == "host":
         client.base_url = "https://api.deepseek.com/v1"
-    route = AgentRoute(intent="ask").model_dump(mode="json")
+    route = TurnCommand().model_dump(mode="json")
     requests = []
 
     def post(_self, _url, **kwargs):
@@ -114,11 +115,11 @@ def test_json_object_provider_returns_existing_agent_route(monkeypatch, detectio
         return _response(json.dumps(route))
 
     monkeypatch.setattr(httpx.Client, "post", post)
-    assert AgentRoute.model_validate(_route_completion(client)).intent == "ask"
+    assert TurnCommand.model_validate(_route_completion(client)).execution == "none"
     assert len(requests) == (2 if detection == "rejection" else 1)
     assert requests[-1]["response_format"] == {"type": "json_object"}
     prompt = requests[-1]["messages"][0]["content"]
-    assert "ONLY a JSON object" in prompt and "AgentRoute Schema" in prompt
+    assert "ONLY a JSON object" in prompt and "TurnCommand Schema" in prompt
     assert json.dumps(agent_route_json_schema(), ensure_ascii=False, separators=(",", ":")) in prompt
 
 
@@ -126,16 +127,16 @@ def test_json_object_provider_returns_existing_agent_route(monkeypatch, detectio
 @pytest.mark.parametrize("recover", [False, True])
 @pytest.mark.parametrize("failure,reason", [
     ("not JSON", "Expecting value"),
-    ('{"intent":"invalid"}', "enum"),
-    (json.dumps(AgentRoute(intent="ask").model_dump(mode="json") | {"target_week": "2026-02-30"}), "target_week"),
-    ("{}", "Field required"),
+    ('{"execution":"invalid"}', "literal_error"),
+    (json.dumps(TurnCommand().model_dump(mode="json") | {"target_week": "2026-02-30"}), "target_week"),
+    ("{}", "constraint required"),
     ("[]", "JSON root must be an object"),
-    ('{"intent":"ask"}', "constraint required"),
+    ('{"execution":"none"}', "constraint required"),
 ])
 def test_structured_validation_retries_only_once(monkeypatch, caplog, model, recover, failure, reason):
     client = _client(monkeypatch)
     client.model = model
-    valid = AgentRoute(intent="ask").model_dump(mode="json")
+    valid = TurnCommand().model_dump(mode="json")
     requests = []
 
     def post(_self, _url, **kwargs):

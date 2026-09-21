@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import date
 
 import pytest
 from fastapi.testclient import TestClient
@@ -22,7 +23,7 @@ def _generate(client):
         "/api/schedule/generate",
         json={
             "week_start": "2026-09-21",
-            "prompt": "帮我生成本周排班，尽量满足员工早晚班偏好。",
+            "prompt": "",  # Lifecycle tests exercise the structured endpoint, not NLP.
         },
     )
     assert response.status_code == 200, response.text
@@ -93,7 +94,7 @@ def test_health_employees_and_rules(client):
     rules = client.get("/api/rules")
 
     assert health.status_code == 200
-    assert health.json() == {"status": "ok", "app": "optishift-ai", "database": True}
+    assert {k: health.json()[k] for k in ("status", "app", "database")} == {"status": "ok", "app": "optishift-ai", "database": True}
     assert employees.status_code == 200
     employee_ids = [item["id"] for item in employees.json()["employees"]]
     assert employee_ids == [f"E{index:02d}" for index in range(1, 21)]
@@ -235,36 +236,16 @@ def test_employee_management_allows_preferences_but_not_skills(client):
     assert "manager" not in current["skills"]
 
 
-def test_clarification_must_be_resolved_with_real_employee(client):
-    response = client.post(
-        "/api/schedule/generate",
-        json={
-            "week_start": "2026-09-21",
-            "prompt": "那个兼职周日请假，其他员工尽量少调整",
-        },
-    )
+def test_incomplete_semantic_plan_does_not_create_partial_draft(client, semantic_reply, monkeypatch):
+    from backend.app.api.dependencies import scheduling_service, agent_service
+    monkeypatch.setattr(scheduling_service.intent_parser, "llm", agent_service.llm)
+    semantic_reply({"execution": "create_draft", "edits": [{"days": ["Sun"], "type": "leave"}]})
+    response = client.post("/api/schedule/generate", json={
+        "week_start": "2026-09-21", "prompt": "那个兼职周日请假，请生成草稿"})
     assert response.status_code == 200
-    clarification = response.json()
-    assert clarification["status"] == "clarification_required"
-    candidate_ids = {
-        item["employee_id"] for item in clarification["clarification"]["candidates"]
-    }
-    selected = sorted(candidate_ids)[0]
-
-    resolved = client.post(
-        "/api/schedule/resolve",
-        json={
-            "clarification_id": clarification["clarification"]["id"],
-            "employee_id": selected,
-        },
-    )
-
-    assert resolved.status_code == 200, resolved.text
-    assert resolved.json()["status"] == "feasible"
-    assert not any(
-        item["employee_id"] == selected and item["day"] == "Sun"
-        for item in resolved.json()["schedule"]["assignments"]
-    )
+    assert response.json()["status"] == "clarification_required"
+    assert response.json()["clarification"]["candidates"] == []
+    assert scheduling_service.schedules.latest(status="draft", week_start=date(2026, 9, 21)) is None
 
 
 def test_non_monday_and_unknown_employee_return_validation_errors(client):

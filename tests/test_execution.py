@@ -88,11 +88,11 @@ def test_router_stage_and_hidden_reasoning_ignored(monkeypatch, balanced_employe
     )
 
     def handler(request):
-        from tests.test_agent_router import decision, operation
+        from backend.app.models.dialogue import TurnCommand
         name = json.loads(request.content)["response_format"]["json_schema"]["name"]
-        payload = decision(intent="replan", mutation_requested=True, employees=["E01"]) if name == "agent_route_lite" else {
-            "operations": [operation()], "minimize_changes": False, "clarification": None,
-        }
+        payload = ({"valid": True, "clarification": None} if name == "agent_semantic_verifier" else
+            TurnCommand(target_week="2026-10-05", execution="create_draft", mutation_requested=True,
+                declared_condition_count=1, edits=[{"employee_ids": ["E01"], "days": ["Mon"], "type": "leave"}]).model_dump(mode="json"))
         return httpx.Response(
             200,
             json={
@@ -118,14 +118,14 @@ def test_router_stage_and_hidden_reasoning_ignored(monkeypatch, balanced_employe
                 employees=balanced_employees,
                 recent_messages=[],
             )
-        assert (result.target_iso_year, result.target_iso_week) == (2026, 41)
-        assert result.changes[0].employee_id == "E01"
+        assert result.target_week == date(2026, 10, 5)
+        assert result.turn_plan.edits[0].employee_ids == ["E01"]
         assert [(e["stage"], e["status"]) for e in events] == [
             ("agent_route", "started"),
-            ("agent_route_lite", "started"),
-            ("agent_route_lite", "completed"),
-            ("agent_mutation", "started"),
-            ("agent_mutation", "completed"),
+            ("agent_semantic", "started"),
+            ("agent_semantic", "completed"),
+            ("agent_semantic_verifier", "started"),
+            ("agent_semantic_verifier", "completed"),
             ("agent_route", "completed"),
         ]
         assert "SECRET_HIDDEN_REASONING" not in json.dumps(events)
@@ -395,12 +395,12 @@ def test_week41_replan_with_provider_schema_and_no_reasoning(execution_client, m
         )
         assert confirmed.status_code == 200
     def staged_response(request):
-        from tests.test_agent_router import decision, operation
+        from backend.app.models.dialogue import TurnCommand
         data = json.loads(request.content)
         name = data.get("response_format", {}).get("json_schema", {}).get("name")
-        payload = decision(intent="replan", mutation_requested=True, employees=["E01"]) if name == "agent_route_lite" else {
-            "operations": [operation()], "minimize_changes": False, "clarification": None,
-        }
+        payload = ({"valid": True, "clarification": None} if name == "agent_semantic_verifier" else
+            TurnCommand(target_week="2026-10-05", execution="create_draft", mutation_requested=True,
+                declared_condition_count=1, edits=[{"employee_ids": ["E01"], "days": ["Mon"], "type": "leave"}]).model_dump(mode="json"))
         return httpx.Response(200, json={"choices": [{"message": {
             "content": json.dumps(payload), "reasoning_content": "DO_NOT_EXPOSE_REASONING",
         }}]})

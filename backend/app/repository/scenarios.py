@@ -41,7 +41,9 @@ class ScenarioRepository:
                 ConversationScenarioRecord.conversation_id == conversation_id,
                 ConversationScenarioRecord.week_start == week_start,
             ).with_for_update())
-            if record and (record.temporary_constraints or record.last_preview_result or record.last_strict_result):
+            dialogue = session.get(ConversationDialogueRecord, (conversation_id, week_start))
+            has_staffing = bool(dialogue and dialogue.payload.get("staffing_constraints"))
+            if record and (record.temporary_constraints or record.last_preview_result or record.last_strict_result or has_staffing):
                 if expected_revision is not None and record.revision != expected_revision:
                     raise ScenarioRevisionConflict()
                 record.temporary_constraints = []

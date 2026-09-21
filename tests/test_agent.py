@@ -65,7 +65,7 @@ def _send(
 def _generate_and_confirm(client: TestClient, week_start: str = WEEK_40) -> dict:
     generated = client.post(
         "/api/schedule/generate",
-        json={"week_start": week_start, "prompt": "生成测试排班"},
+        json={"week_start": week_start, "prompt": ""},
     )
     assert generated.status_code == 200, generated.text
     draft = generated.json()
@@ -83,7 +83,8 @@ def test_01_browser_workspace_creates_conversation(agent_client):
     assert conversation_id.startswith("conv_")
 
 
-def test_force_agent_records_structured_authorization_and_replays(agent_client):
+def test_force_agent_records_structured_authorization_and_replays(agent_client, semantic_reply):
+    semantic_reply({"execution":"create_draft","force_generate":True,"authorization_reason":"E01 Mon morning", "requested_overrides":[{"rule_id":"R08","employee_id":"E01","day":"Mon","shift":"morning"}],"forced_assignments":[{"employee_id":"E01","day":"Mon","shift":"morning"}]})
     agent_client.patch("/api/employees/E01", json={"leave_days": ["Mon"]})
     conversation_id = _conversation(agent_client)
     text = "我知道 E01 周一请假，但就是让 E01 周一早班上班。"
@@ -132,7 +133,8 @@ def test_03_conversation_list_returns_history(agent_client):
     assert populated["last_message_preview"]
 
 
-def test_04_conversation_messages_are_persisted_server_side(agent_client):
+def test_04_conversation_messages_are_persisted_server_side(agent_client, semantic_reply):
+    semantic_reply({"domain":"product","product_topic_ids":["assistant.capabilities"]})
     conversation_id = _conversation(agent_client)
     sent = _send(
         agent_client,
@@ -195,8 +197,10 @@ def test_06_old_conversation_remains_recoverable_after_new_conversation(agent_cl
     ids=["ask", "advice", "explain", "validate", "out_of_scope"],
 )
 def test_07_to_11_read_only_intents_do_not_create_drafts(
-    agent_client, case, message, expected_intent
+    agent_client, case, message, expected_intent,
+    semantic_reply,
 ):
+    semantic_reply({"domain": "out_of_scope" if expected_intent == "out_of_scope" else "product" if expected_intent == "ask" else "scheduling", "execution":"analyze" if expected_intent in {"explain","validate"} else "advice" if expected_intent == "advice" else "none", "read_query":{"question_type":"rule_explanation"} if expected_intent not in {"ask","out_of_scope"} else None})
     conversation_id = _conversation(agent_client)
 
     response = _send(
@@ -208,7 +212,7 @@ def test_07_to_11_read_only_intents_do_not_create_drafts(
 
     assert response.status_code == 200, response.text
     payload = response.json()
-    assert payload["intent"] == expected_intent
+    assert payload["intent"] == ("explain" if expected_intent == "validate" else expected_intent)
     assert payload["mutation_requested"] is False
     assert payload["schedule_result"] is None
     context = agent_client.get(
@@ -225,6 +229,7 @@ def test_12_generate_creates_a_draft(agent_client):
         conversation_id,
         "第40周帮我生成一版。",
         client_message_id="cm_generate",
+    trusted_action={"intent": "generate"},
     )
 
     assert response.status_code == 200, response.text
@@ -234,7 +239,8 @@ def test_12_generate_creates_a_draft(agent_client):
     assert payload["schedule_result"]["schedule"]["week_start"] == WEEK_40
 
 
-def test_13_replan_creates_a_draft(agent_client):
+def test_13_replan_creates_a_draft(agent_client, semantic_reply):
+    semantic_reply({"execution":"create_draft","mutation_requested":True,"edits":[{"employee_ids":["E02"],"days":["Fri"],"type":"leave"}]})
     confirmed = _generate_and_confirm(agent_client)
     conversation_id = _conversation(agent_client)
 
@@ -252,7 +258,8 @@ def test_13_replan_creates_a_draft(agent_client):
     assert payload["schedule_result"]["schedule"]["parent_schedule_id"] == confirmed["schedule_id"]
 
 
-def test_14_chat_confirmation_cannot_confirm_schedule(agent_client):
+def test_14_chat_confirmation_cannot_confirm_schedule(agent_client, semantic_reply):
+    semantic_reply({"execution":"create_draft","explicit_empty":True}, {"domain":"product","product_topic_ids":["workflow.confirm"]})
     conversation_id = _conversation(agent_client)
     generated = _send(
         agent_client,
@@ -312,7 +319,8 @@ def test_15_version_guard_rejects_stale_concrete_suggestion(agent_client):
         )
 
 
-def test_16_conversation_can_move_between_weeks(agent_client):
+def test_16_conversation_can_move_between_weeks(agent_client, semantic_reply):
+    semantic_reply({"execution":"analyze","target_week":WEEK_40,"read_query":{"question_type":"schedule_overview"}}, {"execution":"analyze","target_week":"2026-10-05","read_query":{"question_type":"schedule_overview"}})
     conversation_id = _conversation(agent_client)
     first = _send(
         agent_client,
@@ -358,13 +366,13 @@ def test_18_week_40_resolves_to_2026_09_28():
 def test_19_relative_next_week_uses_conversation_context():
     resolved = WeekResolver().resolve(
         content="那下周呢？",
-        route=AgentRoute(intent=AgentIntent.ASK),
+        route=AgentRoute(intent=AgentIntent.ASK, target_week=date(2026, 10, 5)),
         current_week_start=date(2026, 9, 14),
         recent_messages=[{"target_week": WEEK_40}],
     )
 
     assert resolved.week_start == date(2026, 10, 5)
-    assert resolved.source == "relative_week"
+    assert resolved.source == "semantic_parser"
 
 
 def test_20_active_workbench_week_is_used_for_generate(agent_client):
@@ -377,6 +385,7 @@ def test_20_active_workbench_week_is_used_for_generate(agent_client):
         "帮我生成一版。",
         client_message_id="cm_active_week",
         current_week_start=active_week,
+    trusted_action={"intent": "generate"},
     )
 
     assert response.status_code == 200, response.text
@@ -390,12 +399,14 @@ def test_21_pending_draft_blocks_second_mutation(agent_client):
         conversation_id,
         "第40周帮我生成一版。",
         client_message_id="cm_pending_1",
+    trusted_action={"intent": "generate"},
     )
     second = _send(
         agent_client,
         conversation_id,
         "第40周再生成一版。",
         client_message_id="cm_pending_2",
+    trusted_action={"intent": "generate"},
     )
 
     assert first.status_code == 200
@@ -410,6 +421,7 @@ def test_22_duplicate_client_message_id_does_not_duplicate_draft(agent_client):
         conversation_id,
         "第40周帮我生成一版。",
         client_message_id="cm_idempotent",
+    trusted_action={"intent": "generate"},
     )
     replay = _send(
         agent_client,
@@ -417,6 +429,7 @@ def test_22_duplicate_client_message_id_does_not_duplicate_draft(agent_client):
         "这段不同正文不应覆盖第一次请求",
         client_message_id="cm_idempotent",
         current_week_start="2026-10-05",
+    trusted_action={"intent": "generate"},
     )
     restored = agent_client.get(
         f"/api/agent/conversations/{conversation_id}",
@@ -435,6 +448,7 @@ def test_23_refresh_week_context_restores_pending_draft(agent_client):
         conversation_id,
         "第40周帮我生成一版。",
         client_message_id="cm_refresh",
+    trusted_action={"intent": "generate"},
     ).json()["schedule_result"]
 
     refreshed = agent_client.get(
@@ -456,6 +470,7 @@ def test_24_history_unavailable_is_a_structured_409(agent_client):
         "2026年第42周帮我生成一版。",
         client_message_id="cm_history_unavailable",
         current_week_start="2026-10-12",
+    trusted_action={"intent": "generate"},
     )
 
     assert response.status_code == 409
@@ -562,6 +577,7 @@ def test_29_infeasible_agent_result_is_persisted_with_deterministic_summary(agen
         conversation_id,
         "第40周帮我生成一版。",
         client_message_id="cm_infeasible_persist",
+    trusted_action={"intent": "generate"},
     )
 
     assert response.status_code == 200, response.text

@@ -71,6 +71,7 @@ class AgentTools:
             allow_history_bootstrap=False, allow_ephemeral_known_empty=True,
             # Read facts and the independent validator share the current RuleConfig.
             rule_config=self.scheduling.context_builder.rules.model_dump(mode="json"),
+            staffing_constraints=metadata.get("staffing_constraints", []),
         )
         return schedule, context
 

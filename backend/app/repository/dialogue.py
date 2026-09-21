@@ -88,7 +88,8 @@ class DialogueRepository:
                 raise ScenarioRevisionConflict("临时条件已更新，请重新读取。")
             patches = [p.model_dump(mode="json") for p in patches_for(state.conditions)]
             previous = scenario.temporary_constraints or [] if scenario else []
-            changed = _constraint_keys(patches) != _constraint_keys(previous)
+            changed = (_constraint_keys(patches) != _constraint_keys(previous) or
+                (row.payload.get("staffing_constraints", []) if row else []) != [c.model_dump(mode="json") for c in state.staffing_constraints])
             if receipt and changed:
                 # Result persistence must refer to the already committed command,
                 # never silently introduce conditions after the Solver snapshot.

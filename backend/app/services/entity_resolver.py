@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 
 from ..models import Day, Employee
@@ -41,28 +40,17 @@ class EntityResolver:
     def resolve(
         self, query: str, employees: list[Employee], *, day: Day | None = None
     ) -> Resolution:
-        normalized = query.strip().lower()
-        exact_ids = {
-            match.upper() for match in re.findall(r"\b[eE]\d{1,4}\b", query)
-        }
-        if exact_ids:
-            candidates = [employee for employee in employees if employee.id in exact_ids]
-        else:
-            candidates = list(employees)
-            if any(token in normalized for token in ("兼职", "part-time", "part time")):
-                candidates = [e for e in candidates if "part" in e.role.lower() or "兼职" in e.role]
-            if any(token in normalized for token in ("店长", "经理", "manager")):
-                candidates = [e for e in candidates if "manager" in {s.value for s in e.skills}]
-            if day is not None:
-                candidates = [
-                    e for e in candidates if day in e.available_days and day not in e.leave_days
-                ]
-
-        if not candidates:
-            return Resolution(status="entity_not_found", candidates=[])
-        if len(candidates) == 1:
-            return Resolution(status="resolved", candidates=candidates, employee=candidates[0])
-        return Resolution(status="clarification_required", candidates=candidates)
+        from .dialogue_parser import parse_command
+        from .llm_client import AgentLLMClient
+        from ..models.dialogue import DialogueState
+        command = parse_command(query, DialogueState(), employees, AgentLLMClient())
+        ids = {eid for edit in command.edits for eid in edit.employee_ids}
+        if command.read_query:
+            ids.update(command.read_query.employee_ids)
+        candidates = [e for e in employees if e.id in ids]
+        if command.clarification or len(candidates) != 1:
+            return Resolution(status="clarification_required", candidates=candidates)
+        return Resolution(status="resolved", candidates=candidates, employee=candidates[0])
 
     @staticmethod
     def validate_selected(employee_id: str, employees: list[Employee]) -> Employee:

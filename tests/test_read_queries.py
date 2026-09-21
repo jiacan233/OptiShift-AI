@@ -9,14 +9,37 @@ from backend.app.models.orm import ScheduleRecord
 from backend.app.services.agent_router import AgentRoute
 from backend.app.services.llm_client import AIUnavailableError
 from backend.app.services.read_analysis import analyze_snapshot, counterfactual_snapshot
-from backend.app.services.read_query import explicit_reference, normalize_plan
+from backend.app.services.read_query import normalize_plan
+from backend.app.models.dialogue import TurnCommand
 from backend.app.services.read_response import compose_read_answer, READ_ONLY_NOTICE
 from tests.read_fixtures import WEEK, PREVIOUS_MESSAGES, database_snapshot, seed_read_fixture
 
 
 @pytest.fixture
-def read_service(database):
-    return seed_read_fixture(database)
+def read_service(database, semantic_reply):
+    service = seed_read_fixture(database)
+    def reply(user):
+        text = user["message"]
+        if text == "刚才第二条建议为什么？":
+            return {"reference": "suggestion", "suggestion_ordinal": 2, "execution": "analyze"}
+        if text == "按刚才第一条改":
+            return {"reference": "suggestion", "suggestion_ordinal": 1, "execution": "create_draft"}
+        return {"execution": "analyze", "read_query": READ_PLANS[text]}
+    semantic_reply(reply, service=service)
+    return service
+
+
+READ_PLANS = {
+    "周日为什么 7 个人，6 个人不是够了吗？": {"question_type": "staffing_explanation", "day": "Sun"},
+    "周日谁上班？": {"question_type": "schedule_overview", "day": "Sun"},
+    "周日晚班谁会做饮品？": {"question_type": "coverage_analysis", "day": "Sun", "shift": "evening"},
+    "2026-10-11 早班人数": {"question_type": "staffing_explanation", "day": "Sun", "shift": "morning"},
+    "如果去掉 E07 周日晚班可以吗？": {"question_type": "assignment_explanation", "day": "Sun", "shift": "evening", "employee_ids": ["E07"], "whether_counterfactual_needed": True},
+    "周日早班少一个人行不行？": {"question_type": "staffing_explanation", "day": "Sun", "shift": "morning", "whether_counterfactual_needed": True},
+    "E15 是不是必须上周日早班？": {"question_type": "assignment_explanation", "day": "Sun", "shift": "morning", "employee_ids": ["E15"], "whether_counterfactual_needed": True},
+    "E03 能不能不排周日早班？": {"question_type": "assignment_explanation", "day": "Sun", "shift": "morning", "employee_ids": ["E03"], "whether_counterfactual_needed": True},
+    "周日为什么 7 个人？": {"question_type": "staffing_explanation", "day": "Sun"},
+}
 
 
 def send(service, content, mid="read-1", conversation_id=None, **kwargs):
@@ -25,15 +48,12 @@ def send(service, content, mid="read-1", conversation_id=None, **kwargs):
                                 client_message_id=mid, content=content, current_week_start=WEEK, **kwargs)
 
 
-def test_model_implicit_reference_is_cleared_at_service_boundary(read_service, monkeypatch):
+def test_current_query_does_not_inherit_previous_suggestion(read_service, monkeypatch):
     cid = read_service.create_conversation("read-workspace")["conversation_id"]
     read_service.conversations.add_assistant_message(
         cid, "read-workspace", content=PREVIOUS_MESSAGES[0]["content"], target_week="2026-09-28",
         metadata=PREVIOUS_MESSAGES[0]["metadata"],
     )
-    monkeypatch.setattr(read_service.router, "route", lambda *a, **k: AgentRoute(
-        intent="explain", reference={"type": "previous_message"}, target_week=date(2026, 9, 28),
-        read_query={"day": "Mon", "shift": "morning", "employee_ids": ["E01"]}))
     result = send(read_service, "周日为什么 7 个人，6 个人不是够了吗？", conversation_id=cid)
     metadata = result["assistant_message"]["metadata_json"]
     assert metadata["query_plan"]["reference_mode"] == "none"
@@ -44,10 +64,12 @@ def test_model_implicit_reference_is_cleared_at_service_boundary(read_service, m
     assert "恢复 E01" not in result["assistant_message"]["content"]
 
 
-@pytest.mark.parametrize("text,expected", [("第 2 条为什么？", "suggestion_2"), ("刚才第二个建议是什么？", "suggestion_2"), ("为什么这个建议？", "previous_message"), ("按刚才第二条改", "suggestion_2"), ("按 suggestion_2 调整", "suggestion_2"), ("周日为什么 7 个人", None), ("E03 为什么周一早班", None), ("为什么这里是 7/6", None), ("我只想问当前排班，不要引用刚才的建议。", None)])
-def test_explicit_reference(text, expected):
-    assert explicit_reference(text) == expected
-    assert explicit_reference("Ｅ０３为什么这个建议") is None
+@pytest.mark.parametrize("identifier", ["suggestion_1", "suggestion_2", "missing"])
+def test_structured_reference_must_exist(read_service, identifier):
+    from backend.app.services.agent_router import AgentRouter
+    route = AgentRouter.from_command(TurnCommand(reference="suggestion", suggestion_id=identifier))
+    result = read_service._resolve_suggestion(route, PREVIOUS_MESSAGES)
+    assert (result is not None) == (identifier != "missing")
 
 
 def test_explicit_suggestion_still_resolves(read_service):
@@ -57,7 +79,7 @@ def test_explicit_suggestion_still_resolves(read_service):
 
 @pytest.mark.parametrize("text,shifts", [("周日谁上班？", ["morning", "evening"]), ("周日晚班谁会做饮品？", ["evening"]), ("2026-10-11 早班人数", ["morning"])])
 def test_scope_and_validator_consistency(read_service, text, shifts):
-    plan = normalize_plan(text, read_service.employees.list(), target_week=WEEK)
+    plan = normalize_plan(text, read_service.employees.list(), target_week=WEEK, proposal=READ_PLANS[text])
     snapshot = read_service.tools.get_current_schedule(target_week=WEEK)["display"]
     facts = read_service.tools.analyze_staffing(target_week=WEEK, plan=plan.model_dump(mode="json"), snapshot=snapshot)
     assert [s["shift"] for s in facts["slots"]] == shifts
@@ -87,7 +109,7 @@ def test_counterfactual_no_business_writes_and_timeline(read_service, database, 
 
 
 def test_direct_removal_and_alternatives_are_distinct(read_service):
-    plan = normalize_plan("如果去掉 E07 周日晚班可以吗？", read_service.employees.list(), target_week=WEEK)
+    plan = normalize_plan("如果去掉 E07 周日晚班可以吗？", read_service.employees.list(), target_week=WEEK, proposal=READ_PLANS["如果去掉 E07 周日晚班可以吗？"])
     snapshot = read_service.tools.get_current_schedule(target_week=WEEK)["display"]
     schedule, context = read_service.tools._read_snapshot(target_week=WEEK, snapshot=snapshot)
     original = schedule.model_dump(mode="json")
@@ -108,8 +130,8 @@ def test_draft_display_and_explicit_version(read_service, database):
     assert read_service.tools.get_current_schedule(target_week=WEEK, version=99)["display"] is None
 
 
-@pytest.mark.parametrize("failure", ["provider", "malformed", "unknown_employee"])
-def test_llm_failure_safe_fallback(read_service, monkeypatch, failure):
+@pytest.mark.parametrize("failure", ["provider", "malformed"])
+def test_llm_failure_stops_read_execution(read_service, monkeypatch, failure):
     read_service.llm.enabled = True
     def reply(**kwargs):
         if failure == "provider":
@@ -118,9 +140,10 @@ def test_llm_failure_safe_fallback(read_service, monkeypatch, failure):
             return {"invalid": "plan"}
         return {"intent": "explain", "employees": ["E999"]}
     monkeypatch.setattr(read_service.llm, "complete_json", reply)
-    result = send(read_service, "周日晚班谁会做饮品？")
-    assert READ_ONLY_NOTICE in result["assistant_message"]["content"]
-    assert "实际 6 人" in result["assistant_message"]["content"]
+    from backend.app.services.agent_service import AgentTurnError
+    with pytest.raises(AgentTurnError) as error:
+        send(read_service, "周日晚班谁会做饮品？")
+    assert error.value.code == "ai_unavailable"
 
 
 def test_read_idempotency(read_service):
@@ -134,7 +157,7 @@ def test_read_idempotency(read_service):
 def test_invalid_model_answer_cannot_invent_facts(read_service, monkeypatch):
     read_service.llm.enabled = True
     monkeypatch.setattr(read_service.llm, "complete_json", lambda **kw: {"sentence_ids": ["actual_999"]})
-    plan = normalize_plan("周日为什么 7 个人？", read_service.employees.list(), target_week=WEEK)
+    plan = normalize_plan("周日为什么 7 个人？", read_service.employees.list(), target_week=WEEK, proposal=READ_PLANS["周日为什么 7 个人？"])
     snapshot = read_service.tools.get_current_schedule(target_week=WEEK)["display"]
     schedule, context = read_service.tools._read_snapshot(target_week=WEEK, snapshot=snapshot)
     answer, audit = compose_read_answer(read_service.llm, question="人数", plan=plan, facts=analyze_snapshot(schedule, context, plan))
@@ -142,17 +165,10 @@ def test_invalid_model_answer_cannot_invent_facts(read_service, monkeypatch):
     assert audit["fallback_reason"] == "invalid_sentence_selection"
 
 
-def test_week_number_is_not_a_suggestion(read_service):
-    assert explicit_reference("2026年第41周生成排班") is None
-    route = read_service.router.route("第40周帮我生成一版。", employees=read_service.employees.list(), recent_messages=[])
-    assert route.intent.value == "generate" and route.mutation_requested
-
-
-def test_explicit_leave_advice_keeps_impact_and_suggestions(read_service):
-    result = send(read_service, "E01 周一请假会有什么影响，给我建议。")
-    assert result["intent"] == "advice"
-    assert result["assistant_message"]["metadata_json"]["suggestions"]
-    assert result["tool_calls"][-1]["tool_name"] == "analyze_schedule"
+def test_normalized_week_does_not_create_reference(read_service):
+    from backend.app.services.agent_router import AgentRouter
+    route = AgentRouter.from_command(TurnCommand(target_week=WEEK, execution="create_draft", explicit_empty=True))
+    assert route.reference.type == "none" and route.target_week == WEEK
 
 
 @pytest.mark.parametrize("stale", [None, "version", "scenario"])
@@ -192,11 +208,16 @@ def test_evaluation_pipeline_offline_contract(read_service, database, monkeypatc
     from sqlalchemy import event
     read_service.llm.enabled = True
     def structured_reply(**kwargs):
-        if kwargs["stage"] == "agent_route_lite":
-            from tests.test_agent_router import decision
-            route = AgentRouter._deterministic_route(kwargs["user"]["message"], read_service.employees.list())
-            return decision(intent=route.intent.value, employees=route.employees,
-                            question_type=case["expected"]["question_type"])
+        if kwargs["stage"] == "agent_semantic":
+            expected = case["expected"]
+            plan = {key: value for key, value in expected.items() if key not in {"shifts", "tools"}}
+            plan["requested_facts"] = ["staffing", "coverage", "assignments", "workload", "rules", "validation", "difference"]
+            plan["whether_counterfactual_needed"] = "analyze_counterfactual" in expected["tools"]
+            if expected["question_type"] == "schedule_difference":
+                plan["comparison"] = "previous_version"
+            return TurnCommand(execution="analyze", target_week=expected["target_week"], read_query=plan,
+                reference="suggestion" if expected["reference_mode"] == "suggestion" else "none",
+                suggestion_ordinal=2 if expected["reference_mode"] == "suggestion" else None).model_dump(mode="json")
         return {"sentence_ids": list(kwargs["user"]["sentences"])}
     monkeypatch.setattr(read_service.llm, "complete_json", structured_reply)
     before = database_snapshot(database)

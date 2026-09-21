@@ -296,7 +296,7 @@ def test_canonical_dataset_strict_feasible_schedule(client):
         "/api/schedule/generate",
         json={
             "week_start": "2026-09-21",
-            "prompt": "帮我生成本周排班，尽量满足员工早晚班偏好。",
+            "prompt": "",
         },
     )
     assert response.status_code == 200, response.text

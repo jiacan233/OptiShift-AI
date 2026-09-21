@@ -17,7 +17,84 @@ from backend.app.solver import PrimarySolver
 from tests.test_agent import WEEK_40, WORKSPACE, _conversation, _generate_and_confirm, _send
 from tests.test_agent import agent_client as dialogue_api_client
 
-agent_client = dialogue_api_client
+def edit(employee=None, day=None, kind=None, shift=None, **kwargs):
+    return {"employee_ids": [employee] if employee else [], "days": [day] if day else [],
+            "type": kind, "shift": shift, **kwargs}
+
+
+def condition(employee, day, kind, shift=None, **kwargs):
+    return {"edits": [edit(employee, day, kind, shift)], "mutation_requested": True, **kwargs}
+
+
+# These are explicit provider fixtures, NOT a parser. Unknown fixture input fails.
+# The real-provider synonym suite is opt-in and replaces this fixture at its boundary.
+PROVIDER_PLANS = {
+    "我想调一个人的排班。": {"edits": [edit()], "mutation_requested": True},
+    "E18。": {"edits": [edit("E18")]},
+    "想让他上班，先别生成。": {"edits": [edit(kind="assign")], "suppress_execution": True},
+    "有哪些排班规则？": {"execution": "analyze", "read_query": {"question_type": "rule_explanation"}},
+    "周四。": {"edits": [edit(day="Thu")]},
+    "晚班。": {"edits": [edit(shift="evening")]},
+    "不过先别生成，你告诉我现在理解我要干嘛。": {"inspect": True, "suppress_execution": True},
+    "再加一个条件，E06周五请假。": condition("E06", "Fri", "leave"),
+    "好，就按这两个要求重新排班。": {"execution": "create_draft", "reference": "current", "expected_count": 2},
+    "取消这个待补动作。": {"edits": [{"operation": "cancel_pending"}]},
+    "我想让E19周六晚班优先。": condition("E19", "Sat", "preference", "evening"),
+    "你先告诉我你理解的具体条件是什么。": {"inspect": True},
+    "等等，我说错了，不是周六，是周日。": {"edits": [edit(day="Sun", operation="correct", old_day="Sat")]},
+    "班次还是晚班。": {"edits": [edit(shift="evening", operation="correct")]},
+    "另外E15周六请假。": condition("E15", "Sat", "leave"),
+    "你现在把两个最终条件再说一遍。": {"inspect": True, "expected_count": 2},
+    "确认一下，E19周六那个旧条件已经不存在了，对吧？": {"inspect": True},
+    "好，按最终条件重新排。": {"execution": "create_draft", "reference": "current"},
+    "E19周四早班优先。": condition("E19", "Thu", "preference", "morning"),
+    "E19周六晚班优先。": condition("E19", "Sat", "preference", "evening"),
+    "不是周六，是周日。": {"edits": [edit(day="Sun", operation="correct", old_day="Sat")]},
+    "取消E19的限制。": {"edits": [edit("E19", operation="remove")]},
+    "取消E19周日限制。": {"edits": [edit("E19", "Sun", operation="remove")]},
+    "不是周日，是周六。": {"edits": [edit(day="Sat", operation="correct", old_day="Sun")]},
+    "我要调一下E18。": {"edits": [edit("E18", operation="focus")]},
+    "E18周二请假。": condition("E18", "Tue", "leave"),
+    "同时我又想让他周二晚班上。": condition("E18", "Tue", "assign", "evening"),
+    "先别改，你告诉我哪里冲突。": {"inspect": True, "suppress_execution": True},
+    "那取消周二请假，保留E18周二晚班上班。": {"edits": [edit("E18", "Tue", "leave", operation="remove"), edit("E18", "Tue", "assign", "evening")]},
+    "再加E11周四晚班优先。": condition("E11", "Thu", "preference", "evening"),
+    "你现在检查一下还有没有互相冲突的条件，并把最终条件复述一遍。": {"inspect": True},
+    "没有问题的话就重新排班。": {"execution": "create_draft", "reference": "current"},
+    "先帮我分析E03本周工作量。": {"execution": "analyze", "read_query": {"question_type": "employee_workload", "employee_ids": ["E03"]}},
+    "如果E03周五请假会怎样？": {"execution": "preview", "edits": [edit("E03", "Fri", "leave", proposal=True)]},
+    "再加一个条件，E18周五晚班优先。": condition("E18", "Fri", "preference", "evening"),
+    "先不要生成，你把这两个条件记住。": {"adopt": True, "reference": "current", "suppress_execution": True},
+    "我刚才准备改哪两个条件？": {"inspect": True},
+    "其中E03那个不要了。": {"edits": [edit("E03", operation="remove")]},
+    "改成E06周三早班优先。你现在最终理解的两个条件是什么？": condition("E06", "Wed", "preference", "morning"),
+    "按现在这两个条件重新排。": {"execution": "create_draft", "reference": "current", "expected_count": 2},
+    "先查E02本周目前怎么排。": {"execution": "analyze", "read_query": {"question_type": "schedule_overview", "employee_ids": ["E02"]}},
+    "如果让E02周二晚班上，会有什么影响？先分析。": {"execution": "preview", "edits": [edit("E02", "Tue", "assign", "evening", proposal=True)]},
+    "我还希望他周五晚班优先。": condition("E02", "Fri", "preference", "evening"),
+    "先别生成，检查这样一周工作量会不会太高。": {"inspect": True, "suppress_execution": True},
+    "再检查连续工作天数。": {"inspect": True},
+    "再检查晚班后第二天早班。": {"inspect": True},
+    "你现在把E02相关的两个条件分别复述一次。": {"inspect": True},
+    "另外加E20周三请假，然后按这三个条件重新排。": condition("E20", "Wed", "leave", execution="create_draft", reference="current", expected_count=3),
+    "E18周四晚班优先，先别生成。": condition("E18", "Thu", "preference", "evening", suppress_execution=True),
+    "按当前条件重新排班。": {"execution": "create_draft", "reference": "current"},
+    "按这个条件重新排班。": {"execution": "create_draft", "reference": "current"},
+    "E18周四晚班优先。": condition("E18", "Thu", "preference", "evening"),
+    "E06周五请假。": condition("E06", "Fri", "leave"),
+}
+
+
+@pytest.fixture
+def agent_client(dialogue_api_client, semantic_reply):
+    from copy import deepcopy
+    def fixture(user):
+        result = deepcopy(PROVIDER_PLANS[user["message"]])
+        if user["message"] == "晚班。" and not user["state"]["pending"]:
+            return {"clarification": "当前没有待补动作。"}
+        return result
+    semantic_reply(fixture)
+    return dialogue_api_client
 
 
 def _state(client, conversation, week=WEEK_40):
@@ -58,13 +135,14 @@ def _assert_no_draft(client, week=WEEK_40):
 @pytest.fixture
 def solver_calls(monkeypatch):
     calls = []
-    solve = PrimarySolver.solve
+    from backend.app.api.dependencies import scheduling_service
+    solve = scheduling_service.solver.solve
 
-    def observed(self, context, **kwargs):
+    def observed(context, **kwargs):
         calls.append(context.model_dump(mode="json"))
-        return solve(self, context, **kwargs)
+        return solve(context, **kwargs)
 
-    monkeypatch.setattr(PrimarySolver, "solve", observed)
+    monkeypatch.setattr(scheduling_service.solver, "solve", observed)
     return calls
 
 
@@ -316,7 +394,7 @@ def test_duplicate_message_records_and_executes_only_once(agent_client, solver_c
 def test_old_draft_blocks_execution_but_keeps_new_conditions_for_retry(agent_client):
     draft_response = agent_client.post(
         "/api/schedule/generate",
-        json={"week_start": WEEK_40, "prompt": "生成测试排班"},
+        json={"week_start": WEEK_40, "prompt": ""},
     )
     assert draft_response.status_code == 200, draft_response.text
     old = draft_response.json()

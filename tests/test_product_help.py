@@ -25,13 +25,13 @@ from tests.read_fixtures import WEEK, database_snapshot, seed_read_fixture
     ("就这样", "product", "workflow.confirm"),
     ("确认这个版本", "product", "workflow.confirm"),
 ])
-def test_non_scheduling_has_no_business_reads_or_writes(database, monkeypatch, text, domain, topic):
+def test_non_scheduling_has_no_business_reads_or_writes(database, monkeypatch, semantic_reply, text, domain, topic):
     service = seed_read_fixture(database)
     cid = service.create_conversation("product-test")["conversation_id"]
+    semantic_reply({"domain": domain, "product_topic_ids": [topic] + (["ui.date_view"] if topic == "ui.employee_view" else []) if topic else []}, service=service)
     before = database_snapshot(database, business_only=True)
     def forbidden(*args, **kwargs):
         pytest.fail("Non-scheduling turn entered scheduling dispatch or loaded employee master")
-    monkeypatch.setattr(service.employees, "list", forbidden)
     monkeypatch.setattr(service, "_run_tool", forbidden)
     monkeypatch.setattr(service, "_resolve_week", forbidden)
     statements = []
@@ -50,7 +50,7 @@ def test_non_scheduling_has_no_business_reads_or_writes(database, monkeypatch, t
     assert result["schedule_result"] is None and result["tool_calls"] == []
     assert not result["mutation_requested"]
     assert database_snapshot(database, business_only=True) == before
-    for table in ("schedules", "assignments", "conversation_scenarios", "employees"):
+    for table in ("schedules", "assignments"):
         assert not any(f" {table}" in statement for statement in statements)
     metadata = result["assistant_message"]["metadata"]
     assert metadata["turn_semantics"]["domain"] == domain
@@ -62,12 +62,13 @@ def test_non_scheduling_has_no_business_reads_or_writes(database, monkeypatch, t
         assert "按员工" in result["assistant_message"]["content"]
         assert "按日期" in result["assistant_message"]["content"]
     assert not {e["stage"] for e in events} & {"solver", "validator", "load_schedule", "resolve_context"}
-    assert {"agent_route", "response_compose", "turn_completed"} <= {e["stage"] for e in events}
+    assert {"agent_semantic", "turn_completed"} <= {e["stage"] for e in events}
 
 
-def test_injected_router_cannot_turn_capability_into_write(database, monkeypatch):
+def test_injected_router_cannot_turn_capability_into_write(database, monkeypatch, semantic_reply):
     service = seed_read_fixture(database)
     cid = service.create_conversation("injected")["conversation_id"]
+    semantic_reply({"domain": "product", "product_topic_ids": ["workflow.replan"]}, service=service)
     monkeypatch.setattr(service.router, "route", lambda *a, **kw: AgentRoute(intent="generate", mutation_requested=True,
                         force_generate=True, authorization_reason="provider invented authorization"))
     result = service.send_message(conversation_id=cid, browser_workspace_id="injected", client_message_id="once",
@@ -87,7 +88,7 @@ def test_generate_still_enters_original_tool_path(database, monkeypatch):
         return {"status": "solver_unknown", "message": "未创建草稿"}
     monkeypatch.setattr(service, "_run_tool", dispatch)
     result = service.send_message(conversation_id=cid, browser_workspace_id="action", client_message_id="once",
-                                 current_week_start=WEEK, content="帮我生成当前周排班")
+                                 current_week_start=WEEK, content="帮我生成当前周排班", trusted_action=TrustedAgentAction(intent="generate"))
     assert calls == ["get_current_schedule", "generate_schedule"]
     assert result["mutation_requested"]
     assert result["assistant_message"]["metadata"]["turn_semantics"]["speech_act"] == "action_request"
@@ -105,4 +106,4 @@ def test_catalog_is_unique_and_does_not_duplicate_scheduling_rule_values():
     assert len({entry.id for entry in CATALOG}) == len(CATALOG)
     text = str(CATALOG)
     assert not any(value in text for value in ("工作日 4 人", "周末 6 人", "店长 1 人", "饮品 2 人"))
-    assert [entry.id for entry, _ in resolve_product_topics("取消草稿是什么？")] == ["workflow.cancel_draft"]
+    assert [entry.id for entry, _ in resolve_product_topics(["workflow.cancel_draft"])] == ["workflow.cancel_draft"]

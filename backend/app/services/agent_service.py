@@ -47,7 +47,7 @@ from .request_validator import validate_changes
 from .read_query import normalize_plan, tool_for_plan
 from .read_response import compose_read_answer, READ_ONLY_NOTICE
 from .product_knowledge import compose_product_help, resolve_product_topics
-from .turn_semantics import AgentDomain, non_scheduling_semantics
+from .turn_semantics import AgentDomain
 
 _INFEASIBLE_RULE_NAMES = {
     "R01": "店长覆盖不足",
@@ -461,7 +461,7 @@ class AgentService:
         metadata = {"turn_semantics": self._semantics_metadata(route), "tool_call_ids": []}
         if route.domain == AgentDomain.PRODUCT:
             with execution_stage("product_lookup"):
-                topics = resolve_product_topics("确认按钮" if AgentRouter._confirmation_only(content) else content)
+                topics = resolve_product_topics(route.product_topic_ids)
             metadata["product_help"] = {
                 "topic_id": topics[0][0].id if topics else None,
                 "matched_alias": topics[0][1] if topics else None,
@@ -1436,29 +1436,33 @@ class AgentService:
         prior_messages = [
             item for item in messages if item["message_id"] != user_message["message_id"]
         ]
-        static_turn = trusted_action is None and (non_scheduling_semantics(content) or AgentRouter._confirmation_only(content))
-        employees = [] if static_turn else self.employees.list()
-        conversation = self.conversations.get_conversation(
-            conversation_id, browser_workspace_id
-        )
+        employees = self.employees.list()
+        conversation = self.conversations.get_conversation(conversation_id, browser_workspace_id)
         try:
-            if not static_turn:
-                from .dialogue_agent import DialogueAgent
-                dialogue_result = DialogueAgent(self).handle(
-                    conversation_id=conversation_id, workspace=browser_workspace_id,
-                    client_id=client_message_id, owner=owner_token, user=user_message, text=content,
-                    current_week_start=current_week_start, prior_messages=prior_messages,
-                    employees=employees, trusted_action=trusted_action,
-                )
-                if dialogue_result is not None:
-                    return dialogue_result
-            route = self.router.route(
-                content,
-                employees=employees,
+            from .dialogue_agent import DialogueAgent
+            from .dialogue_parser import parse_command
+            from .router_stages import RouterRun
+            from .agent_context import monday_for
+            dialogue = DialogueAgent(self)
+            command = None
+            semantic_run = RouterRun()
+            if trusted_action is None:
+                baseline = current_week_start or self.week_resolver._previous_target(prior_messages) or monday_for(date.today())
+                state = dialogue.repository.get(conversation_id, baseline)
+                command = parse_command(content, state, employees, self.llm,
+                    current_week_start=baseline, recent_messages=self._public_messages(prior_messages), run=semantic_run,
+                    state_for_week=lambda week: dialogue.repository.get(conversation_id, week))
+            route = self.router.route(content, employees=employees,
                 recent_messages=self._public_messages(prior_messages),
-                conversation_summary=(conversation or {}).get("summary"),
-                trusted_action=trusted_action,
-            )
+                conversation_summary=(conversation or {}).get("summary"), trusted_action=trusted_action,
+                **({"command": command, "run": semantic_run} if command is not None else {}))
+            dialogue_result = dialogue.handle(
+                conversation_id=conversation_id, workspace=browser_workspace_id,
+                client_id=client_message_id, owner=owner_token, user=user_message, text=content,
+                current_week_start=current_week_start, prior_messages=prior_messages,
+                employees=employees, trusted_action=trusted_action, command=command)
+            if dialogue_result is not None:
+                return dialogue_result
             if route.operations and route.mutation_requested:
                 route_scenario_patches(route.changes, canonical_conditions(route), route.operation)
                 route.changes = [ScheduleChange(employee_id=o.employee_id, type=o.type, day=o.day, shift=o.shift)
@@ -1676,17 +1680,15 @@ class AgentService:
             )
             schedule_result = None
             tool_output: dict[str, Any] | None = current
-            metadata: dict[str, Any] = {"turn_semantics": self._semantics_metadata(route)}
+            metadata: dict[str, Any] = {"turn_semantics": self._semantics_metadata(route),
+                **({"turn_command": route.turn_plan.model_dump(mode="json")} if route.turn_plan else {})}
             read_plan = route.read_query if (
                 route.read_query and route.intent in {AgentIntent.ASK, AgentIntent.EXPLAIN, AgentIntent.ADVICE, AgentIntent.VALIDATE}
                 and suggestion is None and route.read_query.question_type != "general_question"
             ) else None
             if route.read_query:
                 metadata["query_plan"] = route.read_query.model_dump(mode="json")
-            save_scenario_requested = any(
-                route.mutation_requested and token in content.lower()
-                for token in ("保存当前方案", "采用当前方案", "生成正式草稿")
-            )
+            save_scenario_requested = False  # Typed dialogue handles state-based draft requests.
             scenario_requested = (
                 route.intent is AgentIntent.WHAT_IF
                 and route.mutation_requested

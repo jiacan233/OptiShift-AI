@@ -351,7 +351,18 @@ export interface DialoguePending {
   proposal?: boolean
 }
 
+export interface DialogueStaffingConstraint {
+  scope: 'DAY' | 'SHIFT'
+  days: Day[]
+  shifts: ShiftType[]
+  min_count: number | null
+  target_count: number | null
+  max_count: number | null
+}
+
 export interface DialogueState {
+  staffing_constraints?: DialogueStaffingConstraint[]
+  proposed_staffing?: DialogueStaffingConstraint[] | null
   schema_version: number
   revision: number
   scenario_revision: number

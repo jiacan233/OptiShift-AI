@@ -53,61 +53,64 @@ def evaluate_router(case, database, output_dir):
     result = None
     failures = []
     try:
-        result = router.route(case["input"], employees=employees,
-                              recent_messages=PREVIOUS_MESSAGES)
-        elapsed = time.monotonic() - started
-        assert elapsed < 120, "120-second watchdog exceeded"
-        run = router.last_run
-        assert run.results.get("agent_route_lite"), "No actual Lite provider result"
+        from backend.app.models.dialogue import DialogueState, Condition
+        from backend.app.services.dialogue_parser import parse_command
+        from backend.app.services.router_stages import RouterRun
+        from datetime import date
+        state = DialogueState()
+        kind = case["kind"]
+        if kind in {"set_keep", "only_leave", "ordered"}:
+            state.conditions = [Condition(id=f"condition_{i}", source_message_id="fixture",
+                changes=[change]) for i, change in enumerate([
+                    {"employee_id": "E01", "type": "leave", "day": "Mon"},
+                    {"employee_id": "E01", "type": "leave", "day": "Tue"},
+                    {"employee_id": "E02", "type": "preference", "day": "Wed", "shift": "evening"},
+                ])]
+            state.context_ids = [c.id for c in state.conditions]
+        run = RouterRun()
+        command = parse_command(case["input"], state, employees, llm, current_week_start=date(2026, 10, 5),
+                                recent_messages=PREVIOUS_MESSAGES, run=run)
+        result = router.route(case["input"], employees=employees, recent_messages=PREVIOUS_MESSAGES,
+                              command=command, run=run)
+        assert time.monotonic() - started < 120, "120-second watchdog exceeded"
+        assert run.results.get("agent_semantic"), "No actual semantic provider result"
         assert any(o.get("provider_status") == 200 for o in llm.outputs), "No real HTTP 200"
         assert run.error_type is None, run.error_type
-        assert result.reference.type == "none"
-        kind = case["kind"]
-        if kind == "unspecified":
-            assert run.results["agent_route_lite"]["mutation_requested"]
-            assert result.employees == ["E17"] and not result.changes and not result.forced_assignments
-            assert result.intent == "clarification" and not result.mutation_requested
-            assert "agent_mutation" in run.results
+        assert all(len(e.employee_ids) <= 1 and len(e.days) <= 1 for e in command.edits)
+        atoms = {(e.employee_ids[0], e.days[0].value, e.type.value, e.shift.value if e.shift else None)
+                 for e in command.edits if e.employee_ids and e.days and e.type and e.operation == "add"}
+        if kind in {"unspecified", "missing_shift"}:
+            assert command.clarification or any(not e.days or not e.type or not e.shift for e in command.edits)
+            assert not command.force_generate
         elif kind == "leave":
-            assert result.intent == "replan" and result.mutation_requested
-            assert [(c.employee_id, c.day.value, c.type.value) for c in result.changes] == [("E01", "Mon", "leave")]
+            assert command.execution == "create_draft"
+            assert atoms == {("E01", "Mon", "leave", None)}
         elif kind == "force_missing":
-            assert run.results["agent_route_lite"]["force_or_override_intent"]
-            assert "agent_force" in run.results
-            assert result.intent == "clarification" and not result.force_generate and not result.requested_overrides
+            assert command.clarification and not (command.force_generate and command.requested_overrides)
         elif kind == "force":
-            assert result.force_generate and result.mutation_requested and "agent_force" in run.results
-            assert [(s.rule_id, s.employee_id, s.day.value, s.shift.value) for s in result.requested_overrides] == [("R08", "E01", "Wed", "morning")]
-            assert [(a.employee_id, a.day.value, a.shift.value) for a in result.forced_assignments] == [("E01", "Wed", "morning")]
-        elif kind == "set_keep":
-            assert result.intent == "what_if" and result.mutation_requested
-            assert [(o.employee_id, o.operation, o.day.value, o.shift.value if o.shift else None) for o in result.operations] == [("E01", "set", "Mon", None), ("E02", "add", "Wed", "evening")]
-        elif kind == "only_leave":
-            assert result.intent == "what_if" and result.mutation_requested
-            assert [(o.employee_id, o.operation, o.day.value) for o in result.operations] == [("E01", "set", "Mon")]
+            assert command.force_generate and command.execution == "create_draft"
+            assert [(s.rule_id, s.employee_id, s.day.value, s.shift.value) for s in command.requested_overrides] == [("R08", "E01", "Wed", "morning")]
+            assert [(a.employee_id, a.day.value, a.shift.value) for a in command.forced_assignments] == [("E01", "Wed", "morning")]
+        elif kind in {"set_keep", "only_leave", "ordered"}:
+            assert not command.clarification
+            assert command.edits or command.reference != "none"
+            assert command.execution != "create_draft"
+            assert all(set(e.reference_ids) <= set(state.context_ids) for e in command.edits)
         elif kind == "two_preferences":
-            assert result.mutation_requested
-            assert [(c.employee_id, c.day.value, c.type.value, c.shift.value) for c in result.changes] == [
-                ("E02", "Tue", "preference", "morning"), ("E02", "Wed", "preference", "evening")]
-            assert [(o.day.value, o.shift.value) for o in result.operations] == [("Tue", "morning"), ("Wed", "evening")]
-        elif kind == "missing_shift":
-            assert result.intent == "clarification" and not result.mutation_requested and not result.changes
+            assert command.execution == "preview"
+            assert atoms == {("E02", "Tue", "preference", "morning"), ("E02", "Wed", "preference", "evening")}
         elif kind == "multi":
-            assert result.mutation_requested
-            assert [(c.employee_id, c.day.value, c.type.value, c.shift.value if c.shift else None) for c in result.changes] == [
-                ("E01", "Mon", "leave", None), ("E01", "Tue", "leave", None), ("E02", "Wed", "preference", "evening")]
-        elif kind == "ordered":
-            assert result.mutation_requested
-            assert [(o.operation, o.employee_id, o.day.value if o.day else None) for o in result.operations] == [("clear", "E01", None), ("add", "E02", "Fri")]
+            assert command.execution == "create_draft"
+            assert atoms == {("E01", "Mon", "leave", None), ("E01", "Tue", "leave", None), ("E02", "Wed", "preference", "evening")}
         else:
-            assert not result.mutation_requested and not result.force_generate and not result.changes
+            assert not command.mutation_requested and not command.force_generate and not command.edits
             if kind == "hello":
-                assert result.intent == "ask"
+                assert command.domain == "smalltalk"
             if kind in {"staffing", "history"}:
-                assert result.read_query.day == "Sun"
-                assert result.read_query.question_type == ("staffing_explanation" if kind == "staffing" else "schedule_overview")
+                assert command.read_query.day == "Sun"
+                assert command.read_query.question_type == ("staffing_explanation" if kind == "staffing" else "schedule_overview")
             if kind == "feasibility":
-                assert result.read_query.question_type == "feasibility_explanation"
+                assert command.read_query.question_type == "feasibility_explanation"
     except Exception as exc:
         failures.append({"category": getattr(exc, "error_type", type(exc).__name__), "detail": str(exc)})
     finally:
@@ -124,7 +127,7 @@ def evaluate_router(case, database, output_dir):
               "router_latency_ms": sum(s["latency_ms"] for s in run.stages),
               "fallback_used": run.fallback_used, "error_type": run.error_type,
               "schema_bytes": max((s["schema_bytes"] for s in run.stages), default=0),
-              "lite_result": run.results.get("agent_route_lite"), "parser_results": run.results,
+              "turn_plan": run.results.get("agent_semantic"), "parser_results": run.results,
               "stages": run.stages, "final_route": result.model_dump(mode="json") if result else None,
               "provider_outputs": llm.outputs, "database_unchanged": before == after}
     serialized = json.dumps(record, ensure_ascii=False, indent=2)

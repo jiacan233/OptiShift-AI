@@ -82,12 +82,7 @@ def parse_stage(
 ) -> BaseModel:
     schema = strict_json_schema(model.model_json_schema())
     for fallback in (False, True):
-        semantic = name != "agent_route_lite"
-        stage_limit = (
-            positive_seconds("LLM_SEMANTIC_BUDGET_SECONDS", 20)
-            if semantic
-            else positive_seconds("LLM_ROUTER_TIMEOUT_SECONDS", 25)
-        )
+        stage_limit = positive_seconds("LLM_SEMANTIC_BUDGET_SECONDS", 20)
         limit = min(30, stage_limit, run.remaining())
         if fallback:
             limit = min(limit, positive_seconds("LLM_SCHEMA_RETRY_BUDGET_SECONDS", 10))

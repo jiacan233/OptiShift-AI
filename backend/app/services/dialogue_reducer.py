@@ -44,18 +44,35 @@ def reduce_command(original, command, *, message_id, employees, employee_revisio
             pending.execution_on_complete = "none"
     rollback = state.model_copy(deep=True)
     resume_execution = False
+    resolved_pending = {}
     known = {e.id: e for e in employees}
     if command.clarification:
         return state, command.clarification
     if command.minimize_changes:
         state.minimize_changes = True
     try:
+        if command.staffing_constraints or command.staffing_operation != "merge":
+            hypothetical = command.execution in {"analyze", "preview"}
+            previous = (state.proposed_staffing if state.proposed_staffing is not None else state.staffing_constraints) if hypothetical else state.staffing_constraints
+            updated = merge_staffing(previous, command.staffing_constraints, command.staffing_operation)
+            if hypothetical:
+                state.proposed_staffing = updated
+            else:
+                state.staffing_constraints = updated
+        if command.execution == "create_draft" and command.reference != "none" and state.proposed_staffing is not None:
+            state.staffing_constraints = state.proposed_staffing
+            state.proposed_staffing = None
         for edit in command.edits:
             if set(edit.employee_ids) - known.keys():
                 raise DialogueClarification("员工主数据中不存在：" + "、".join(set(edit.employee_ids) - known.keys()))
             if edit.operation == "cancel_pending":
-                state.tombstones.extend(p.id for p in state.pending)
-                state.pending = []
+                targets = [p for p in state.pending if (not edit.reference_ids or p.id in edit.reference_ids)
+                           and (not edit.employee_ids or p.employee_id in edit.employee_ids)]
+                if len(targets) != 1:
+                    raise DialogueClarification("请明确要取消的待补动作。")
+                ids = {p.id for p in targets}
+                state.tombstones.extend(ids)
+                state.pending = [p for p in state.pending if p.id not in ids]
                 if state.focus and state.focus.kind == "pending":
                     state.focus = None
                 continue
@@ -76,10 +93,13 @@ def reduce_command(original, command, *, message_id, employees, employee_revisio
                     if edit.old_day and not any(c.day == edit.old_day for c in item.changes):
                         raise DialogueClarification("当前焦点条件与要纠正的旧日期不一致，请指明条件。")
                     item.changes = [c.model_copy(update={
+                        **({"employee_id": edit.employee_ids[0]} if edit.employee_ids else {}),
+                        **({"type": edit.type} if edit.type else {}),
                         **({"day": edit.days[0]} if edit.days else {}),
                         **({"shift": edit.shift} if edit.shift else {}),
                     }) if not edit.old_day or c.day == edit.old_day else c for c in item.changes]
                     item.source_message_id = message_id
+                item.changes = [ScheduleChange.model_validate(c.model_dump()) for c in item.changes] if edit.operation == "correct" else item.changes
                 continue
             if edit.operation == "focus":
                 state.employee_focus = edit.employee_ids
@@ -97,7 +117,7 @@ def reduce_command(original, command, *, message_id, employees, employee_revisio
             if not member_ids and not state.pending and len(state.employee_focus) == 1:
                 member_ids = list(state.employee_focus)
             # An unrelated incomplete request never overwrites an existing action.
-            compatible = [p for p in state.pending if (not member_ids or not p.employee_id or p.employee_id in member_ids)
+            compatible = [p for p in state.pending if (not edit.reference_ids or p.id in edit.reference_ids) and (not member_ids or not p.employee_id or p.employee_id in member_ids)
                           and (not edit.type or not p.type or p.type == edit.type)]
             filling = compatible[0] if len(compatible) == 1 else None
             if len(compatible) > 1 and (not edit.days or not edit.type):
@@ -146,17 +166,20 @@ def reduce_command(original, command, *, message_id, employees, employee_revisio
                     (state.proposals if proposal else state.conditions).append(item)
                 state.employee_focus = list(dict.fromkeys(c.employee_id for c in item.changes))
                 state.focus = Focus(kind="proposal" if item in state.proposals else "condition", ids=[item.id])
+                if filling:
+                    resolved_pending[filling.id] = item.id
                 if item.id not in state.context_ids:
                     state.context_ids.append(item.id)
+        command.reference_ids = [resolved_pending.get(cid, cid) for cid in command.reference_ids]
         if command.reference == "active":
             selected = state.conditions
         elif command.reference_ids:
             selected = [i for i in state.conditions + state.proposals if i.id in command.reference_ids]
-            if len(selected) != len(set(command.reference_ids)):
+            if len(selected) + len({p.id for p in state.pending} & set(command.reference_ids)) != len(set(command.reference_ids)):
                 raise DialogueClarification("部分引用已失效，不能继续执行。")
         else:
             selected = state.current()
-        if command.expected_count is not None and command.expected_count != len(selected):
+        if command.expected_count is not None and command.expected_count != len(selected) + len(state.staffing_constraints):
             raise DialogueClarification(f"当前可明确定位 {len(selected)} 项要求，与你说的 {command.expected_count} 项不一致，请明确引用范围。")
         if command.adopt or command.execution == "create_draft":
             adopted = [p for p in state.proposals if p.id in {s.id for s in selected}]
@@ -203,3 +226,17 @@ def detect_conflicts(state: DialogueState, employees):
                     warnings.append(f"{employee.id} {day.value} 的偏好遇到硬不可用，偏好不能覆盖该限制。")
     state.conflicts, state.warnings = conflicts, warnings
     return conflicts
+
+
+def merge_staffing(previous, incoming, operation):
+    if operation == "clear":
+        if incoming:
+            raise DialogueClarification("清空人数条件不能同时携带新条件。")
+        return []
+    slots = {}
+    for constraints in ([] if operation == "replace" else previous, incoming):
+        for c in constraints:
+            for day in c.days:
+                for shift in (c.shifts if c.scope == "SHIFT" else [None]):
+                    slots[(c.scope, day, shift)] = c.model_copy(update={"days": [day], "shifts": [shift] if shift else []})
+    return list(slots.values())

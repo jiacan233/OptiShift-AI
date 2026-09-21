@@ -39,15 +39,9 @@ CATALOG: tuple[ProductKnowledgeEntry, ...] = (
 )
 
 
-def resolve_product_topics(text: str) -> list[tuple[ProductKnowledgeEntry, str]]:
-    normalized = text.casefold()
-    matches = []
-    for entry in CATALOG:
-        aliases = [alias for alias in entry.aliases if alias.casefold() in normalized]
-        if aliases:
-            matches.append((entry, max(aliases, key=len)))
-    return [(entry, alias) for entry, alias in matches
-            if not any(alias.casefold() in other.casefold() and len(other) > len(alias) for _, other in matches)]
+def resolve_product_topics(topic_ids: list[str]) -> list[tuple[ProductKnowledgeEntry, str]]:
+    """Lookup parser-selected catalog IDs, never classify user prose."""
+    return [(entry, entry.id) for entry in CATALOG if entry.id in topic_ids]
 
 
 def _entry_answer(entry: ProductKnowledgeEntry) -> str:
