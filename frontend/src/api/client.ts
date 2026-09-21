@@ -23,6 +23,8 @@ import type {
 } from '@/types'
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
+// Allow the backend's 300-second turn budget plus delivery time (LLM reads: 120s).
+const AGENT_REQUEST_TIMEOUT_MS = 310_000
 
 export class ApiError extends Error {
   problem: ApiProblem
@@ -41,6 +43,7 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
+    signal: options.signal ?? (path.startsWith('/api/agent/') ? AbortSignal.timeout(AGENT_REQUEST_TIMEOUT_MS) : undefined),
     headers: {
       Accept: 'application/json',
       ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }),
@@ -192,7 +195,7 @@ async function checkLlmHealth(): Promise<LlmHealthResult> {
 }
 
 const RECOVERY_DELAYS_MS = [300, 500, 1000, 2000, 3000, 5000, 5000]
-const RECOVERY_BUDGET_MS = 20_000
+const RECOVERY_BUDGET_MS = AGENT_REQUEST_TIMEOUT_MS
 
 function isRecoverableTurnProblem(error: unknown) {
   if (error instanceof ApiError) {
@@ -239,6 +242,7 @@ async function streamAgentMessage(
 ): Promise<AgentTurnResult> {
   const response = await fetch(`${API_BASE}/api/agent/conversations/${encodeURIComponent(conversationId)}/messages/stream`, {
     method: 'POST',
+    signal: AbortSignal.timeout(AGENT_REQUEST_TIMEOUT_MS),
     headers: { Accept: 'text/event-stream', 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })

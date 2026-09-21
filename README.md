@@ -80,11 +80,19 @@ docker compose up --build
 | `LLM_API_KEY` | OpenAI-compatible provider key | empty |
 | `LLM_MODEL` | Router/composer model | `gpt-4.1-mini` |
 | `LLM_BASE_URL` | OpenAI-compatible endpoint | `https://api.openai.com/v1` |
-| `LLM_READ_TIMEOUT_SECONDS` | Provider read timeout | `120` |
+| `LLM_READ_TIMEOUT_SECONDS` | Shared Agent Provider read/wall budget (routing, parsing, replies, explanations and retries) | `120` |
+| `LLM_CONNECT_TIMEOUT_SECONDS` | Provider connection timeout | `8` |
 | `LLM_HEALTH_READ_TIMEOUT_SECONDS` | AI health probe read timeout | `30` |
 | `CORS_ORIGINS` | Local frontend origins | localhost Vite origins |
 | `SOLVER_MAX_TIME_SECONDS` | CP-SAT time limit | `10` |
 | `SOLVER_RANDOM_SEED` | Deterministic seed | `42` |
+
+Agent LLM stages use `LLM_READ_TIMEOUT_SECONDS`; legacy `LLM_RESPONSE_BUDGET_SECONDS`,
+`LLM_SEMANTIC_BUDGET_SECONDS`, `LLM_ROUTER_TIMEOUT_SECONDS`, `LLM_ROUTER_BUDGET_SECONDS`
+and `LLM_SCHEMA_RETRY_BUDGET_SECONDS` no longer override it. Structured retries share
+the remaining budget. The overall turn retains its `AGENT_TURN_TIMEOUT_SECONDS=300`
+budget; browser Agent requests and result recovery allow 310 seconds. If the overall
+turn budget is increased, increase the browser budget accordingly.
 
 ## Data Model
 
@@ -313,11 +321,7 @@ Provider 请求统一通过 `AgentLLMClient`，路由、旧版意图解析和说
 | 环境变量 | 默认秒数 | 作用 |
 | --- | ---: | --- |
 | `LLM_CONNECT_TIMEOUT_SECONDS` | 8 | DNS、连接、TLS |
-| `LLM_READ_TIMEOUT_SECONDS` | 120 | 等待 Provider 响应数据 |
-| `LLM_ROUTER_BUDGET_SECONDS` | 60 | Router 所有阶段和兼容重试共用预算，最大 60 秒 |
-| `LLM_SEMANTIC_BUDGET_SECONDS` | 20 | 条件/授权语义提取阶段墙钟预算，最大 30 秒 |
-| `LLM_RESPONSE_BUDGET_SECONDS` | 8 | 可选回复组织和说明润色墙钟预算，最大 15 秒 |
-| `LLM_SCHEMA_RETRY_BUDGET_SECONDS` | 10 | 明确不支持 strict/schema 时唯一一次兼容重试预算 |
+| `LLM_READ_TIMEOUT_SECONDS` | 120 | Agent Provider 读取及墙钟预算；路由、语义提取、回复、说明和结构化重试统一读取 |
 | `LLM_WRITE_TIMEOUT_SECONDS` | 50 | 发送请求 |
 | `LLM_POOL_TIMEOUT_SECONDS` | 8 | 等待连接池 |
 | `LLM_HEALTH_READ_TIMEOUT_SECONDS` | 30 | AI 健康探针等待响应数据 |
@@ -327,7 +331,7 @@ Provider 请求统一通过 `AgentLLMClient`，路由、旧版意图解析和说
 
 所有秒数必须是有限正数，`0`、负数、文本、`NaN` 和 `inf` 均回退到上述默认值。旧 `LLM_TIMEOUT_SECONDS` 已废弃并被忽略，避免遗留的 5 秒配置继续影响聊天。生产配置由 CloudBase 控制台环境变量注入；不使用 `.env.cloudbase`。
 
-Provider read timeout 不等于 Agent turn timeout：120 秒是底层空闲读取上限，业务请求另受 Router、语义提取、回复组织的较短墙钟预算限制，整轮 300 秒预算供所有阶段共用。健康检查的基础聊天与结构化探针各使用独立的 30 秒预算；每个请求构造自己的 timeout，不修改共享客户端配置。连接、读取和其他网络失败不重试；只有 Provider 明确拒绝 strict/schema 功能时，Router 才在剩余预算内进行一次非 strict 兼容请求，格式错误不会触发这个兼容路径。剩余整轮预算更短时按剩余时间截断，回复组织额外预留结果返回时间。限量后台 HTTP worker 超时后不能执行业务写入，也不能覆盖超时结果。Solver timeout 仍是每次 CP-SAT 求解的 10 秒预算。
+Provider read timeout 不等于 Agent turn timeout：Provider 读取及墙钟预算统一为 120 秒，Router 各阶段及结构化重试共用剩余预算，整轮 300 秒预算供所有业务阶段共用。旧 `LLM_ROUTER_BUDGET_SECONDS`、`LLM_SEMANTIC_BUDGET_SECONDS`、`LLM_RESPONSE_BUDGET_SECONDS`、`LLM_SCHEMA_RETRY_BUDGET_SECONDS` 和 `LLM_ROUTER_TIMEOUT_SECONDS` 不再生效。前端请求和断线恢复等待 310 秒。健康检查的基础聊天与结构化探针各使用独立的 30 秒预算；每个请求构造自己的 timeout，不修改共享客户端配置。连接、读取和其他网络失败不重试；只有 Provider 明确拒绝 strict/schema 功能时，Router 才在剩余预算内进行一次非 strict 兼容请求，格式错误不会触发这个兼容路径。剩余整轮预算更短时按剩余时间截断，回复组织额外预留结果返回时间。限量后台 HTTP worker 超时后不能执行业务写入，也不能覆盖超时结果。Solver timeout 仍是每次 CP-SAT 求解的 10 秒预算。
 
 日志中的 `llm_complete` / `LLM request failed` 关联脱敏服务标识、模型、阶段、请求 ID、conversation/client message、耗时和错误分类；Router 阶段记录 attempt、retry_reason 与预算。测试观测可读取当前 `ExecutionTrace.provider_requests`，统计真实业务请求次数和结果；其中不保存提示词、密钥或隐藏推理，健康探针应单独统计。
 

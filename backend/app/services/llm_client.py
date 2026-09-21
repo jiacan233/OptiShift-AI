@@ -17,20 +17,11 @@ import httpx
 from jsonschema import Draft202012Validator
 from pydantic import ValidationError
 
-from ..config import positive_seconds
+from ..config import llm_read_timeout_seconds, positive_seconds
 from ..execution import ExecutionTimeout, current_execution
 
 logger = logging.getLogger("optishift.llm")
 _transport_slots = BoundedSemaphore(16)
-
-
-def provider_stage_budget(stage: str | None) -> float | None:
-    """Independent wall-clock budgets; callers may impose a smaller remaining budget."""
-    if stage in {"response_compose", "explanation"}:
-        return min(15, positive_seconds("LLM_RESPONSE_BUDGET_SECONDS", 8))
-    if stage in {"intent_parse", "agent_semantic", "semantic_parse"}:
-        return min(30, positive_seconds("LLM_SEMANTIC_BUDGET_SECONDS", 20))
-    return None
 
 
 def is_schema_unsupported(error: AIUnavailableError) -> bool:
@@ -249,7 +240,7 @@ class AgentLLMClient:
         self.base_url = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1").rstrip("/")
         self.timeout = httpx.Timeout(
             connect=positive_seconds("LLM_CONNECT_TIMEOUT_SECONDS", 8),
-            read=positive_seconds("LLM_READ_TIMEOUT_SECONDS", 120),
+            read=llm_read_timeout_seconds(),
             write=positive_seconds("LLM_WRITE_TIMEOUT_SECONDS", 50),
             pool=positive_seconds("LLM_POOL_TIMEOUT_SECONDS", 8),
         )
@@ -494,7 +485,7 @@ class AgentLLMClient:
             remaining -= 0.1
         limits = [
             value
-            for value in (provider_stage_budget(stage), read_timeout_seconds, remaining)
+            for value in (self.timeout.read, read_timeout_seconds, remaining)
             if value is not None
         ]
         wall_limit = min(limits) if limits else None
@@ -756,10 +747,9 @@ class AgentLLMClient:
         strict_output = strict_output and "deepseek" not in self.model.casefold() and not (
             (urlsplit(self.base_url).hostname or "").casefold() == "api.deepseek.com"
         )
-        budget = read_timeout_seconds
-        stage_budget = provider_stage_budget(stage)
-        if stage_budget is not None:
-            budget = min(budget, stage_budget) if budget is not None else stage_budget
+        budget = self.timeout.read
+        if read_timeout_seconds is not None:
+            budget = min(budget, read_timeout_seconds)
         started = time.monotonic()
         validation_retries = 0
         requests = 0
@@ -788,9 +778,7 @@ class AgentLLMClient:
                 if strict_output and is_schema_unsupported(exc):
                     strict_output = False
                     fallback_used = True
-                    compatibility_deadline = time.monotonic() + positive_seconds(
-                        "LLM_SCHEMA_RETRY_BUDGET_SECONDS", 10,
-                    )
+                    compatibility_deadline = started + budget
                     logger.info(
                         "LLM JSON mode fallback stage=%s reason=%s", stage, exc.provider_message,
                     )

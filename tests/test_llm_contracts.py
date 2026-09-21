@@ -41,12 +41,14 @@ def _response(content: str, status_code: int = 200) -> httpx.Response:
     )
 
 
-def _client(monkeypatch: pytest.MonkeyPatch) -> AgentLLMClient:
+def _client(monkeypatch: pytest.MonkeyPatch, read_timeout_seconds: float | None = None) -> AgentLLMClient:
     monkeypatch.setenv("LLM_ENABLED", "true")
     monkeypatch.setenv("LLM_API_KEY", "sk-test-secret")
     monkeypatch.setenv("LLM_MODEL", "gpt-4.1-mini")
     monkeypatch.setenv("LLM_BASE_URL", "https://api.openai.com/v1")
     monkeypatch.delenv("LLM_READ_TIMEOUT_SECONDS", raising=False)
+    if read_timeout_seconds is not None:
+        monkeypatch.setenv("LLM_READ_TIMEOUT_SECONDS", str(read_timeout_seconds))
     monkeypatch.delenv("LLM_HEALTH_READ_TIMEOUT_SECONDS", raising=False)
     return AgentLLMClient()
 
@@ -300,16 +302,11 @@ def test_provider_message_is_redacted_before_public_details(
     assert details["stage"] == "structured_output"
 
 
-@pytest.mark.parametrize("stage,budget_env,budget", [
-    ("response_compose", "LLM_RESPONSE_BUDGET_SECONDS", 3),
-    ("explanation", "LLM_RESPONSE_BUDGET_SECONDS", 3),
-    ("intent_parse", "LLM_SEMANTIC_BUDGET_SECONDS", 7),
-])
+@pytest.mark.parametrize("stage", ["response_compose", "explanation", "intent_parse"])
 def test_stage_budget_caps_every_http_phase_and_records_safe_request(
-    monkeypatch, stage, budget_env, budget
+    monkeypatch, stage
 ):
     client = _client(monkeypatch)
-    monkeypatch.setenv(budget_env, str(budget))
     client.base_url = "https://user:password@example.test/private?token=secret"
     execution = ExecutionTrace("conversation", "turn")
     execution.budget = 2
@@ -339,9 +336,30 @@ def test_stage_budget_caps_every_http_phase_and_records_safe_request(
         current_execution.reset(token)
 
 
+@pytest.mark.parametrize("stage", [
+    "response_compose", "explanation", "intent_parse", "agent_semantic",
+    "agent_semantic_repair", "agent_semantic_verifier", "structured_output",
+])
+@pytest.mark.parametrize("read_seconds", [120, 61])
+def test_agent_stages_use_shared_read_timeout_despite_legacy_budgets(monkeypatch, stage, read_seconds):
+    for name in ("RESPONSE", "SEMANTIC", "ROUTER", "SCHEMA_RETRY"):
+        monkeypatch.setenv(f"LLM_{name}_BUDGET_SECONDS", "8")
+    client = _client(monkeypatch, read_seconds)
+
+    def observe_post(_self, _url, **kwargs):
+        assert kwargs["timeout"].read == read_seconds
+        assert kwargs["timeout"].connect == 8
+        return _response("complete answer")
+
+    monkeypatch.setattr(httpx.Client, "post", observe_post)
+    assert client.complete_text(system="test", user={}, stage=stage) == "complete answer"
+    assert client.last_request_metrics["budget_seconds"] == read_seconds
+    from backend.app.services.router_stages import RouterRun
+    assert RouterRun().budget == read_seconds
+
+
 def test_response_wall_budget_stops_stalled_transport_without_late_result(monkeypatch):
-    client = _client(monkeypatch)
-    monkeypatch.setenv("LLM_RESPONSE_BUDGET_SECONDS", "0.03")
+    client = _client(monkeypatch, 0.03)
     release = threading.Event()
     finished = threading.Event()
     calls = []

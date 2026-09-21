@@ -13,7 +13,7 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
-from ..config import positive_seconds
+from ..config import llm_read_timeout_seconds
 from ..execution import current_execution, execution_stage
 from .llm_client import (
     AgentLLMClient,
@@ -35,9 +35,7 @@ def schema_bytes(schema: dict) -> int:
 @dataclass
 class RouterRun:
     started: float = field(default_factory=time.monotonic)
-    budget: float = field(
-        default_factory=lambda: min(60, positive_seconds("LLM_ROUTER_BUDGET_SECONDS", 60))
-    )
+    budget: float = field(default_factory=llm_read_timeout_seconds)
     fallback_used: bool = False
     stages: list[dict[str, Any]] = field(default_factory=list)
     results: dict[str, dict] = field(default_factory=dict)
@@ -82,10 +80,7 @@ def parse_stage(
 ) -> BaseModel:
     schema = strict_json_schema(model.model_json_schema())
     for fallback in (False, True):
-        stage_limit = positive_seconds("LLM_SEMANTIC_BUDGET_SECONDS", 20)
-        limit = min(30, stage_limit, run.remaining())
-        if fallback:
-            limit = min(limit, positive_seconds("LLM_SCHEMA_RETRY_BUDGET_SECONDS", 10))
+        limit = min(llm_read_timeout_seconds(), run.remaining())
         record = {
             "stage": name,
             "parser_name": name,

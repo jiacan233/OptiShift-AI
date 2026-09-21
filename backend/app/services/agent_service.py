@@ -975,7 +975,6 @@ class AgentService:
         )
         raise AgentTurnError(status_code, code, message, result, error_details)
 
-    @traced("resolve_context")
     def _resolve_week(
         self,
         *,
