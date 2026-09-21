@@ -83,6 +83,9 @@ jobs:
           tags: ai-workforce-scheduler:ci
 
   deploy-cloudbase:
+    concurrency:
+      group: cloudbase-production
+      cancel-in-progress: false
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: docker-build
@@ -127,6 +130,20 @@ jobs:
             fi
           done
           exit "$status"
+      - name: Verify serving revision
+        env:
+          DEPLOY_HEALTH_URL: https://optishift-ai-299444-11-1471387898.sh.run.tcloudbase.com/health
+        run: |
+          for attempt in $(seq 1 36); do
+            if curl --fail --silent --show-error --max-time 15 "$DEPLOY_HEALTH_URL" -o "$RUNNER_TEMP/cloudbase-health.json"; then
+              if python -c 'import json, os; from pathlib import Path; health=json.loads((Path(os.environ["RUNNER_TEMP"])/"cloudbase-health.json").read_text()); print("Serving revision:", health.get("commit_sha")); assert health.get("commit_sha") == os.environ["GITHUB_SHA"] and health.get("database") is True'; then
+                exit 0
+              fi
+            fi
+            sleep 10
+          done
+          echo 'CloudBase did not serve the expected healthy revision.'
+          exit 1
       - name: Dump CloudBase deployment diagnostics
         if: ${{ failure() }}
         run: |
