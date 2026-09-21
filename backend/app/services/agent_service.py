@@ -997,95 +997,6 @@ class AgentService:
             trusted_week=trusted_week,
         )
 
-    @staticmethod
-    def _make_suggestions(
-        target: ResolvedWeek, analysis: dict[str, Any], current: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        display = current.get("display") or {}
-        confirmed = current.get("confirmed") or {}
-        basis = (
-            display
-            if display.get("schedule_id") == analysis.get("schedule_id")
-            else confirmed or display
-        )
-        schedule_id = basis.get("schedule_id")
-        version = basis.get("version")
-        workload = analysis.get("workload") or {}
-        metrics = analysis.get("metrics") or {}
-        if schedule_id is None:
-            return [
-                {
-                    "id": "suggestion_1",
-                    "suggestion_id": "suggestion_1",
-                    "title": "先生成本周排班草稿",
-                    "description": "当前周还没有排班，可以先让确定性 Solver 生成一版草稿。",
-                    "proposed_changes": [],
-                    "target_week": target.week_start.isoformat(),
-                    "based_on_schedule_id": None,
-                    "based_on_version": None,
-                    "action": "generate",
-                }
-            ]
-        busiest = max(workload, key=workload.get) if workload else None
-        display_schedule = (current.get("display") or {}).get("schedule") or {}
-        busiest_assignment = next(
-            (
-                item
-                for item in display_schedule.get("assignments", [])
-                if item.get("employee_id") == busiest
-            ),
-            None,
-        )
-        balance_changes = (
-            [
-                {
-                    "employee_id": busiest,
-                    "type": ChangeType.UNASSIGN.value,
-                    "day": busiest_assignment["day"],
-                    "shift": busiest_assignment["shift"],
-                }
-            ]
-            if busiest and busiest_assignment
-            else []
-        )
-        balance_detail = (
-            f"可以尝试释放 {busiest} 的 {busiest_assignment['day']} "
-            f"{busiest_assignment['shift']} 班次"
-            if balance_changes
-            else "可以让 Solver 以最小改动目标重新检查分配"
-        )
-        return [
-            {
-                "id": "suggestion_1",
-                "suggestion_id": "suggestion_1",
-                "title": "复核员工班次偏好",
-                "description": (
-                    f"当前偏好满足率约为 {float(metrics.get('preference_rate', 0)):.0%}，"
-                    "可在保持硬规则成立的前提下重新优化。"
-                ),
-                "proposed_changes": [],
-                "target_week": target.week_start.isoformat(),
-                "based_on_schedule_id": schedule_id,
-                "based_on_version": version,
-                "action": "replan",
-            },
-            {
-                "id": "suggestion_2",
-                "suggestion_id": "suggestion_2",
-                "title": "复核工作量均衡",
-                "description": (
-                    f"当前工作量差值为 {metrics.get('workload_gap', 0)}"
-                    + (f"，{busiest} 的班次最多。" if busiest else "。")
-                    + f" {balance_detail}，再由 Solver 验证并由人工确认。"
-                ),
-                "proposed_changes": balance_changes,
-                "target_week": target.week_start.isoformat(),
-                "based_on_schedule_id": schedule_id,
-                "based_on_version": version,
-                "action": "replan",
-            },
-        ]
-
     @traced("response_compose")
     def _compose_read_response(
         self,
@@ -1303,7 +1214,7 @@ class AgentService:
                                            })
             except ValidationError as exc:
                 fail_routing(exc)
-            except ValueError as exc:
+            except (ValueError, ScenarioRevisionConflict, ScenarioInvalidatedError) as exc:
                 fail_routing(exc)
             execution.finish()
             assert execution.terminal_event is not None
@@ -1910,9 +1821,10 @@ class AgentService:
                     },
                     trace=trace,
                 )
-                metadata["suggestions"] = self._make_suggestions(
-                    target, tool_output, current
-                )
+                # Actionable advice is generated and persisted by DialogueAgent,
+                # which records provenance and dependency snapshots.  This route
+                # is retained for non-dialogue compatibility and must never
+                # manufacture legacy clickable suggestions.
             elif route.intent is AgentIntent.VALIDATE:
                 tool_output = self._run_tool(
                     conversation_id=conversation_id,

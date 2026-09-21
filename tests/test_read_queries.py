@@ -172,7 +172,7 @@ def test_normalized_week_does_not_create_reference(read_service):
 
 
 @pytest.mark.parametrize("stale", [None, "version", "scenario"])
-def test_explicit_scenario_suggestion_guard(read_service, database, monkeypatch, stale):
+def test_legacy_scenario_suggestion_is_never_executable(read_service, database, monkeypatch, stale):
     from backend.app.services.agent_service import AgentTurnError
     cid = read_service.create_conversation("read-workspace")["conversation_id"]
     state = read_service.tools.scenarios.upsert_patch(cid, WEEK, ScenarioPatch(employee_id="E03", days=["Wed"]))
@@ -186,16 +186,11 @@ def test_explicit_scenario_suggestion_guard(read_service, database, monkeypatch,
                                                     metadata={"suggestions": [suggestion]})
     before = database_snapshot(database, business_only=True)
     monkeypatch.setattr(read_service.tools.scheduling, "preview_scenario", lambda **kw: {"status": "scenario_preview", "strict_feasible": True})
-    if stale:
-        with pytest.raises(AgentTurnError) as error:
-            send(read_service, "按刚才第一条改", conversation_id=cid)
-        assert error.value.code == "suggestion_stale"
-        assert database_snapshot(database, business_only=True) == before
-    else:
-        result = send(read_service, "按刚才第一条改", conversation_id=cid)
-        assert result["schedule_result"]["status"] == "scenario_preview"
-        assert read_service.tools.scenarios.get(cid, WEEK).patches == []
-        assert result["tool_calls"][-1]["input"]["expected_revision"] == state.revision
+    # Matching versions do not make a persisted legacy card verified.
+    with pytest.raises(AgentTurnError) as error:
+        send(read_service, "按刚才第一条改", conversation_id=cid)
+    assert error.value.code == "suggestion_stale"
+    assert database_snapshot(database, business_only=True) == before
 
 
 @pytest.mark.parametrize("case", json.loads(
