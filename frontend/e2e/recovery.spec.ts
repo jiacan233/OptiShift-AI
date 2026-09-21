@@ -69,7 +69,12 @@ test('真实 save_draft 后丢失 terminal，自动 SAME-ID replay 且仅有一�
 for (const mode of ['result', 'processing', 'reader_failure', 'error', 'network_error_frame', '503', 'exhausted', 'hung'] as const) {
   test(`SSE recovery boundary: ${mode}`, async ({ page }) => {
     await page.goto('/')
-    const outcome = await page.evaluate(async mode => {
+    const expires = mode === 'exhausted' || mode === 'hung'
+    if (expires) {
+      await page.clock.install()
+      await page.clock.pauseAt(new Date())
+    }
+    const outcomePromise = page.evaluate(async mode => {
       const modulePath = '/src/api/client.ts'
       const { api } = await import(/* @vite-ignore */ modulePath)
       const original = window.fetch
@@ -89,6 +94,7 @@ for (const mode of ['result', 'processing', 'reader_failure', 'error', 'network_
           return new Response(encode('heartbeat', {}))
         }
         replay++
+        if (mode === 'exhausted' || mode === 'hung') document.body.dataset.recoveryStarted = 'true'
         if (mode === 'hung') return new Promise<Response>((_, reject) => options?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))))
         if (mode === 'exhausted' || (mode === 'processing' && replay === 1)) return Response.json({ error: problem('message_processing') }, { status: 409 })
         return Response.json(turn)
@@ -101,6 +107,12 @@ for (const mode of ['result', 'processing', 'reader_failure', 'error', 'network_
         return { result: null, calls, code: (error as { problem: { code: string } }).problem.code, elapsed: Date.now() - started, expected: input }
       } finally { window.fetch = original }
     }, mode)
+    if (expires) {
+      await expect.poll(() => page.evaluate(() => document.body.dataset.recoveryStarted)).toBe('true')
+      // Advance the production 310-second recovery budget without a real wait.
+      await page.clock.runFor(311_000)
+    }
+    const outcome = await outcomePromise
     const messageCalls = outcome.calls.filter(c => c.url.includes('/messages'))
     expect(messageCalls.every(c => {
       const body = c.body as typeof outcome.expected
@@ -115,7 +127,8 @@ for (const mode of ['result', 'processing', 'reader_failure', 'error', 'network_
       expect(outcome.result).toEqual({ marker: 'persisted' })
     } else if (mode === 'exhausted' || mode === 'hung') {
       expect(outcome.code).toBe('result_pending')
-      expect(outcome.elapsed).toBeLessThan(23_000)
+      expect(outcome.elapsed).toBeGreaterThanOrEqual(305_000)
+      expect(outcome.elapsed).toBeLessThanOrEqual(310_000)
     } else {
       expect(outcome.calls).toHaveLength(1)
       expect(outcome.code).toBe(mode === '503' ? 'conversation_busy' : mode === 'error' ? 'draft_pending' : 'network_error')
